@@ -13,7 +13,17 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['"Plus Jakarta Sans"', 'Figtree', ...defaultTheme.fontFamily.sans],
+            },
+            colors: {
+                brand: {
+                    maroon: '#7A0C2E',
+                    'maroon-hover': '#630824',
+                    'maroon-dark': '#4D051B',
+                    cream: '#FAF7F2',
+                    'cream-card': '#F5EFE6',
+                    'cream-border': '#EAE0D5',
+                },
             },
         },
     },

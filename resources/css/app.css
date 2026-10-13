@@ -1,3 +1,84 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Keyframe Animasi Floating & Smooth Entrance PlusFood */
+@keyframes floatSoft {
+    0%, 100% {
+        transform: translateY(0px) rotate(var(--rotate-base, 0deg));
+    }
+    50% {
+        transform: translateY(-9px) rotate(var(--rotate-base, 0deg));
+    }
+}
+
+@keyframes floatSoftOpposite {
+    0%, 100% {
+        transform: translateY(0px) rotate(var(--rotate-base, 0deg));
+    }
+    50% {
+        transform: translateY(8px) rotate(var(--rotate-base, 0deg));
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.03);
+        opacity: 1;
+    }
+}
+
+@keyframes pageFadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Helper Class Animasi */
+.animate-float-1 {
+    --rotate-base: -4deg;
+    animation: floatSoft 4.5s ease-in-out infinite;
+}
+
+.animate-float-2 {
+    --rotate-base: 5deg;
+    animation: floatSoftOpposite 5.2s ease-in-out infinite;
+}
+
+.animate-float-3 {
+    --rotate-base: -2deg;
+    animation: floatSoft 4.8s ease-in-out infinite 0.6s;
+}
+
+.animate-pulse-glow {
+    animation: pulseGlow 3.5s ease-in-out infinite;
+}
+
+.animate-page-enter {
+    animation: pageFadeSlide 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Transisi Inertia Halaman & Layout */
+.page-enter-active,
+.page-leave-active {
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.page-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
