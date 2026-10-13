@@ -1,52 +1,134 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
-import { sampleFoods } from '@/Utils/mockFoods';
-import { ref } from 'vue';
+import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
+import { sampleFoods, campusZones } from '@/Utils/mockFoods';
+import { ref, computed } from 'vue';
 import { useAuth } from '@/Composables/useAuth';
 
 const auth = useAuth();
 const searchQuery = ref('');
-const foods = ref(sampleFoods);
+const selectedCampus = ref('unesa-ketintang');
+const selectedRadius = ref('2 km');
+const selectedFastFilter = ref('Semua');
+const showLocationModal = ref(false);
+
+const radiuses = ['500 m', '1 km', '2 km', '3 km', '5 km'];
+const availableCampuses = computed(() => campusZones.filter(c => !c.isComingSoon));
+
+const currentCampusLabel = computed(() => {
+    const found = campusZones.find(c => c.id === selectedCampus.value);
+    return found ? found.name : 'UNESA Ketintang';
+});
+
+const fastFilters = [
+    'Semua',
+    'Nasi',
+    'Roti',
+    'Soto',
+    'Halal Only',
+    'Bebas Kacang',
+    '< Rp15.000'
+];
+
+const filteredFoods = computed(() => {
+    return sampleFoods.filter(item => {
+        // Search query filter
+        if (searchQuery.value) {
+            const q = searchQuery.value.toLowerCase();
+            const matchName = item.name.toLowerCase().includes(q) || item.shortName.toLowerCase().includes(q);
+            const matchMerchant = item.merchant.toLowerCase().includes(q);
+            const matchCategory = item.category.toLowerCase().includes(q);
+            if (!matchName && !matchMerchant && !matchCategory) return false;
+        }
+
+        // Campus zone filter if not all
+        if (selectedCampus.value !== 'all' && item.campusZone !== selectedCampus.value) {
+            // Keep nearby foods for demo if radius >= 2km
+            if (selectedRadius.value === '500 m' || selectedRadius.value === '1 km') {
+                return false;
+            }
+        }
+
+        // Fast filter bar
+        if (selectedFastFilter.value === 'Nasi' && item.category !== 'Nasi') return false;
+        if (selectedFastFilter.value === 'Roti' && item.category !== 'Roti') return false;
+        if (selectedFastFilter.value === 'Soto' && item.category !== 'Soto') return false;
+        if (selectedFastFilter.value === '< Rp15.000' && item.priceDiscount >= 15000) return false;
+        if (selectedFastFilter.value === 'Halal Only') {
+            const isHalal = item.dietaryTags?.includes('Halal') || item.tags.some(t => t.includes('Halal'));
+            if (!isHalal) return false;
+        }
+        if (selectedFastFilter.value === 'Bebas Kacang') {
+            const isNutFree = item.dietaryTags?.includes('Bebas Kacang') || (!item.name.toLowerCase().includes('kacang') && !item.description.toLowerCase().includes('kacang'));
+            if (!isNutFree) return false;
+        }
+
+        return true;
+    });
+});
 </script>
 
 <template>
     <MahasiswaLayout>
         <Head title="Beranda Mahasiswa - PlusFood" />
 
-        <div class="space-y-8">
+        <div class="space-y-7">
             
-            <!-- HEADER SAMBUTAN & METRIK PENYELAMATAN -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <!-- ================= 1. HEADER SAMBUTAN & METRIK GAMIFIKASI ================= -->
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <span class="text-xs font-semibold text-[#8C7A72]">
-                        Rabu malam, 19.12 WIB · Jaringan Kampus Surabaya
-                    </span>
-                    <h1 class="mt-1 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2D1B1E] flex items-center gap-2">
-                        Halo, {{ auth.user.value ? auth.user.value.name.split(' ')[0] : 'Raka' }}! <span class="text-3xl">👋</span>
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#8C7A72]">
+                        <span>Rabu malam, 19.12 WIB</span>
+                        <span>•</span>
+                        <!-- Location & Radius Selector Pill Sesuai PRD/Spec (Interactive Button) -->
+                        <button
+                            type="button"
+                            @click="showLocationModal = true"
+                            class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 border border-[#EAE0D5] text-[#2D1B1E] font-bold shadow-2xs hover:border-brand-maroon hover:shadow-xs transition cursor-pointer"
+                            title="Klik untuk ubah lokasi kampus atau radius jangkauan"
+                        >
+                            <svg class="h-3.5 w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            </svg>
+                            <span>{{ currentCampusLabel }} · Radius {{ selectedRadius }}</span>
+                            <svg class="h-3 w-3 text-[#A8988F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <h1 class="mt-1.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2D1B1E] flex items-center gap-2">
+                        Halo, {{ auth.user.value ? auth.user.value.name.split(' ')[0] : 'Raka' }}! 
+                        <span class="inline-block hover:rotate-12 transition-transform cursor-default">👋</span>
                     </h1>
-                    <p class="mt-1 text-sm font-medium text-[#6E5A54]">
-                        Ada 24 porsi surplus di bawah Rp15.000 tersebar di berbagai sentra kampus Surabaya.
+                    <p class="mt-1 text-xs sm:text-sm font-medium text-[#6E5A54]">
+                        Ada <strong class="text-brand-maroon font-bold">{{ filteredFoods.length }} porsi surplus</strong> ramah kantong siap diselamatkan di sekitarmu malam ini.
                     </p>
                 </div>
 
-                <!-- Card Metrik Gamifikasi Pojok Kanan -->
-                <div class="flex items-center gap-3.5 rounded-2xl bg-white p-4 shadow-sm border border-[#EAE0D5] sm:min-w-[280px]">
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <!-- Metrik Gamifikasi Ringkas Sesuai Dokumen UI (Level Rescuer & Tabungan Emisi) -->
+                <div class="flex items-center gap-3.5 rounded-[22px] bg-white p-4 shadow-xs border border-[#EAE0D5] lg:min-w-[340px]">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800 border-2 border-emerald-300 shadow-2xs">
+                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
                         </svg>
                     </div>
                     <div>
-                        <p class="text-xs font-semibold text-[#8C7A72]">Kamu sudah menyelamatkan</p>
-                        <p class="text-base font-extrabold text-[#2D1B1E]">
-                            14 porsi · <span class="text-brand-maroon">hemat Rp168.000</span>
+                        <div class="flex items-center gap-2">
+                            <span class="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-300/80">
+                                Level 3: Green Rescuer
+                            </span>
+                            <span class="text-[11px] font-bold text-emerald-700">🌱 2.4 kg CO2e dicegah</span>
+                        </div>
+                        <p class="text-xs sm:text-sm font-black text-[#2D1B1E] mt-1">
+                            14 porsi diselamatkan · <span class="text-brand-maroon">hemat Rp168.000</span>
                         </p>
                     </div>
                 </div>
             </div>
 
-            <!-- SEARCH INPUT JUMBO -->
+            <!-- ================= 2. SEARCH BAR & QUICK ACCESS ================= -->
             <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-[#9E8B83] pointer-events-none">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -56,16 +138,35 @@ const foods = ref(sampleFoods);
                 <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="Cari nasi, soto, roti, gorengan..."
+                    placeholder="Cari nasi ayam, soto koya, roti sobek, atau nama warung..."
                     class="w-full rounded-2xl border border-[#EAE0D5] bg-[#F5EFE6]/70 py-3.5 pl-12 pr-4 text-sm font-medium text-[#2D1B1E] placeholder-[#9E8B83] transition focus:border-brand-maroon focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-maroon/20"
                 />
             </div>
 
-            <!-- HERO BANNER PROMO & QUICK ACCESS CARDS -->
+            <!-- ================= 3. FILTER BAR CEPAT (HORIZONTAL SCROLL) SESUAI SPEC ================= -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <span class="text-xs font-bold text-[#8C7A72] shrink-0 mr-1 flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    Filter Cepat:
+                </span>
+                <button
+                    v-for="pill in fastFilters"
+                    :key="pill"
+                    @click="selectedFastFilter = pill"
+                    class="rounded-xl px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition"
+                    :class="selectedFastFilter === pill ? 'bg-brand-maroon text-white shadow-xs' : 'bg-white text-[#6E5A54] border border-[#EAE0D5] hover:bg-[#FAF7F2]'"
+                >
+                    {{ pill }}
+                </button>
+            </div>
+
+            <!-- ================= 4. BANNER FLASH URGENSI & QUICK ACTIONS ================= -->
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
                 
-                <!-- Hero Banner Maroon: Penyelamat Akhir Bulan (Span 8) -->
-                <div class="relative overflow-hidden rounded-[24px] bg-brand-maroon p-8 text-white shadow-md lg:col-span-8 flex flex-col justify-between min-h-[220px]">
+                <!-- Hero Banner Maroon: Flash Penyelamat Akhir Bulan (Span 8) -->
+                <div class="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#4A1521] via-brand-maroon to-[#2D0D14] p-8 text-white shadow-md lg:col-span-8 flex flex-col justify-between min-h-[220px]">
                     <!-- Background texture -->
                     <div class="absolute inset-0 opacity-20 mix-blend-overlay">
                         <img
@@ -75,16 +176,37 @@ const foods = ref(sampleFoods);
                         />
                     </div>
 
-                    <div class="relative z-10">
-                        <span class="inline-block rounded-lg bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur-sm">
-                            Promo s/d 31 Okt
-                        </span>
-                        <h2 class="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-                            Penyelamat<br />Akhir Bulan
+                    <div class="relative z-10 space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-400/25 px-3 py-1 text-xs font-bold text-amber-300 border border-amber-400/40">
+                                <svg class="h-3.5 w-3.5 text-amber-300" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2c-.67 0-1.28.37-1.58.96C9.28 5.2 6.5 8.9 6.5 13c0 3.03 2.47 5.5 5.5 5.5s5.5-2.47 5.5-5.5c0-4.1-2.78-7.8-3.92-10.04A1.75 1.75 0 0012 2zm0 14.5c-1.93 0-3.5-1.57-3.5-3.5 0-1.74 1.15-3.8 2.37-5.55.44-.64 1.82-.64 2.26 0 1.22 1.75 2.37 3.81 2.37 5.55 0 1.93-1.57 3.5-3.5 3.5z" />
+                                </svg>
+                                Flash Pickup: Tutup &lt; 45 Menit
+                            </span>
+                            <span class="rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur-xs">
+                                Diskon hingga 60%
+                            </span>
+                        </div>
+
+                        <h2 class="text-3xl font-black tracking-tight sm:text-4xl leading-tight">
+                            Penyelamat Akhir Bulan
                         </h2>
-                        <p class="mt-2 text-sm text-white/85 max-w-md font-medium">
-                            Diskon hingga 60% untuk makan malam hangat. Dompet tipis, perut tetap kenyang.
+                        <p class="text-xs sm:text-sm text-white/85 max-w-lg font-medium leading-relaxed">
+                            Makan malam hangat dari warung mitra favorit sekitar kampus. Ambil sebelum jam 20.30 WIB dengan diskon ekstrem.
                         </p>
+                    </div>
+
+                    <div class="relative z-10 pt-4 flex items-center gap-3">
+                        <Link
+                            :href="route('katalog')"
+                            class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 text-xs font-extrabold text-stone-900 shadow-md hover:bg-amber-300 transition"
+                        >
+                            <span>Eksplorasi Katalog Lengkap</span>
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </Link>
                     </div>
                 </div>
 
@@ -94,18 +216,21 @@ const foods = ref(sampleFoods);
                     <!-- Flash Pickup Card -->
                     <Link
                         :href="route('katalog')"
-                        class="group flex items-center justify-between rounded-[22px] bg-white p-5 border border-[#EAE0D5] shadow-sm transition-all hover:border-brand-maroon/40 hover:shadow-md"
+                        class="group flex items-center justify-between rounded-[22px] bg-white p-5 border border-[#EAE0D5] shadow-xs transition-all hover:border-brand-maroon/40 hover:shadow-md"
                     >
                         <div class="flex items-center gap-4">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 transition group-hover:scale-105">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 transition group-hover:scale-105 border border-rose-200">
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <circle cx="12" cy="12" r="10" stroke-width="2" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-sm font-bold text-[#2D1B1E] group-hover:text-brand-maroon transition">Flash Pickup 19.30</h3>
-                                <p class="text-xs text-[#8C7A72]">8 warung tutup dalam 1 jam</p>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-sm font-extrabold text-[#2D1B1E] group-hover:text-brand-maroon transition">Flash Pickup Malam</h3>
+                                    <span class="rounded bg-rose-100 px-1.5 py-0.5 text-[9px] font-black text-rose-700">URGENT</span>
+                                </div>
+                                <p class="text-xs text-[#8C7A72]">8 warung tutup dalam 45 menit</p>
                             </div>
                         </div>
                         <svg class="h-4 w-4 text-[#A8988F] transition-transform group-hover:translate-x-1 group-hover:text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,18 +241,18 @@ const foods = ref(sampleFoods);
                     <!-- Dekat Kos Kamu Card -->
                     <Link
                         :href="route('katalog')"
-                        class="group flex items-center justify-between rounded-[22px] bg-white p-5 border border-[#EAE0D5] shadow-sm transition-all hover:border-brand-maroon/40 hover:shadow-md"
+                        class="group flex items-center justify-between rounded-[22px] bg-white p-5 border border-[#EAE0D5] shadow-xs transition-all hover:border-brand-maroon/40 hover:shadow-md"
                     >
                         <div class="flex items-center gap-4">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 transition group-hover:scale-105">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 transition group-hover:scale-105 border border-amber-200">
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-sm font-bold text-[#2D1B1E] group-hover:text-brand-maroon transition">Dekat Kos Kamu</h3>
-                                <p class="text-xs text-[#8C7A72]">Maks. 15 menit jalan kaki</p>
+                                <h3 class="text-sm font-extrabold text-[#2D1B1E] group-hover:text-brand-maroon transition">Dekat Kos Kamu</h3>
+                                <p class="text-xs text-[#8C7A72]">Maks. 15 menit jalan kaki (&lt; 2 km)</p>
                             </div>
                         </div>
                         <svg class="h-4 w-4 text-[#A8988F] transition-transform group-hover:translate-x-1 group-hover:text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -138,84 +263,123 @@ const foods = ref(sampleFoods);
                 </div>
             </div>
 
-            <!-- SECTION REKOMENDASI MALAM INI -->
+            <!-- ================= 5. SECTION REKOMENDASI MALAM INI ================= -->
             <div>
                 <div class="flex items-center justify-between mb-5">
-                    <h2 class="text-lg font-extrabold text-[#2D1B1E]">Rekomendasi Malam Ini</h2>
-                    <Link :href="route('katalog')" class="text-xs font-bold text-brand-maroon hover:underline">
-                        Lihat semua
+                    <div>
+                        <h2 class="text-lg font-black text-[#2D1B1E]">Rekomendasi Malam Ini</h2>
+                        <p class="text-xs text-[#8C7A72]">Pilihan porsi terbaik dengan diskon 40%–60%</p>
+                    </div>
+                    <Link :href="route('katalog')" class="text-xs font-bold text-brand-maroon hover:underline flex items-center gap-1">
+                        <span>Lihat Semua Katalog</span>
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
                     </Link>
                 </div>
 
-                <!-- Grid Kartu Makanan (4 Kolom Sesuai Mockup Gambar 1) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div
-                        v-for="item in foods.slice(0, 4)"
-                        :key="item.id"
-                        class="group rounded-[22px] bg-white border border-[#EAE0D5] p-3 shadow-sm transition-all hover:shadow-lg hover:border-brand-maroon/30 flex flex-col justify-between"
+                <!-- Empty state if filter has no match -->
+                <div v-if="filteredFoods.length === 0" class="rounded-[24px] bg-white p-12 text-center border border-[#EAE0D5] space-y-3">
+                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-brand-maroon">
+                        <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-bold text-[#2D1B1E]">Tidak Ada Makanan Ditemukan</h3>
+                    <p class="text-xs text-[#8C7A72] max-w-sm mx-auto">
+                        Coba pilih filter lain atau reset pencarian untuk melihat surplus lainnya.
+                    </p>
+                    <button
+                        @click="selectedFastFilter = 'Semua'; searchQuery = ''"
+                        class="rounded-xl bg-brand-maroon px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition"
                     >
-                        <!-- Image Container with Discount & Favorite -->
-                        <div class="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-[#FAF7F2]">
-                            <img
-                                :src="item.image"
-                                :alt="item.name"
-                                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                            <!-- Discount Badge -->
-                            <span class="absolute top-2.5 left-2.5 rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-sm">
-                                Diskon {{ item.discountPercent }}%
-                            </span>
-                            <!-- Heart Bookmark Button -->
-                            <button class="absolute top-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-sm backdrop-blur-sm transition hover:text-rose-500 hover:scale-110">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        Reset Filter Cepat
+                    </button>
+                </div>
+
+                <!-- Grid Kartu Makanan Menggunakan FoodCard Component Sesuai Spec -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <FoodCard
+                        v-for="item in filteredFoods.slice(0, 8)"
+                        :key="item.id"
+                        :food="item"
+                    />
+                </div>
+            </div>
+
+            <!-- ================= MODAL LOCATION & RADIUS SELECTOR ================= -->
+            <div
+                v-if="showLocationModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-page-enter"
+            >
+                <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5">
+                    <!-- Close button -->
+                    <button
+                        @click="showLocationModal = false"
+                        class="absolute top-5 right-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#FAF7F2] text-gray-400 hover:text-gray-700 transition"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    <div>
+                        <div class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-brand-maroon mb-2">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            </svg>
+                            <span>Location-Based Rescue</span>
+                        </div>
+                        <h3 class="text-lg font-black text-[#2D1B1E]">Pilih Kampus & Radius Lokasi</h3>
+                        <p class="text-xs text-[#8C7A72]">Sesuaikan titik awal dan jarak tempuh makanan surplus terdekat.</p>
+                    </div>
+
+                    <!-- Pilihan Kampus Aktif -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-[#2D1B1E]">Kampus Acuan</label>
+                        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                            <button
+                                v-for="campus in availableCampuses"
+                                :key="campus.id"
+                                type="button"
+                                @click="selectedCampus = campus.id"
+                                class="w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold text-left transition"
+                                :class="selectedCampus === campus.id ? 'border-brand-maroon bg-[#F5EFE6] text-brand-maroon shadow-2xs' : 'border-[#EAE0D5] bg-[#FAF7F2] text-[#2D1B1E] hover:bg-white'"
+                            >
+                                <span class="truncate">{{ campus.name }}</span>
+                                <svg v-if="selectedCampus === campus.id" class="h-4 w-4 text-brand-maroon shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                                 </svg>
                             </button>
                         </div>
+                    </div>
 
-                        <!-- Card Content -->
-                        <div class="mt-3 flex-1 flex flex-col justify-between">
-                            <div>
-                                <p class="flex items-center gap-1.5 text-[11px] font-semibold text-[#8C7A72]">
-                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
-                                    <span>{{ item.merchant }}</span>
-                                </p>
-                                <Link :href="route('makanan.detail', item.slug)">
-                                    <h3 class="mt-1 text-sm font-bold text-[#2D1B1E] line-clamp-1 hover:text-brand-maroon transition">
-                                        {{ item.shortName }}
-                                    </h3>
-                                </Link>
-                            </div>
-
-                            <!-- Pricing & Stock -->
-                            <div class="mt-2.5">
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-base font-extrabold text-brand-maroon">
-                                        Rp{{ item.priceDiscount.toLocaleString('id-ID') }}
-                                    </span>
-                                    <span class="text-xs text-[#9E8B83] line-through font-medium">
-                                        Rp{{ item.priceOriginal.toLocaleString('id-ID') }}
-                                    </span>
-                                </div>
-
-                                <div class="mt-2 flex items-center justify-between border-t border-[#F5EFE6] pt-2 text-[11px] font-medium text-[#8C7A72]">
-                                    <span class="flex items-center gap-1 font-semibold text-[#6E5A54] truncate max-w-[130px]" :title="item.merchantZoneLabel">
-                                        <svg class="h-3 w-3 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        </svg>
-                                        <span class="truncate">{{ item.merchantZoneLabel || item.distance }}</span>
-                                    </span>
-                                    <span class="flex items-center gap-1 font-bold text-rose-700">
-                                        <svg class="h-3 w-3 text-rose-600 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 2c-.67 0-1.28.37-1.58.96C9.28 5.2 6.5 8.9 6.5 13c0 3.03 2.47 5.5 5.5 5.5s5.5-2.47 5.5-5.5c0-4.1-2.78-7.8-3.92-10.04A1.75 1.75 0 0012 2zm0 14.5c-1.93 0-3.5-1.57-3.5-3.5 0-1.74 1.15-3.8 2.37-5.55.44-.64 1.82-.64 2.26 0 1.22 1.75 2.37 3.81 2.37 5.55 0 1.93-1.57 3.5-3.5 3.5z" />
-                                        </svg>
-                                        Sisa {{ item.stock }} porsi
-                                    </span>
-                                </div>
-                            </div>
+                    <!-- Pilihan Radius -->
+                    <div class="space-y-2 pt-1">
+                        <label class="block text-xs font-bold text-[#2D1B1E]">Radius Maksimal (Jarak Tempuh)</label>
+                        <div class="grid grid-cols-5 gap-1.5">
+                            <button
+                                v-for="r in radiuses"
+                                :key="r"
+                                type="button"
+                                @click="selectedRadius = r"
+                                class="py-2 rounded-xl border text-xs font-bold text-center transition"
+                                :class="selectedRadius === r ? 'border-brand-maroon bg-brand-maroon text-white shadow-xs' : 'border-[#EAE0D5] bg-[#FAF7F2] text-[#6E5A54] hover:bg-white'"
+                            >
+                                {{ r }}
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- Tombol Terapkan -->
+                    <div class="pt-2">
+                        <button
+                            type="button"
+                            @click="showLocationModal = false"
+                            class="w-full rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition"
+                        >
+                            Terapkan Lokasi ({{ currentCampusLabel }} · Radius {{ selectedRadius }})
+                        </button>
                     </div>
                 </div>
             </div>

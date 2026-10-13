@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
+import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
 import { sampleFoods, campusZones } from '@/Utils/mockFoods';
 import { ref, computed } from 'vue';
 
@@ -91,6 +92,9 @@ const filteredFoods = computed(() => {
         if (selectedCategory.value !== 'Semua' && item.category !== selectedCategory.value) return false;
         // Filter campus zone
         if (selectedCampus.value !== 'all' && item.campusZone !== selectedCampus.value) return false;
+        // Checkboxes filters
+        if (filterRating.value && item.rating < 4.8) return false;
+        if (filterHalal.value && !(item.dietaryTags?.includes('Halal') || item.tags.some(t => t.includes('Halal')))) return false;
         return true;
     });
 });
@@ -604,76 +608,13 @@ const filteredFoods = computed(() => {
                         </button>
                     </div>
 
-                    <!-- Grid Kartu Makanan (3 Kolom Sesuai Mockup Gambar 2) -->
+                    <!-- Grid Kartu Makanan Menggunakan FoodCard Component -->
                     <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div
+                        <FoodCard
                             v-for="item in filteredFoods"
                             :key="item.id"
-                            class="group rounded-[24px] bg-white border border-[#EAE0D5] p-3 shadow-sm transition-all hover:shadow-xl hover:border-brand-maroon/30 flex flex-col justify-between"
-                        >
-                            <!-- Image Container with Discount & Heart -->
-                            <div class="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-[#FAF7F2]">
-                                <img
-                                    :src="item.image"
-                                    :alt="item.name"
-                                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                />
-                                <!-- Discount Badge -->
-                                <span class="absolute top-2.5 left-2.5 rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-sm">
-                                    Diskon {{ item.discountPercent }}%
-                                </span>
-                                <!-- Heart Bookmark Button -->
-                                <button class="absolute top-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-sm backdrop-blur-sm transition hover:text-rose-500 hover:scale-110">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <!-- Card Content -->
-                            <div class="mt-3.5 flex-1 flex flex-col justify-between">
-                                <div>
-                                    <p class="flex items-center gap-1.5 text-[11px] font-semibold text-[#8C7A72]">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
-                                        <span>{{ item.merchant }}</span>
-                                    </p>
-                                    <Link :href="route('makanan.detail', item.slug)">
-                                        <h3 class="mt-1 text-base font-bold text-[#2D1B1E] line-clamp-1 hover:text-brand-maroon transition">
-                                            {{ item.shortName }}
-                                        </h3>
-                                    </Link>
-                                </div>
-
-                                <!-- Pricing & Stock -->
-                                <div class="mt-3">
-                                    <div class="flex items-baseline gap-2">
-                                        <span class="text-lg font-extrabold text-brand-maroon">
-                                            Rp{{ item.priceDiscount.toLocaleString('id-ID') }}
-                                        </span>
-                                        <span class="text-xs text-[#9E8B83] line-through font-medium">
-                                            Rp{{ item.priceOriginal.toLocaleString('id-ID') }}
-                                        </span>
-                                    </div>
-
-                                    <div class="mt-2.5 flex items-center justify-between border-t border-[#F5EFE6] pt-2.5 text-xs font-medium text-[#8C7A72]">
-                                        <span class="flex items-center gap-1 font-semibold text-[#6E5A54] min-w-0" :title="item.merchantZoneLabel">
-                                            <svg class="h-3.5 w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            </svg>
-                                            <span class="truncate">{{ item.merchantZoneLabel || item.distance }}</span>
-                                        </span>
-                                        <span class="flex items-center gap-1 font-bold text-rose-700">
-                                            <svg class="h-3.5 w-3.5 text-rose-600 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M12 2c-.67 0-1.28.37-1.58.96C9.28 5.2 6.5 8.9 6.5 13c0 3.03 2.47 5.5 5.5 5.5s5.5-2.47 5.5-5.5c0-4.1-2.78-7.8-3.92-10.04A1.75 1.75 0 0012 2zm0 14.5c-1.93 0-3.5-1.57-3.5-3.5 0-1.74 1.15-3.8 2.37-5.55.44-.64 1.82-.64 2.26 0 1.22 1.75 2.37 3.81 2.37 5.55 0 1.93-1.57 3.5-3.5 3.5z" />
-                                            </svg>
-                                            Sisa {{ item.stock }} porsi
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                            :food="item"
+                        />
                     </div>
                 </template>
 

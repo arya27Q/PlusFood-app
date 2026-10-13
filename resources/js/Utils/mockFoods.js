@@ -83,7 +83,9 @@ export const sampleFoods = [
             { icon: 'salad', title: 'Lalapan Timun & Kemangi' },
             { icon: 'tempeh', title: 'Tempe Goreng Crispy' }
         ],
-        tags: ['Higienis & Halal', 'Menu Siap Santap Malam']
+        tags: ['Higienis & Halal', 'Menu Siap Santap Malam'],
+        dietaryTags: ['Halal', 'Bebas Kacang', 'Bebas Gluten'],
+        minutesLeft: 35
     },
     {
         id: 2,
@@ -119,7 +121,9 @@ export const sampleFoods = [
             { icon: 'sambal', title: 'Sambal Matah Segar' },
             { icon: 'salad', title: 'Urab Kacang Panjang' }
         ],
-        tags: ['Higienis & Halal', 'Pilihan Favorit']
+        tags: ['Higienis & Halal', 'Pilihan Favorit'],
+        dietaryTags: ['Halal', 'Pedas'],
+        minutesLeft: 25
     },
     {
         id: 3,
@@ -155,7 +159,9 @@ export const sampleFoods = [
             { icon: 'cracker', title: 'Koya Udang Asli Gurih' },
             { icon: 'sambal', title: 'Sambal Cabe Rawit Hijau' }
         ],
-        tags: ['Higienis & Halal', 'Kuah Hangat']
+        tags: ['Higienis & Halal', 'Kuah Hangat'],
+        dietaryTags: ['Halal', 'Bebas Kacang', 'Tanpa Laktosa'],
+        minutesLeft: 18
     },
     {
         id: 4,
@@ -191,7 +197,9 @@ export const sampleFoods = [
             { icon: 'sambal', title: 'Sambal Korek Bawang Pedas' },
             { icon: 'salad', title: 'Timun Segar' }
         ],
-        tags: ['Pedas Mantap', 'Favorit Mahasiswa ITS']
+        tags: ['Pedas Mantap', 'Favorit Mahasiswa ITS'],
+        dietaryTags: ['Halal', 'Bebas Kacang'],
+        minutesLeft: 45
     },
     {
         id: 5,
@@ -227,7 +235,9 @@ export const sampleFoods = [
             { icon: 'sambal', title: 'Sambal Pencit Asam Pedas' },
             { icon: 'salad', title: 'Kemangi & Timun' }
         ],
-        tags: ['Gurih Renyah', 'Favorit Mahasiswa UNAIR']
+        tags: ['Gurih Renyah', 'Favorit Mahasiswa UNAIR'],
+        dietaryTags: ['Halal', 'Bebas Kacang', 'Bebas Gluten'],
+        minutesLeft: 30
     },
     {
         id: 6,
@@ -263,7 +273,9 @@ export const sampleFoods = [
             { icon: 'salad', title: 'Acar Mentimun Segar' },
             { icon: 'cracker', title: 'Kerupuk Bawang' }
         ],
-        tags: ['Porsi Kenyang', 'Favorit Malam']
+        tags: ['Porsi Kenyang', 'Favorit Malam'],
+        dietaryTags: ['Halal', 'Bebas Kacang'],
+        minutesLeft: 50
     },
     {
         id: 7,
@@ -298,7 +310,9 @@ export const sampleFoods = [
             { icon: 'sambal', title: 'Cabai Rawit Hijau Segar' },
             { icon: 'sauce', title: 'Bumbu Petis Khas Jatim' }
         ],
-        tags: ['Garing & Hangat', 'Teman Nugas Mahasiswa UPN']
+        tags: ['Garing & Hangat', 'Teman Nugas Mahasiswa UPN'],
+        dietaryTags: ['Halal', 'Vegetarian'],
+        minutesLeft: 22
     },
     {
         id: 8,
@@ -334,7 +348,9 @@ export const sampleFoods = [
             { icon: 'egg', title: 'Telur Ceplok Setengah Matang' },
             { icon: 'sambal', title: 'Sambal Bawang Pedas Gurih' }
         ],
-        tags: ['Super Crispy', 'Favorit Mahasiswa Petra']
+        tags: ['Super Crispy', 'Favorit Mahasiswa Petra'],
+        dietaryTags: ['Halal', 'Bebas Kacang'],
+        minutesLeft: 40
     },
     {
         id: 9,
@@ -368,6 +384,134 @@ export const sampleFoods = [
             { icon: 'bread', title: '1 Kotak Roti Sobek 6 Porsi' },
             { icon: 'cheese', title: 'Isian Cokelat Belgia & Keju' }
         ],
-        tags: ['Tanpa Pengawet', 'Camilan Manis']
+        tags: ['Tanpa Pengawet', 'Camilan Manis'],
+        dietaryTags: ['Halal', 'Bebas Kacang', 'Vegetarian'],
+        minutesLeft: 42
     }
 ];
+
+// Inisialisasi Mock Pesanan (Shared antara Mahasiswa dan Mitra UMKM)
+export const initialOrders = [
+    {
+        id: 'PF-88219',
+        customerName: 'Raka Pratama',
+        nim: '23051204088',
+        whatsapp: '081234567890',
+        email: 'raka.pratama@mhs.unesa.ac.id',
+        food: sampleFoods[0],
+        quantity: 1,
+        ecoPackaging: 'bawa_sendiri',
+        ecoPackagingLabel: 'Bawa Wadah Sendiri (Gratis / +10 Poin)',
+        subtotal: 12000,
+        packagingFee: 0,
+        total: 12000,
+        pickupTime: '19.30 – 20.30 WIB',
+        pickupDeadline: '20.30 WIB',
+        date: 'Hari ini, 13 Okt 2026',
+        status: 'menunggu',
+        statusLabel: 'Menunggu Pickup',
+        qrCode: 'PF-UNESA-88219-BS',
+        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275'
+    },
+    {
+        id: 'PF-87904',
+        customerName: 'Ahmad Faiz',
+        nim: '23051204015',
+        whatsapp: '081298765432',
+        email: 'faiz.ahmad@mhs.its.ac.id',
+        food: sampleFoods[2],
+        quantity: 2,
+        ecoPackaging: 'kotak_kertas',
+        ecoPackagingLabel: 'Kotak Kertas (+Rp2.000)',
+        subtotal: 22000,
+        packagingFee: 2000,
+        total: 24000,
+        pickupTime: '19.00 – 20.30 WIB',
+        pickupDeadline: '20.30 WIB',
+        date: 'Hari ini, 13 Okt 2026',
+        status: 'selesai',
+        statusLabel: 'Selesai Diambil',
+        qrCode: 'PF-UNESA-87904-CH',
+        mapsUrl: 'https://maps.google.com/?q=-7.2915,112.7875',
+        isReviewed: false
+    },
+    {
+        id: 'PF-86412',
+        customerName: 'Dina Anindya',
+        nim: '23051204021',
+        whatsapp: '081987654321',
+        email: 'dina.anindya@mhs.unesa.ac.id',
+        food: sampleFoods[1],
+        quantity: 1,
+        ecoPackaging: 'bawa_sendiri',
+        ecoPackagingLabel: 'Bawa Wadah Sendiri',
+        subtotal: 13000,
+        packagingFee: 0,
+        total: 13000,
+        pickupTime: '18.30 – 20.00 WIB',
+        pickupDeadline: '20.00 WIB',
+        date: '12 Okt 2026',
+        status: 'dibatalkan',
+        statusLabel: 'Dibatalkan (Kadaluarsa)',
+        qrCode: 'PF-UNESA-86412-MA',
+        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275'
+    }
+];
+
+export function getSavedOrders() {
+    if (typeof window === 'undefined') return initialOrders;
+    try {
+        const data = localStorage.getItem('plusfood_orders');
+        return data ? JSON.parse(data) : initialOrders;
+    } catch (e) {
+        return initialOrders;
+    }
+}
+
+export function saveOrders(orders) {
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem('plusfood_orders', JSON.stringify(orders));
+        } catch (e) {}
+    }
+}
+
+export function addOrder(newOrder) {
+    const orders = getSavedOrders();
+    const updated = [newOrder, ...orders];
+    saveOrders(updated);
+    return updated;
+}
+
+export function updateOrderStatus(orderId, status) {
+    const orders = getSavedOrders();
+    const found = orders.find(o => o.id.toLowerCase() === orderId.toLowerCase() || o.qrCode.toLowerCase() === orderId.toLowerCase());
+    if (found) {
+        found.status = status;
+        found.statusLabel = status === 'selesai' ? 'Selesai Diambil' : (status === 'dibatalkan' ? 'Dibatalkan' : 'Menunggu Pickup');
+        saveOrders(orders);
+        return { success: true, order: found };
+    }
+    return { success: false, message: 'Tiket tidak ditemukan / salah kode' };
+}
+
+// Sistem Ulasan Berhadiah (+15 Green Points) sesuai Desain Sistem POV Mahasiswa
+export function addOrderReview(orderId, reviewData) {
+    const orders = getSavedOrders();
+    const found = orders.find(o => o.id.toLowerCase() === orderId.toLowerCase());
+    if (found) {
+        found.isReviewed = true;
+        found.review = {
+            rating: reviewData.rating || 5,
+            tags: reviewData.tags || [],
+            comment: reviewData.comment || '',
+            date: 'Hari ini',
+            pointsEarned: 15
+        };
+        saveOrders(orders);
+        return { success: true, pointsEarned: 15 };
+    }
+    return { success: false };
+}
+
+

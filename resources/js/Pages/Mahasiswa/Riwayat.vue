@@ -1,118 +1,240 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
-import { sampleFoods } from '@/Utils/mockFoods';
-import { ref } from 'vue';
+import { getSavedOrders, addOrderReview } from '@/Utils/mockFoods';
+import { ref, onMounted, computed } from 'vue';
 
-const activeTab = ref('menunggu'); // 'semua', 'menunggu', 'selesai', 'dibatalkan'
+const activeTab = ref('menunggu'); // 'menunggu', 'selesai', 'dibatalkan', 'semua'
 const showQrModal = ref(false);
+const showReviewModal = ref(false);
 const activeTicket = ref(null);
+const activeReviewOrder = ref(null);
+const reviewRating = ref(5);
+const selectedReviewTags = ref(['Porsi Pas & Kenyang', 'Masih Hangat']);
+const reviewComment = ref('');
+const reviewRewardToast = ref(false);
+const orders = ref([]);
 
-const orders = ref([
-    {
-        id: 'PF-88219',
-        food: sampleFoods[0],
-        quantity: 1,
-        total: 12000,
-        pickupTime: '19.30 – 20.30 WIB',
-        date: 'Hari ini, 12 Okt 2026',
-        status: 'menunggu',
-        statusLabel: 'Menunggu Pickup',
-        qrCode: 'PF-UNESA-88219-BS'
-    },
-    {
-        id: 'PF-87904',
-        food: sampleFoods[2],
-        quantity: 2,
-        total: 22000,
-        pickupTime: '19.00 – 20.30 WIB',
-        date: 'Kemarin, 11 Okt 2026',
-        status: 'selesai',
-        statusLabel: 'Selesai Diambil',
-        qrCode: 'PF-UNESA-87904-CH'
-    }
-]);
+const quickReviewTags = [
+    'Porsi Pas & Kenyang',
+    'Masih Hangat',
+    'Rasa Mantap',
+    'Kemasan Rapi',
+    'Pelayanan Ramah',
+    'Harga Bersahabat'
+];
+
+const reloadOrders = () => {
+    orders.value = getSavedOrders();
+};
+
+onMounted(() => {
+    reloadOrders();
+});
 
 const openQr = (order) => {
     activeTicket.value = order;
     showQrModal.value = true;
 };
+
+const openReviewModal = (order) => {
+    activeReviewOrder.value = order;
+    reviewRating.value = 5;
+    selectedReviewTags.value = ['Porsi Pas & Kenyang', 'Masih Hangat'];
+    reviewComment.value = '';
+    showReviewModal.value = true;
+};
+
+const toggleReviewTag = (tag) => {
+    const idx = selectedReviewTags.value.indexOf(tag);
+    if (idx >= 0) {
+        selectedReviewTags.value.splice(idx, 1);
+    } else {
+        selectedReviewTags.value.push(tag);
+    }
+};
+
+const submitReview = () => {
+    if (!activeReviewOrder.value) return;
+    addOrderReview(activeReviewOrder.value.id, {
+        rating: reviewRating.value,
+        tags: selectedReviewTags.value,
+        comment: reviewComment.value
+    });
+    showReviewModal.value = false;
+    reloadOrders();
+    reviewRewardToast.value = true;
+    setTimeout(() => {
+        reviewRewardToast.value = false;
+    }, 4500);
+};
+
+// Kalkulasi ringkasan dampak 1 semester sesuai dokumen desain
+const totalRescuedPortions = computed(() => {
+    return orders.value
+        .filter(o => o.status === 'selesai')
+        .reduce((acc, curr) => acc + (curr.quantity || 1), 14); // default 14 plus completed
+});
+
+const totalMoneySaved = computed(() => {
+    return totalRescuedPortions.value * 12000;
+});
+
+const totalCo2Saved = computed(() => {
+    return (totalRescuedPortions.value * 0.85).toFixed(1);
+});
+
+const totalGreenPoints = computed(() => {
+    const reviewBonus = orders.value.filter(o => o.isReviewed).length * 15;
+    return 140 + reviewBonus;
+});
+
+const filteredOrders = computed(() => {
+    if (activeTab.value === 'semua') return orders.value;
+    return orders.value.filter(o => o.status === activeTab.value);
+});
 </script>
 
 <template>
     <MahasiswaLayout>
-        <Head title="Riwayat Pesanan - PlusFood" />
+        <Head title="Riwayat Pesanan & Tiket QR - PlusFood" />
 
-        <div class="space-y-6 max-w-4xl mx-auto">
+        <div class="space-y-7 max-w-4xl mx-auto">
             
-            <!-- Header Riwayat & Dampak -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <!-- ================= HEADER RIWAYAT & METRIK DAMPAK SEMESTER ================= -->
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-3xl font-black text-[#2D1B1E]">Riwayat Pesanan</h1>
-                    <p class="text-xs text-[#8C7A72] mt-0.5">Kelola kupon reservasi digital dan ambil makanan tepat waktu.</p>
+                    <h1 class="text-3xl font-black text-[#2D1B1E]">Riwayat & Tiket QR</h1>
+                    <p class="text-xs text-[#8C7A72] mt-0.5">
+                        Tunjukkan QR Code digital kepada kasir mitra sebelum jam operasional berakhir.
+                    </p>
                 </div>
 
-                <!-- Tabs Filter Status -->
-                <div class="flex items-center gap-1.5 rounded-xl bg-white p-1.5 border border-[#EAE0D5]">
+                <!-- Tabs Filter Status Sesuai PRD Spec -->
+                <div class="flex items-center gap-1 rounded-2xl bg-white p-1.5 border border-[#EAE0D5] shadow-2xs overflow-x-auto">
                     <button
                         @click="activeTab = 'menunggu'"
-                        class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
-                        :class="activeTab === 'menunggu' ? 'bg-brand-maroon text-white shadow-sm' : 'text-[#8C7A72] hover:text-[#2D1B1E]'"
+                        class="rounded-xl px-3 py-1.5 text-xs font-bold transition whitespace-nowrap"
+                        :class="activeTab === 'menunggu' ? 'bg-brand-maroon text-white shadow-xs' : 'text-[#8C7A72] hover:text-[#2D1B1E]'"
                     >
-                        Menunggu Pickup
+                        Menunggu Pickup ({{ orders.filter(o => o.status === 'menunggu').length }})
                     </button>
                     <button
                         @click="activeTab = 'selesai'"
-                        class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
-                        :class="activeTab === 'selesai' ? 'bg-brand-maroon text-white shadow-sm' : 'text-[#8C7A72] hover:text-[#2D1B1E]'"
+                        class="rounded-xl px-3 py-1.5 text-xs font-bold transition whitespace-nowrap"
+                        :class="activeTab === 'selesai' ? 'bg-brand-maroon text-white shadow-xs' : 'text-[#8C7A72] hover:text-[#2D1B1E]'"
                     >
                         Selesai
                     </button>
                     <button
+                        @click="activeTab = 'dibatalkan'"
+                        class="rounded-xl px-3 py-1.5 text-xs font-bold transition whitespace-nowrap"
+                        :class="activeTab === 'dibatalkan' ? 'bg-brand-maroon text-white shadow-xs' : 'text-[#8C7A72] hover:text-[#2D1B1E]'"
+                    >
+                        Dibatalkan
+                    </button>
+                    <button
                         @click="activeTab = 'semua'"
-                        class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
-                        :class="activeTab === 'semua' ? 'bg-brand-maroon text-white shadow-sm' : 'text-[#8C7A72] hover:text-[#2D1B1E]'"
+                        class="rounded-xl px-3 py-1.5 text-xs font-bold transition whitespace-nowrap"
+                        :class="activeTab === 'semua' ? 'bg-brand-maroon text-white shadow-xs' : 'text-[#8C7A72] hover:text-[#2D1B1E]'"
                     >
                         Semua
                     </button>
                 </div>
             </div>
 
-            <!-- List Kartu Pesanan -->
+            <!-- ================= BANNER RINGKASAN DAMPAK 1 SEMESTER (POV DOCS) ================= -->
+            <div class="rounded-[24px] bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 p-6 text-white shadow-md">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="rounded bg-white/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-xs">
+                                Green Impact Semester Ini
+                            </span>
+                            <span class="text-xs text-emerald-200 font-semibold">Level 3 Rescuer</span>
+                        </div>
+                        <h2 class="text-xl font-black mt-1">Dampak Nyata Penyelamatan Makanan Anda</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                        <div class="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
+                            <span class="text-[10px] text-white/70 block uppercase font-bold">Porsi</span>
+                            <span class="text-base sm:text-lg font-black text-amber-300">{{ totalRescuedPortions }} Porsi</span>
+                        </div>
+                        <div class="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
+                            <span class="text-[10px] text-white/70 block uppercase font-bold">Hemat Uang</span>
+                            <span class="text-base sm:text-lg font-black text-emerald-300">Rp{{ totalMoneySaved.toLocaleString('id-ID') }}</span>
+                        </div>
+                        <div class="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
+                            <span class="text-[10px] text-white/70 block uppercase font-bold">Emisi Dicegah</span>
+                            <span class="text-base sm:text-lg font-black text-white">{{ totalCo2Saved }} kg</span>
+                        </div>
+                        <div class="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
+                            <span class="text-[10px] text-white/70 block uppercase font-bold">Green Points</span>
+                            <span class="text-base sm:text-lg font-black text-amber-200">🌱 {{ totalGreenPoints }} Poin</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= LIST KARTU PESANAN ================= -->
             <div class="space-y-4">
+                <!-- Empty State -->
+                <div v-if="filteredOrders.length === 0" class="rounded-[24px] bg-white p-12 text-center border border-[#EAE0D5] space-y-3">
+                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                        <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-bold text-[#2D1B1E]">Belum Ada Pesanan di Kategori Ini</h3>
+                    <p class="text-xs text-[#8C7A72] max-w-sm mx-auto">
+                        Jelajahi katalog surplus untuk menyelamatkan makanan enak ramah kantong malam ini.
+                    </p>
+                    <Link
+                        :href="route('katalog')"
+                        class="inline-block rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition"
+                    >
+                        Buka Katalog Surplus
+                    </Link>
+                </div>
+
+                <!-- Order Cards -->
                 <div
-                    v-for="order in orders"
+                    v-for="order in filteredOrders"
                     :key="order.id"
-                    v-show="activeTab === 'semua' || activeTab === order.status"
-                    class="rounded-[24px] bg-white p-6 border border-[#EAE0D5] shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6"
+                    class="rounded-[24px] bg-white p-6 border border-[#EAE0D5] shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 hover:shadow-md transition"
                 >
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-start gap-4">
                         <img
-                            :src="order.food.image"
-                            :alt="order.food.name"
-                            class="h-20 w-24 rounded-2xl object-cover bg-[#FAF7F2] shrink-0"
+                            :src="order.food?.image"
+                            :alt="order.food?.name"
+                            class="h-20 w-24 rounded-2xl object-cover bg-[#FAF7F2] shrink-0 border border-[#EAE0D5]"
                         />
                         <div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-brand-maroon">#{{ order.id }}</span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-xs font-black text-brand-maroon">#{{ order.id }}</span>
                                 <span class="text-[11px] text-[#8C7A72]">{{ order.date }}</span>
                                 <span
-                                    class="rounded-md px-2 py-0.5 text-[10px] font-bold"
-                                    :class="order.status === 'menunggu' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'"
+                                    class="rounded-md px-2 py-0.5 text-[10px] font-extrabold"
+                                    :class="{
+                                        'bg-amber-100 text-amber-800 border border-amber-300': order.status === 'menunggu',
+                                        'bg-emerald-100 text-emerald-800 border border-emerald-300': order.status === 'selesai',
+                                        'bg-stone-100 text-stone-600 border border-stone-200': order.status === 'dibatalkan'
+                                    }"
                                 >
                                     {{ order.statusLabel }}
                                 </span>
                             </div>
 
-                            <h3 class="text-base font-extrabold text-[#2D1B1E] mt-1">
-                                {{ order.food.shortName }} (x{{ order.quantity }})
+                            <h3 class="text-base font-extrabold text-[#2D1B1E] mt-1.5">
+                                {{ order.food?.shortName }} (x{{ order.quantity }})
                             </h3>
-                            <p class="text-xs text-[#8C7A72] mt-0.5 flex items-center gap-1.5">
-                                <span class="flex items-center gap-1">
+                            <p class="text-xs text-[#8C7A72] mt-0.5 flex flex-wrap items-center gap-1.5">
+                                <span class="flex items-center gap-1 font-semibold text-[#6E5A54]">
                                     <svg class="h-3.5 w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     </svg>
-                                    {{ order.food.merchant }}
+                                    {{ order.food?.merchant }}
                                 </span>
                                 <span>•</span>
                                 <span class="flex items-center gap-1">
@@ -120,8 +242,11 @@ const openQr = (order) => {
                                         <circle cx="12" cy="12" r="10" stroke-width="2" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
                                     </svg>
-                                    Ambil: {{ order.pickupTime }}
+                                    Batas Ambil: {{ order.pickupTime }}
                                 </span>
+                            </p>
+                            <p v-if="order.ecoPackagingLabel" class="text-[11px] text-emerald-700 font-semibold mt-1">
+                                📦 {{ order.ecoPackagingLabel }}
                             </p>
                         </div>
                     </div>
@@ -131,29 +256,55 @@ const openQr = (order) => {
                             Rp{{ order.total.toLocaleString('id-ID') }}
                         </p>
 
+                        <!-- Button Tampilkan QR jika menunggu pickup -->
                         <button
                             v-if="order.status === 'menunggu'"
                             @click="openQr(order)"
                             class="inline-flex items-center gap-2 rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-maroon/20 hover:bg-brand-maroon-hover transition"
                         >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
                             <span>Tampilkan QR Tiket</span>
                         </button>
-                        <span v-else class="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
-                            <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg>
-                            Berhasil Diselamatkan
+
+                        <!-- Selesai: Bisa beri ulasan berhadiah atau tampilkan badge diulas -->
+                        <div v-else-if="order.status === 'selesai'" class="flex flex-col sm:items-end gap-1.5">
+                            <span class="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                                <svg class="h-4 w-4 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                Selesai Diselamatkan
+                            </span>
+                            
+                            <button
+                                v-if="!order.isReviewed"
+                                @click="openReviewModal(order)"
+                                class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3.5 py-1.5 text-xs font-black text-stone-900 shadow-xs transition"
+                            >
+                                <span>⭐ Beri Ulasan (+15 Poin)</span>
+                            </button>
+                            <span
+                                v-else
+                                class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 border border-emerald-300"
+                            >
+                                <span>⭐ Diulas ({{ order.review?.rating }}/5) · +15 Poin</span>
+                            </span>
+                        </div>
+
+                        <span v-else class="text-xs font-bold text-stone-500">
+                            Pesanan Dibatalkan
                         </span>
                     </div>
                 </div>
             </div>
 
-            <!-- MODAL QR CODE TIKET DIGITAL -->
+            <!-- ================= MODAL QR CODE TIKET DIGITAL ================= -->
             <div
                 v-if="showQrModal"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-page-enter"
             >
-                <div class="relative w-full max-w-sm rounded-[28px] bg-white p-7 text-center shadow-2xl space-y-5">
+                <div class="relative w-full max-w-sm rounded-[28px] bg-white p-7 text-center shadow-2xl space-y-5 border border-[#EAE0D5]">
                     
                     <button
                         @click="showQrModal = false"
@@ -164,40 +315,164 @@ const openQr = (order) => {
                         </svg>
                     </button>
 
-                    <div class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
+                    <div class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 border border-rose-200">
                         Tiket Penyelamatan Makanan
                     </div>
 
                     <div>
-                        <h3 class="text-lg font-black text-[#2D1B1E]">{{ activeTicket?.food.shortName }}</h3>
-                        <p class="text-xs text-[#8C7A72] mt-0.5">{{ activeTicket?.food.merchant }}</p>
+                        <span class="rounded bg-[#FAF7F2] border border-[#EAE0D5] px-2 py-0.5 text-xs font-extrabold text-brand-maroon">
+                            {{ activeTicket?.id }}
+                        </span>
+                        <h3 class="text-lg font-black text-[#2D1B1E] mt-1">{{ activeTicket?.food?.shortName }} (x{{ activeTicket?.quantity }})</h3>
+                        <p class="text-xs text-[#8C7A72] mt-0.5">{{ activeTicket?.food?.merchant }}</p>
                     </div>
 
-                    <!-- QR Box Mockup -->
-                    <div class="mx-auto flex h-48 w-48 items-center justify-center rounded-2xl bg-[#FAF7F2] p-4 border-2 border-dashed border-brand-maroon/30 shadow-inner">
-                        <img
-                            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PLUSFOOD-TICKET-88219"
-                            alt="QR Code"
-                            class="h-full w-full object-contain"
-                        />
+                    <!-- QR Box Mockup Digital Sesuai Spec -->
+                    <div class="mx-auto w-48 h-48 rounded-2xl bg-[#FAF7F2] border-2 border-dashed border-[#D5C7BD] p-3 flex flex-col items-center justify-center shadow-inner">
+                        <svg class="w-36 h-36 text-[#2D1B1E]" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-5 0h3v3h-3v-3zm2 5h3v3h-3v-3zm3-2h3v5h-2v-3h-1v-2zm-5 2h2v3h-2v-3z"/>
+                        </svg>
+                        <span class="text-[9px] font-mono font-bold tracking-wider text-[#8C7A72] mt-1">
+                            {{ activeTicket?.qrCode }}
+                        </span>
                     </div>
 
-                    <div>
-                        <p class="text-xs font-mono font-bold text-[#2D1B1E] tracking-wider">{{ activeTicket?.id }}</p>
-                        <p class="text-[11px] text-rose-700 font-semibold mt-1">Batas Ambil: {{ activeTicket?.pickupTime }}</p>
+                    <!-- Instruksi Penjemputan Sesuai Docs -->
+                    <div class="rounded-xl bg-amber-50 p-3 border border-amber-200 text-left space-y-1">
+                        <p class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                            <svg class="h-3.5 w-3.5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10" stroke-width="2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+                            </svg>
+                            <span>Instruksi Penjemputan:</span>
+                        </p>
+                        <p class="text-[11px] text-amber-800 leading-snug">
+                            Tunjukkan QR ini ke kasir sebelum pukul <strong class="font-extrabold">{{ activeTicket?.pickupDeadline }}</strong>. Bayar Rp{{ activeTicket?.total?.toLocaleString('id-ID') }} saat serah terima.
+                        </p>
                     </div>
 
-                    <p class="text-[11px] text-[#8C7A72]">
-                        Tunjukkan QR Code ini kepada kasir warung saat pengambilan makanan untuk verifikasi instan.
-                    </p>
+                    <!-- Tombol Google Maps Petunjuk Arah -->
+                    <div class="pt-1">
+                        <a
+                            :href="activeTicket?.mapsUrl"
+                            target="_blank"
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Petunjuk Arah ke Warung (Google Maps)</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
 
+            <!-- ================= MODAL ULASAN BERHADIAH (+15 GREEN POINTS) ================= -->
+            <div
+                v-if="showReviewModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-page-enter"
+            >
+                <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5">
                     <button
-                        @click="showQrModal = false"
-                        class="w-full rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition"
+                        @click="showReviewModal = false"
+                        class="absolute top-5 right-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#FAF7F2] text-gray-400 hover:text-gray-700 transition"
                     >
-                        Tutup Tiket
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                     </button>
 
+                    <div>
+                        <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-black border border-emerald-300 mb-2">
+                            <span>🌱 +15 Green Points Reward</span>
+                        </div>
+                        <h3 class="text-xl font-black text-[#2D1B1E]">Ulas Makanan Diselamatkan</h3>
+                        <p class="text-xs text-[#8C7A72]">
+                            Bantu mitra <strong>{{ activeReviewOrder?.food?.merchant }}</strong> dan dapatkan poin gamifikasi!
+                        </p>
+                    </div>
+
+                    <!-- Bintang Rating -->
+                    <div class="space-y-1.5 text-center bg-[#FAF7F2] p-4 rounded-2xl border border-[#EAE0D5]">
+                        <span class="text-xs font-bold text-[#6E5A54] block">Nilai Pengalaman Anda</span>
+                        <div class="flex items-center justify-center gap-2 pt-1">
+                            <button
+                                v-for="star in 5"
+                                :key="star"
+                                type="button"
+                                @click="reviewRating = star"
+                                class="p-1 transition hover:scale-125"
+                            >
+                                <svg
+                                    class="h-8 w-8"
+                                    :class="star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 fill-none'"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <span class="text-xs font-bold text-amber-700">{{ reviewRating }} dari 5 Bintang</span>
+                    </div>
+
+                    <!-- Quick-Tags Selector Sesuai System Design Specs -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-[#2D1B1E]">Pilih Quick-Tags Penilaian:</label>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="tag in quickReviewTags"
+                                :key="tag"
+                                type="button"
+                                @click="toggleReviewTag(tag)"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition border"
+                                :class="selectedReviewTags.includes(tag) ? 'bg-brand-maroon text-white border-brand-maroon shadow-2xs' : 'bg-[#FAF7F2] text-[#6E5A54] border-[#EAE0D5] hover:bg-white'"
+                            >
+                                {{ selectedReviewTags.includes(tag) ? '✓ ' : '+ ' }}{{ tag }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Catatan / Ulasan Mahasiswa -->
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-[#2D1B1E]">Ulasan Tambahan (Opsional)</label>
+                        <textarea
+                            v-model="reviewComment"
+                            rows="2"
+                            placeholder="Contoh: Makanannya enak dan masih hangat, penjualnya sangat ramah..."
+                            class="w-full rounded-xl border border-[#EAE0D5] bg-[#FAF7F2] p-3 text-xs font-medium text-[#2D1B1E] focus:border-brand-maroon focus:bg-white focus:outline-none"
+                        ></textarea>
+                    </div>
+
+                    <!-- Submit CTA -->
+                    <div class="pt-1">
+                        <button
+                            type="button"
+                            @click="submitReview"
+                            class="w-full rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition flex items-center justify-center gap-2"
+                        >
+                            <span>Kirim Ulasan & Klaim +15 Poin</span>
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= REWARD TOAST POPUP ================= -->
+            <div
+                v-if="reviewRewardToast"
+                class="fixed bottom-24 sm:bottom-8 right-6 z-50 rounded-2xl bg-emerald-900 text-white px-5 py-3.5 shadow-2xl flex items-center gap-3 border border-emerald-500 animate-in slide-in-from-bottom duration-300"
+            >
+                <div class="h-9 w-9 rounded-xl bg-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0">
+                    🌱
+                </div>
+                <div>
+                    <h4 class="text-xs font-black">Ulasan Berhasil Terkirim!</h4>
+                    <p class="text-[11px] text-emerald-200">+15 Green Points telah ditambahkan ke profil Anda.</p>
                 </div>
             </div>
 

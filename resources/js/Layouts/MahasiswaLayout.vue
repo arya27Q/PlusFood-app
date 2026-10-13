@@ -72,6 +72,7 @@ const auth = useAuth();
                         />
                     </div>
 
+
                     <!-- Notifikasi Icon Pill -->
                     <button class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F5EFE6] text-[#7A6762] transition hover:bg-[#EAE0D5] hover:text-brand-maroon">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,9 +123,65 @@ const auth = useAuth();
         </header>
 
         <!-- ================= MAIN CONTENT SLOT ================= -->
-        <main class="mx-auto max-w-[1380px] p-6 sm:p-8 animate-page-enter">
+        <main class="mx-auto max-w-[1380px] p-6 sm:p-8 pb-24 md:pb-8 animate-page-enter">
             <slot />
         </main>
+
+        <!-- ================= BOTTOM NAVIGATION BAR (MOBILE-FIRST) ================= -->
+        <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE0D5] py-2 px-6 flex items-center justify-around shadow-lg">
+            <Link
+                :href="route('beranda')"
+                class="flex flex-col items-center gap-1 transition-colors"
+                :class="route().current('beranda') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl" :class="route().current('beranda') ? 'bg-[#F5EFE6]' : ''">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                </div>
+                <span class="text-[10px]">Beranda</span>
+            </Link>
+
+            <Link
+                :href="route('katalog')"
+                class="flex flex-col items-center gap-1 transition-colors"
+                :class="route().current('katalog') || route().current('makanan.detail') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl" :class="route().current('katalog') || route().current('makanan.detail') ? 'bg-[#F5EFE6]' : ''">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                </div>
+                <span class="text-[10px]">Katalog</span>
+            </Link>
+
+            <Link
+                :href="route('riwayat')"
+                class="flex flex-col items-center gap-1 relative transition-colors"
+                :class="route().current('riwayat') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl relative" :class="route().current('riwayat') ? 'bg-[#F5EFE6]' : ''">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                    </svg>
+                    <!-- Ping dot for active ticket -->
+                    <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
+                </div>
+                <span class="text-[10px]">Tiket & Riwayat</span>
+            </Link>
+
+            <Link
+                :href="route('mitra.dashboard')"
+                class="flex flex-col items-center gap-1 text-amber-800 font-bold hover:text-amber-900 transition-colors"
+            >
+                <div class="p-1 rounded-xl bg-amber-100 border border-amber-300">
+                    <svg class="h-5 w-5 text-amber-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+                <span class="text-[10px]">Mitra UMKM</span>
+            </Link>
+        </nav>
 
     </div>
 </template>

@@ -254,6 +254,34 @@ const subsidySaved = computed(() => {
                         </span>
                     </div>
 
+                    <!-- Dietary & Allergen Badges Sesuai PRD Spec -->
+                    <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-[#F5EFE6]">
+                        <span class="text-xs font-bold text-[#8C7A72] mr-1">Dietary & Allergen:</span>
+                        <span
+                            v-for="dTag in (food.dietaryTags || ['Halal', 'Bebas Kacang'])"
+                            :key="dTag"
+                            class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold border"
+                            :class="{
+                                'bg-emerald-50 text-emerald-800 border-emerald-300': dTag === 'Halal' || dTag === 'Vegetarian',
+                                'bg-amber-50 text-amber-800 border-amber-300': dTag.includes('Kacang') || dTag.includes('Gluten'),
+                                'bg-rose-50 text-rose-800 border-rose-300': dTag === 'Pedas',
+                                'bg-sky-50 text-sky-800 border-sky-300': dTag.includes('Laktosa')
+                            }"
+                        >
+                            <svg v-if="dTag === 'Halal'" class="h-3.5 w-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <svg v-else class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="9" />
+                                <path d="M12 8v8m-4-4h8" />
+                            </svg>
+                            <span>{{ dTag }}</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1 rounded-xl bg-[#FAF7F2] border border-[#EAE0D5] px-2.5 py-1 text-xs font-semibold text-[#6E5A54]">
+                            ✓ Jaminan Kelayakan Konsumsi Hari Ini
+                        </span>
+                    </div>
+
                     <!-- Price Card & Sisa Stok Alert Grid -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         
@@ -482,7 +510,7 @@ const subsidySaved = computed(() => {
 
                             <!-- Tombol CTA Reservasi Sekarang -->
                             <Link
-                                :href="route('checkout')"
+                                :href="route('checkout', { slug: food.slug, qty: quantity })"
                                 class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
                             >
                                 <span>Reservasi Sekarang</span>
@@ -519,6 +547,47 @@ const subsidySaved = computed(() => {
 
             </div>
 
+        </div>
+
+        <!-- ================= STICKY BOTTOM ACTION BAR (MOBILE-FIRST SESUAI SPEC) ================= -->
+        <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE0D5] p-3.5 shadow-2xl lg:hidden flex items-center justify-between gap-3">
+            <!-- Stepper Kuantitas Ringkas -->
+            <div class="flex items-center gap-2 rounded-xl bg-[#FAF7F2] p-1.5 border border-[#EAE0D5]">
+                <button
+                    @click="decrement"
+                    :disabled="quantity <= 1"
+                    class="h-7 w-7 rounded-lg bg-white font-black text-gray-700 shadow-2xs border border-[#EAE0D5] disabled:opacity-40"
+                >
+                    -
+                </button>
+                <span class="text-xs font-black text-[#2D1B1E] min-w-[14px] text-center">{{ quantity }}</span>
+                <button
+                    @click="increment"
+                    :disabled="quantity >= food.stock"
+                    class="h-7 w-7 rounded-lg bg-white font-black text-gray-700 shadow-2xs border border-[#EAE0D5] disabled:opacity-40"
+                >
+                    +
+                </button>
+            </div>
+
+            <!-- Total Dinamis -->
+            <div class="min-w-0">
+                <span class="text-[9px] font-bold text-[#8C7A72] block leading-none">TOTAL BAYAR</span>
+                <p class="text-base font-black text-brand-maroon truncate leading-tight">
+                    Rp{{ subtotal.toLocaleString('id-ID') }}
+                </p>
+            </div>
+
+            <!-- Tombol CTA -->
+            <Link
+                :href="route('checkout', { slug: food.slug, qty: quantity })"
+                class="flex-1 max-w-[170px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
+            >
+                <span>Reservasi</span>
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </Link>
         </div>
     </MahasiswaLayout>
 </template>
