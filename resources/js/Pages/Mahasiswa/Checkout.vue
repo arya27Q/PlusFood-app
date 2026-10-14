@@ -29,9 +29,13 @@ const ecoPackaging = ref('bawa_sendiri');
 // Payment
 const paymentMethod = ref('kasir');
 
-// Pickup time
-const selectedPickupTime = ref('19.00');
-const pickupSlots = ['18.30', '19.00', '19.30', '20.00'];
+// Pickup time & arrival
+const arrivalEstimates = [
+    { id: 'awal', label: 'Awal Jendela', sub: 'Saat surplus siap' },
+    { id: 'tengah', label: 'Pertengahan', sub: 'Fleksibel santai' },
+    { id: 'akhir', label: 'Menjelang Tutup', sub: 'Sebelum batas akhir' }
+];
+const selectedArrival = ref('tengah');
 const remindBefore = ref(true);
 
 onMounted(() => {
@@ -99,7 +103,7 @@ const confirmReservation = () => {
                 subtotal: subtotal.value,
                 packagingFee: packagingFee.value,
                 total: totalPayment.value,
-                pickupTime: selectedPickupTime.value + ' WIB',
+                pickupTime: food.value.pickupTime || '19.30 – 20.30 WIB',
                 pickupDeadline: food.value.pickupDeadlineInfo || 'Hari ini tutup 21.00 WIB',
                 date: 'Hari ini, 13 Okt 2026',
                 status: 'menunggu',
@@ -307,8 +311,13 @@ const confirmReservation = () => {
                     </div>
 
                     <!-- Pickup reminder -->
-                    <div class="rounded-xl bg-[#FAF7F2] border border-[#EAE0D5] p-3 text-[11px] text-[#6E5A54] leading-relaxed">
-                        ⏱ Ambil pukul <strong class="text-brand-maroon">{{ selectedPickupTime }} WIB</strong> di {{ food.location || 'Jl. Ketintang No.12' }}. Bawa wadah sendiri.
+                    <div class="rounded-xl bg-[#FAF7F2] border border-[#EAE0D5] p-3 text-[11px] text-[#6E5A54] leading-relaxed space-y-1">
+                        <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                            <svg class="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"/></svg>
+                            <span>Jadwal Ambil Gerai:</span>
+                        </div>
+                        <p class="font-extrabold text-brand-maroon text-xs">{{ food.pickupTime || '19.30 – 20.30 WIB' }}</p>
+                        <p class="text-[10px] text-[#8C7A72]">{{ food.merchant }} · {{ food.address || 'Ketintang Surabaya' }}</p>
                     </div>
                 </div>
 
@@ -340,29 +349,58 @@ const confirmReservation = () => {
 
                     <!-- Waktu + Wadah -->
                     <div class="rounded-[20px] bg-white border border-[#EAE0D5] shadow-sm p-6 space-y-5">
-                        <!-- Pickup time grid -->
+                        <!-- Official Merchant Pickup Time Card -->
                         <div>
-                            <div class="flex items-center gap-2 mb-3">
-                                <svg class="h-3.5 w-3.5 text-brand-maroon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
-                                <span class="text-xs font-bold text-[#2D1B1E]">Pengaturan Waktu Ambil</span>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <svg class="h-3.5 w-3.5 text-brand-maroon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+                                    <span class="text-xs font-bold text-[#2D1B1E]">Jadwal Ambil Resmi Gerai (Self-Pickup)</span>
+                                </div>
+                                <span class="rounded-lg bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 text-[10px] font-extrabold">
+                                    Jadwal UMKM
+                                </span>
                             </div>
-                            <div class="grid grid-cols-4 gap-2">
-                                <button
-                                    v-for="slot in pickupSlots"
-                                    :key="slot"
-                                    type="button"
-                                    @click="selectedPickupTime = slot"
-                                    class="rounded-xl py-2.5 text-xs font-bold border-2 transition"
-                                    :class="selectedPickupTime === slot ? 'bg-brand-maroon text-white border-brand-maroon shadow-md' : 'bg-[#FAF7F2] text-[#6E5A54] border-[#EAE0D5] hover:border-brand-maroon/50'"
-                                >
-                                    {{ slot }}
-                                </button>
+
+                            <!-- Big highlighted pickup time box -->
+                            <div class="rounded-2xl bg-amber-50/80 border-2 border-amber-300/80 p-4 space-y-2">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div>
+                                        <p class="text-[11px] font-semibold text-amber-900">Rentang Waktu Pengambilan:</p>
+                                        <p class="text-lg font-black text-brand-maroon tracking-tight">
+                                            {{ food.pickupTime || '19.30 – 20.30 WIB' }}
+                                        </p>
+                                    </div>
+                                    <span class="self-start sm:self-auto rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-amber-900 border border-amber-300 shadow-xs">
+                                        {{ food.pickupDeadlineInfo || 'Hari ini · sebelum gerai tutup' }}
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-[#6E5A54] leading-relaxed pt-1.5 border-t border-amber-200/60">
+                                    📍 Ambil di <strong>{{ food.merchant }}</strong> ({{ food.address }}). Tunjukkan tiket QR ke kasir saat tiba.
+                                </p>
                             </div>
+
+                            <!-- Pilihan Perkiraan Tiba Mahasiswa -->
+                            <div class="mt-3.5">
+                                <label class="block text-[11px] font-bold text-[#2D1B1E] mb-1.5">Perkiraan Kedatangan Saya (Fleksibel):</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button
+                                        v-for="arr in arrivalEstimates"
+                                        :key="arr.id"
+                                        type="button"
+                                        @click="selectedArrival = arr.id"
+                                        class="rounded-xl py-2 px-2 text-center border-2 transition"
+                                        :class="selectedArrival === arr.id ? 'bg-brand-maroon text-white border-brand-maroon shadow-xs' : 'bg-[#FAF7F2] text-[#6E5A54] border-[#EAE0D5] hover:border-brand-maroon/40'"
+                                    >
+                                        <p class="text-xs font-bold leading-tight">{{ arr.label }}</p>
+                                        <p class="text-[9px] opacity-80 mt-0.5 hidden sm:block">{{ arr.sub }}</p>
+                                    </button>
+                                </div>
+                            </div>
+
                             <label class="flex items-start gap-2 mt-3 cursor-pointer">
                                 <input type="checkbox" v-model="remindBefore" class="h-4 w-4 rounded text-brand-maroon focus:ring-brand-maroon mt-0.5 shrink-0" />
                                 <span class="text-[11px] text-[#6E5A54]">
-                                    Ingatkan 30 menit sebelumnya ·
-                                    <span class="text-brand-maroon font-bold">Tiba 15 mnt dari kos · batas akhir 20.00 WIB</span>
+                                    Ingatkan via WhatsApp 30 menit sebelum batas waktu pickup berakhir
                                 </span>
                             </label>
                         </div>
@@ -408,17 +446,27 @@ const confirmReservation = () => {
                         </div>
                     </div>
 
-                    <!-- Notes -->
+                    <!-- Notes & Allergen Request -->
                     <div class="rounded-[20px] bg-white border border-[#EAE0D5] shadow-sm p-6 space-y-3">
-                        <label class="block text-xs font-bold text-[#2D1B1E]">Catatan untuk Penjual</label>
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-[#2D1B1E]">Catatan untuk Penjual / Pantangan Alergi</label>
+                            <span class="text-[10px] text-[#8C7A72]">Maks. 120 karakter</span>
+                        </div>
                         <textarea
                             v-model="userNote"
                             rows="3"
                             maxlength="120"
-                            placeholder="Sambal dipisah ya, Bu."
+                            placeholder="Contoh: Sambal dipisah ya Bu, ada alergi kacang & telur..."
                             class="w-full rounded-xl border border-[#EAE0D5] bg-[#FAF7F2] px-3.5 py-2.5 text-xs text-[#2D1B1E] focus:border-brand-maroon focus:bg-white focus:outline-none resize-none transition"
                         ></textarea>
-                        <p class="text-[10px] text-[#8C7A72]">Opsional · maks. 120 karakter · {{ userNote.length }}/120</p>
+                        <div class="rounded-xl bg-[#FAF7F2] p-2.5 border border-[#EAE0D5] text-[11px] text-[#8C7A72] flex items-center gap-2">
+                            <svg class="h-4 w-4 text-amber-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="16" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12.01" y2="8" />
+                            </svg>
+                            <span>💡 Punya pantangan atau alergi khusus? Tuliskan instruksi di atas agar penjual dapat mempersiapkannya dengan aman.</span>
+                        </div>
                     </div>
 
                     <!-- Action bar -->

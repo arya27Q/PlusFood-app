@@ -1,13 +1,22 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
-import { getSavedOrders, addOrderReview } from '@/Utils/mockFoods';
+import PickupTicketDetail from '@/Components/Mahasiswa/PickupTicketDetail.vue';
+import { getSavedOrders, addOrderReview, updateOrderStatus } from '@/Utils/mockFoods';
 import { ref, onMounted, computed } from 'vue';
+
+const props = defineProps({
+    initialTicketId: {
+        type: String,
+        default: null,
+    },
+});
 
 const activeTab = ref('menunggu'); // 'menunggu', 'selesai', 'dibatalkan', 'semua'
 const showQrModal = ref(false);
 const showReviewModal = ref(false);
 const activeTicket = ref(null);
+const activeTicketOrder = ref(null);
 const activeReviewOrder = ref(null);
 const reviewRating = ref(5);
 const selectedReviewTags = ref(['Porsi Pas & Kenyang', 'Masih Hangat']);
@@ -26,6 +35,17 @@ const quickReviewTags = [
 
 const reloadOrders = () => {
     orders.value = getSavedOrders();
+    // Auto-buka tiket jika ada parameter URL atau prop initialTicketId
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const ticketId = props.initialTicketId || (urlParams ? urlParams.get('tiket') : null);
+    if (ticketId) {
+        const found = orders.value.find(o => o.id === ticketId || o.qrCode === ticketId);
+        if (found) {
+            activeTicketOrder.value = found;
+        } else if (orders.value.length > 0) {
+            activeTicketOrder.value = orders.value[0];
+        }
+    }
 };
 
 onMounted(() => {
@@ -33,8 +53,28 @@ onMounted(() => {
 });
 
 const openQr = (order) => {
-    activeTicket.value = order;
-    showQrModal.value = true;
+    activeTicketOrder.value = order;
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location);
+        url.searchParams.set('tiket', order.id);
+        window.history.pushState({}, '', url);
+    }
+};
+
+const handleBackFromTicket = () => {
+    activeTicketOrder.value = null;
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location);
+        url.searchParams.delete('tiket');
+        window.history.pushState({}, '', url.pathname);
+    }
+};
+
+const handleCancelOrder = (order) => {
+    updateOrderStatus(order.id, 'dibatalkan');
+    reloadOrders();
+    handleBackFromTicket();
+    activeTab.value = 'dibatalkan';
 };
 
 const openReviewModal = (order) => {
@@ -97,9 +137,18 @@ const filteredOrders = computed(() => {
 
 <template>
     <MahasiswaLayout>
-        <Head title="Riwayat Pesanan & Tiket QR - PlusFood" />
+        <Head :title="activeTicketOrder ? 'Tunjukkan QR ke Penjual - PlusFood' : 'Riwayat Pesanan & Tiket QR - PlusFood'" />
 
-        <div class="space-y-7 max-w-4xl mx-auto">
+        <!-- ===== VIEW DETAIL TIKET PICKUP DIGITAL (Image 2 Replica) ===== -->
+        <PickupTicketDetail
+            v-if="activeTicketOrder"
+            :order="activeTicketOrder"
+            @back="handleBackFromTicket"
+            @cancel="handleCancelOrder"
+        />
+
+        <!-- ===== VIEW RIWAYAT PESANAN UTAMA ===== -->
+        <div v-else class="space-y-7 max-w-4xl mx-auto">
             
             <!-- ================= HEADER RIWAYAT & METRIK DAMPAK SEMESTER ================= -->
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -295,75 +344,6 @@ const filteredOrders = computed(() => {
                         <span v-else class="text-xs font-bold text-stone-500">
                             Pesanan Dibatalkan
                         </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ================= MODAL QR CODE TIKET DIGITAL ================= -->
-            <div
-                v-if="showQrModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-page-enter"
-            >
-                <div class="relative w-full max-w-sm rounded-[28px] bg-white p-7 text-center shadow-2xl space-y-5 border border-[#EAE0D5]">
-                    
-                    <button
-                        @click="showQrModal = false"
-                        class="absolute top-5 right-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#FAF7F2] text-gray-400 hover:text-gray-700 transition"
-                    >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-
-                    <div class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 border border-rose-200">
-                        Tiket Penyelamatan Makanan
-                    </div>
-
-                    <div>
-                        <span class="rounded bg-[#FAF7F2] border border-[#EAE0D5] px-2 py-0.5 text-xs font-extrabold text-brand-maroon">
-                            {{ activeTicket?.id }}
-                        </span>
-                        <h3 class="text-lg font-black text-[#2D1B1E] mt-1">{{ activeTicket?.food?.shortName }} (x{{ activeTicket?.quantity }})</h3>
-                        <p class="text-xs text-[#8C7A72] mt-0.5">{{ activeTicket?.food?.merchant }}</p>
-                    </div>
-
-                    <!-- QR Box Mockup Digital Sesuai Spec -->
-                    <div class="mx-auto w-48 h-48 rounded-2xl bg-[#FAF7F2] border-2 border-dashed border-[#D5C7BD] p-3 flex flex-col items-center justify-center shadow-inner">
-                        <svg class="w-36 h-36 text-[#2D1B1E]" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-5 0h3v3h-3v-3zm2 5h3v3h-3v-3zm3-2h3v5h-2v-3h-1v-2zm-5 2h2v3h-2v-3z"/>
-                        </svg>
-                        <span class="text-[9px] font-mono font-bold tracking-wider text-[#8C7A72] mt-1">
-                            {{ activeTicket?.qrCode }}
-                        </span>
-                    </div>
-
-                    <!-- Instruksi Penjemputan Sesuai Docs -->
-                    <div class="rounded-xl bg-amber-50 p-3 border border-amber-200 text-left space-y-1">
-                        <p class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                            <svg class="h-3.5 w-3.5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <circle cx="12" cy="12" r="10" stroke-width="2" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
-                            </svg>
-                            <span>Instruksi Penjemputan:</span>
-                        </p>
-                        <p class="text-[11px] text-amber-800 leading-snug">
-                            Tunjukkan QR ini ke kasir sebelum pukul <strong class="font-extrabold">{{ activeTicket?.pickupDeadline }}</strong>. Bayar Rp{{ activeTicket?.total?.toLocaleString('id-ID') }} saat serah terima.
-                        </p>
-                    </div>
-
-                    <!-- Tombol Google Maps Petunjuk Arah -->
-                    <div class="pt-1">
-                        <a
-                            :href="activeTicket?.mapsUrl"
-                            target="_blank"
-                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition"
-                        >
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <span>Petunjuk Arah ke Warung (Google Maps)</span>
-                        </a>
                     </div>
                 </div>
             </div>

@@ -1,6 +1,6 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
-import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import ApplicationLogo from '@/Components/UI/ApplicationLogo.vue';
 import ScanQrModal from '@/Components/Mitra/ScanQrModal.vue';
 import { ref } from 'vue';
 

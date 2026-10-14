@@ -64,6 +64,20 @@ Route::get('/riwayat', function () {
     return Inertia::render('Mahasiswa/Riwayat');
 })->name('riwayat');
 
+Route::get('/profil', function () {
+    return Inertia::render('Mahasiswa/Profil');
+})->name('profil');
+
+Route::get('/tiket/{id?}', function ($id = 'PF-88219') {
+    return Inertia::render('Mahasiswa/Riwayat', [
+        'initialTicketId' => $id,
+    ]);
+})->name('tiket');
+
+Route::get('/loading', function () {
+    return Inertia::render('SplashScreen');
+})->name('loading');
+
 // 4. POV Mitra UMKM (Merchant)
 Route::get('/mitra/dashboard', function () {
     return Inertia::render('Mitra/Dashboard');

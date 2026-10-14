@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import { sampleFoods } from '@/Utils/mockFoods';
 import { ref, computed } from 'vue';
-import FoodPackageIcon from '@/Components/FoodPackageIcon.vue';
+import FoodPackageIcon from '@/Components/Mahasiswa/FoodPackageIcon.vue';
 
 const getCardTheme = (pkg) => {
     const raw = (pkg.icon || '').toLowerCase();
@@ -256,16 +256,16 @@ const subsidySaved = computed(() => {
 
                     <!-- Dietary & Allergen Badges Sesuai PRD Spec -->
                     <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-[#F5EFE6]">
-                        <span class="text-xs font-bold text-[#8C7A72] mr-1">Dietary & Allergen:</span>
+                        <span class="text-xs font-bold text-[#8C7A72] mr-1">Dietary & Alergen:</span>
                         <span
                             v-for="dTag in (food.dietaryTags || ['Halal', 'Bebas Kacang'])"
                             :key="dTag"
                             class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold border"
                             :class="{
                                 'bg-emerald-50 text-emerald-800 border-emerald-300': dTag === 'Halal' || dTag === 'Vegetarian',
+                                'bg-sky-50 text-sky-800 border-sky-300': dTag === 'Tidak Pedas',
                                 'bg-amber-50 text-amber-800 border-amber-300': dTag.includes('Kacang') || dTag.includes('Gluten'),
-                                'bg-rose-50 text-rose-800 border-rose-300': dTag === 'Pedas',
-                                'bg-sky-50 text-sky-800 border-sky-300': dTag.includes('Laktosa')
+                                'bg-rose-50 text-rose-800 border-rose-300': dTag === 'Pedas'
                             }"
                         >
                             <svg v-if="dTag === 'Halal'" class="h-3.5 w-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
@@ -277,6 +277,15 @@ const subsidySaved = computed(() => {
                             </svg>
                             <span>{{ dTag }}</span>
                         </span>
+
+                        <!-- Badge Kandungan Alergen Khusus -->
+                        <span v-if="food.allergens?.length" class="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900 border border-amber-300">
+                            <svg class="h-3.5 w-3.5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span>Alergen: {{ food.allergens.join(', ') }}</span>
+                        </span>
+
                         <span class="inline-flex items-center gap-1 rounded-xl bg-[#FAF7F2] border border-[#EAE0D5] px-2.5 py-1 text-xs font-semibold text-[#6E5A54]">
                             ✓ Jaminan Kelayakan Konsumsi Hari Ini
                         </span>
@@ -401,6 +410,24 @@ const subsidySaved = computed(() => {
                                 </span>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Edukasi & Peringatan Alergen Resmi (Sesuai Kesepakatan UX) -->
+                    <div class="rounded-2xl bg-amber-50/70 p-4 border-2 border-amber-200/90 text-amber-950 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-200/70 text-amber-800 shrink-0">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-black text-amber-950">Edukasi & Catatan Alergen Makanan Surplus</h4>
+                                <p class="text-[10px] text-amber-800 font-semibold">Harap diperhatikan bagi rekan mahasiswa dengan riwayat alergi tertentu</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-amber-900 leading-relaxed font-medium">
+                            Menu ini disiapkan segar oleh gerai <strong>{{ food.merchant }}</strong> menggunakan dapur operasional bersama. Walaupun standar higienitas dipatuhi, kemungkinan kontak silang (*cross-contact*) dengan alergen seperti <strong>{{ food.allergens?.join(', ') || 'kacang, telur, kedelai, atau gluten' }}</strong> tetap ada. Jika memiliki alergi berat, cantumkan instruksi di catatan checkout atau hubungi penjual saat tiba di lokasi.
+                        </p>
                     </div>
 
                     <!-- Profil Singkat Mitra Kantin -->

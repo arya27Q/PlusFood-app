@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import InputError from '@/Components/UI/InputError.vue';
+import PrimaryButton from '@/Components/UI/PrimaryButton.vue';
+import LoadingScreen from '@/Components/UI/LoadingScreen.vue';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 
 defineProps({
     canResetPassword: {
@@ -19,6 +20,7 @@ import { useAuth } from '@/Composables/useAuth';
 
 const isVisible = ref(false);
 const showPassword = ref(false);
+const isLoggingIn = ref(false);
 const auth = useAuth();
 
 const form = ref({
@@ -35,13 +37,25 @@ onMounted(() => {
 });
 
 const submit = () => {
-    auth.login(form.value.email, form.value.password);
+    isLoggingIn.value = true;
+    auth.login(form.value.email, form.value.password, false);
+};
+
+const handleLoginFinish = () => {
+    router.visit(route('beranda'));
 };
 </script>
 
 <template>
     <GuestLayout>
         <Head title="Masuk Akun - PlusFood" />
+
+        <!-- Transition Loading Screen ke Beranda -->
+        <LoadingScreen
+            v-if="isLoggingIn"
+            :duration="2000"
+            @finish="handleLoginFinish"
+        />
 
         <div class="grid grid-cols-1 md:grid-cols-12 min-h-[580px] overflow-hidden">
             
@@ -138,7 +152,7 @@ const submit = () => {
                                     autofocus
                                     autocomplete="username"
                                     placeholder="nama@mhs.unesa.ac.id"
-                                    class="w-full rounded-xl bg-[#F5EFE6]/70 pl-10 pr-4 py-3 text-sm font-medium text-[#2D1B1E] placeholder-[#B5A59D] border border-transparent transition-all duration-200 focus:border-brand-maroon focus:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-brand-maroon/20"
+                                    class="w-full rounded-xl bg-[#F5EFE6]/70 pl-10 pr-4 py-3 text-sm font-medium text-[#2D1B1E] placeholder-[#B5A59D] border border-[#EAE0D5] transition-all duration-200 focus:border-brand-maroon focus:bg-white focus:outline-none"
                                     :class="{ '!border-red-400 !bg-red-50/40': form.errors.email }"
                                 />
                             </div>
@@ -172,7 +186,7 @@ const submit = () => {
                                     required
                                     autocomplete="current-password"
                                     placeholder="••••••••"
-                                    class="w-full rounded-xl bg-[#F5EFE6]/70 pl-10 pr-10 py-3 text-sm font-medium text-[#2D1B1E] placeholder-[#B5A59D] border border-transparent transition-all duration-200 focus:border-brand-maroon focus:bg-[#F5EFE6] focus:outline-none focus:ring-2 focus:ring-brand-maroon/20"
+                                    class="w-full rounded-xl bg-[#F5EFE6]/70 pl-10 pr-10 py-3 text-sm font-medium text-[#2D1B1E] placeholder-[#B5A59D] border border-[#EAE0D5] transition-all duration-200 focus:border-brand-maroon focus:bg-white focus:outline-none"
                                     :class="{ '!border-red-400 !bg-red-50/40': form.errors.password }"
                                 />
                                 <button

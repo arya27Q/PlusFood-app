@@ -80,12 +80,22 @@ const isBookmarked = ref(false);
                 <!-- Dietary Badges Ringkas -->
                 <div v-if="food.dietaryTags?.length" class="mt-1.5 flex flex-wrap gap-1">
                     <span
-                        v-for="tag in food.dietaryTags.slice(0, 2)"
+                        v-for="tag in food.dietaryTags.slice(0, 3)"
                         :key="tag"
-                        class="rounded-md bg-[#F5EFE6] px-1.5 py-0.5 text-[9px] font-bold text-[#6E5A54]"
+                        class="rounded-md px-1.5 py-0.5 text-[9px] font-bold border"
+                        :class="tag === 'Halal' || tag === 'Vegetarian' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : tag === 'Tidak Pedas' ? 'bg-sky-50 text-sky-800 border-sky-200' : tag === 'Pedas' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-[#F5EFE6] text-[#6E5A54] border-[#EAE0D5]'"
                     >
                         {{ tag }}
                     </span>
+                </div>
+
+                <!-- Jadwal Ambil Toko (Pickup Window Dinamis) -->
+                <div v-if="food.pickupTime" class="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-900 bg-amber-50/80 rounded-lg px-2 py-1 border border-amber-200/80">
+                    <svg class="h-3 w-3 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" stroke-width="2" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+                    </svg>
+                    <span class="truncate">Ambil: {{ food.pickupTime }}</span>
                 </div>
             </div>
 

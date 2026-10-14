@@ -9,18 +9,20 @@ const maxPrice = ref(25000);
 const selectedCategory = ref('Semua');
 const selectedCampus = ref('all');
 const selectedDistance = ref('2 km');
-const selectedPickupWindow = ref('18.30–20.00');
 
-// Filters
+// Dietary & Pantangan Alergi Filters
+const filterHalal = ref(true);
+const filterVegetarian = ref(false);
+const filterTidakPedas = ref(false);
+
+// Safety & Quality Filters
 const filterVerified = ref(true);
 const filterCookedToday = ref(true);
 const filterRating = ref(false);
-const filterHalal = ref(true);
 const filterSealed = ref(false);
 
 const categories = ['Nasi', 'Mie', 'Soto', 'Roti', 'Camilan', 'Minuman', 'Semua'];
 const distances = ['500 m', '1 km', '2 km', '3 km'];
-const pickupWindows = ['17.00–18.30', '18.30–20.00', '20.00–21.30', '21.30–23.00'];
 
 const activeZones = computed(() => campusZones.filter(c => !c.isComingSoon));
 const comingSoonZones = computed(() => campusZones.filter(c => c.isComingSoon));
@@ -75,11 +77,12 @@ const resetFilters = () => {
     selectedCampus.value = 'all';
     isCampusDropdownOpen.value = false;
     selectedDistance.value = '2 km';
-    selectedPickupWindow.value = '18.30–20.00';
+    filterHalal.value = true;
+    filterVegetarian.value = false;
+    filterTidakPedas.value = false;
     filterVerified.value = true;
     filterCookedToday.value = true;
     filterRating.value = false;
-    filterHalal.value = true;
     filterSealed.value = false;
 };
 
@@ -94,9 +97,34 @@ const filteredFoods = computed(() => {
         if (selectedCampus.value !== 'all' && item.campusZone !== selectedCampus.value) return false;
         // Checkboxes filters
         if (filterRating.value && item.rating < 4.8) return false;
-        if (filterHalal.value && !(item.dietaryTags?.includes('Halal') || item.tags.some(t => t.includes('Halal')))) return false;
+        // Dietary & Pantangan Alergi
+        if (filterHalal.value && !(item.dietaryTags?.includes('Halal') || item.tags?.some(t => t.includes('Halal')))) return false;
+        if (filterVegetarian.value && !(item.dietaryTags?.includes('Vegetarian') || item.category === 'Roti' || item.category === 'Camilan')) return false;
+        if (filterTidakPedas.value && (item.dietaryTags?.includes('Pedas') && !item.dietaryTags?.includes('Tidak Pedas'))) return false;
         return true;
     });
+});
+
+import { onMounted } from 'vue';
+onMounted(() => {
+    if (typeof window !== 'undefined') {
+        const savedPref = localStorage.getItem('plusfood_preferences');
+        if (savedPref) {
+            try {
+                const p = JSON.parse(savedPref);
+                if (p.campus && p.campus !== 'all') selectedCampus.value = p.campus;
+                if (p.radius) selectedDistance.value = p.radius;
+                if (p.dietary) {
+                    const halalTag = p.dietary.find(d => d.id === 'halal');
+                    if (halalTag) filterHalal.value = halalTag.selected;
+                    const vegTag = p.dietary.find(d => d.id === 'vegetarian');
+                    if (vegTag) filterVegetarian.value = vegTag.selected;
+                    const spicyTag = p.dietary.find(d => d.id === 'tidak_pedas');
+                    if (spicyTag) filterTidakPedas.value = spicyTag.selected;
+                }
+            } catch (e) {}
+        }
+    }
 });
 </script>
 
@@ -316,31 +344,74 @@ const filteredFoods = computed(() => {
                     </p>
                 </div>
 
-                <!-- 4. Jendela Jam Ambil (Malam) -->
-                <div>
-                    <label class="flex items-center gap-1.5 text-xs font-bold text-[#2D1B1E] mb-2">
-                        <svg class="h-3.5 w-3.5 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <circle cx="12" cy="12" r="10" stroke-width="2" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
-                        </svg>
-                        Jendela Jam Ambil (Malam)
-                    </label>
-                    <div class="grid grid-cols-2 gap-1.5">
-                        <button
-                            v-for="time in pickupWindows"
-                            :key="time"
-                            @click="selectedPickupWindow = time"
-                            class="rounded-xl py-2 px-2 text-[11px] font-bold text-center border transition"
-                            :class="selectedPickupWindow === time ? 'border-brand-maroon text-brand-maroon bg-rose-50/50' : 'border-[#EAE0D5] bg-[#FAF7F2] text-[#6E5A54] hover:bg-[#F5EFE6]'"
+                <!-- 4. Preferensi Menu & Pantangan Alergi -->
+                <div class="space-y-2.5 pt-2 border-t border-[#F5EFE6]">
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-1.5 text-xs font-bold text-[#2D1B1E]">
+                            <svg class="h-3.5 w-3.5 text-brand-maroon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            Pantangan & Preferensi Diet
+                        </label>
+                        <span class="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            Aman Anak Kos
+                        </span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label
+                            class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition"
+                            :class="filterHalal ? 'bg-rose-50/40 border-brand-maroon/40' : 'bg-[#FAF7F2] border-[#EAE0D5] hover:bg-[#F5EFE6]'"
                         >
-                            {{ time }}
-                        </button>
+                            <span class="flex items-center gap-2 text-xs font-semibold text-[#2D1B1E]">
+                                <input type="checkbox" v-model="filterHalal" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
+                                <span>Halal Tersertifikasi</span>
+                            </span>
+                            <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded">100% Halal</span>
+                        </label>
+
+                        <label
+                            class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition"
+                            :class="filterVegetarian ? 'bg-rose-50/40 border-brand-maroon/40' : 'bg-[#FAF7F2] border-[#EAE0D5] hover:bg-[#F5EFE6]'"
+                        >
+                            <span class="flex items-center gap-2 text-xs font-semibold text-[#2D1B1E]">
+                                <input type="checkbox" v-model="filterVegetarian" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
+                                <span>Vegetarian / Nabati</span>
+                            </span>
+                            <span class="text-[10px] font-extrabold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">Tanpa Daging</span>
+                        </label>
+
+                        <label
+                            class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition"
+                            :class="filterTidakPedas ? 'bg-rose-50/40 border-brand-maroon/40' : 'bg-[#FAF7F2] border-[#EAE0D5] hover:bg-[#F5EFE6]'"
+                        >
+                            <span class="flex items-center gap-2 text-xs font-semibold text-[#2D1B1E]">
+                                <input type="checkbox" v-model="filterTidakPedas" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
+                                <span>Tidak Pedas (Aman Lambung)</span>
+                            </span>
+                            <span class="text-[10px] font-extrabold text-sky-800 bg-sky-50 px-1.5 py-0.5 rounded">Bebas Cabe</span>
+                        </label>
+                    </div>
+
+                    <!-- Edukasi & Disclaimer Alergen Ringkas -->
+                    <div class="rounded-xl bg-amber-50/80 p-2.5 border border-amber-200/90 text-amber-950 space-y-1">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="h-3.5 w-3.5 text-amber-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="16" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12.01" y2="8" />
+                            </svg>
+                            <span class="text-[11px] font-extrabold text-amber-900">Edukasi Alergi Mahasiswa</span>
+                        </div>
+                        <p class="text-[10px] text-amber-900 leading-relaxed font-medium">
+                            Makanan dimasak di dapur UMKM bersama. Jika memiliki alergi berat (kacang/seafood), cek komposisi bahan di detail menu & tuliskan catatan saat checkout.
+                        </p>
                     </div>
                 </div>
 
-                <!-- 5. Jaminan & Keamanan Checkboxes -->
+                <!-- 5. Jaminan & Standar Mutu Checkboxes -->
                 <div class="space-y-2 pt-2 border-t border-[#F5EFE6]">
-                    <label class="block text-xs font-bold text-[#2D1B1E] mb-2">Jaminan & Keamanan</label>
+                    <label class="block text-xs font-bold text-[#2D1B1E] mb-2">Jaminan & Standar Mutu</label>
                     
                     <label class="flex items-center gap-2 text-xs font-medium text-[#6E5A54] cursor-pointer">
                         <input type="checkbox" v-model="filterVerified" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon" />
@@ -352,15 +423,11 @@ const filteredFoods = computed(() => {
                     </label>
                     <label class="flex items-center gap-2 text-xs font-medium text-[#6E5A54] cursor-pointer">
                         <input type="checkbox" v-model="filterRating" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon" />
-                        <span>Rating 4.5+</span>
-                    </label>
-                    <label class="flex items-center gap-2 text-xs font-medium text-[#6E5A54] cursor-pointer">
-                        <input type="checkbox" v-model="filterHalal" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon" />
-                        <span>Halal tersertifikasi</span>
+                        <span>Rating 4.8+</span>
                     </label>
                     <label class="flex items-center gap-2 text-xs font-medium text-[#6E5A54] cursor-pointer">
                         <input type="checkbox" v-model="filterSealed" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon" />
-                        <span>Kemasan tersegel</span>
+                        <span>Kemasan higienis & tersegel</span>
                     </label>
                 </div>
 

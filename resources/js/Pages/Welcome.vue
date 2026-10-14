@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
-import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import ApplicationLogo from '@/Components/UI/ApplicationLogo.vue';
 import { onMounted, onUnmounted } from 'vue';
 
 const handleKeydown = (e) => {

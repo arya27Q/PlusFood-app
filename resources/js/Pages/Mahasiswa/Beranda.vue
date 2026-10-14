@@ -67,6 +67,20 @@ const filteredFoods = computed(() => {
         return true;
     });
 });
+
+import { onMounted } from 'vue';
+onMounted(() => {
+    if (typeof window !== 'undefined') {
+        const savedPref = localStorage.getItem('plusfood_preferences');
+        if (savedPref) {
+            try {
+                const p = JSON.parse(savedPref);
+                if (p.campus) selectedCampus.value = p.campus;
+                if (p.radius) selectedRadius.value = p.radius;
+            } catch (e) {}
+        }
+    }
+});
 </script>
 
 <template>
@@ -139,7 +153,7 @@ const filteredFoods = computed(() => {
                     v-model="searchQuery"
                     type="text"
                     placeholder="Cari nasi ayam, soto koya, roti sobek, atau nama warung..."
-                    class="w-full rounded-2xl border border-[#EAE0D5] bg-[#F5EFE6]/70 py-3.5 pl-12 pr-4 text-sm font-medium text-[#2D1B1E] placeholder-[#9E8B83] transition focus:border-brand-maroon focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-maroon/20"
+                    class="w-full rounded-2xl border border-[#EAE0D5] bg-[#F5EFE6]/70 py-3.5 pl-12 pr-4 text-sm font-medium text-[#2D1B1E] placeholder-[#9E8B83] transition focus:border-brand-maroon focus:bg-white focus:outline-none"
                 />
             </div>
 

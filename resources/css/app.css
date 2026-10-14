@@ -2,6 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ======== Global Form Reset (Override @tailwindcss/forms) ======== */
+@layer base {
+    /* Konsistensikan border-radius & focus ring untuk SEMUA input, select, textarea */
+    [type='text'],
+    [type='email'],
+    [type='url'],
+    [type='password'],
+    [type='number'],
+    [type='date'],
+    [type='datetime-local'],
+    [type='month'],
+    [type='search'],
+    [type='tel'],
+    [type='time'],
+    [type='week'],
+    select,
+    textarea {
+        border-radius: 0.75rem; /* rounded-xl */
+        border-color: #EAE0D5;
+        background-color: #FAF7F2;
+        font-size: 0.875rem;
+        transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    [type='text']:focus,
+    [type='email']:focus,
+    [type='url']:focus,
+    [type='password']:focus,
+    [type='number']:focus,
+    [type='date']:focus,
+    [type='datetime-local']:focus,
+    [type='month']:focus,
+    [type='search']:focus,
+    [type='tel']:focus,
+    [type='time']:focus,
+    [type='week']:focus,
+    select:focus,
+    textarea:focus {
+        border-color: #7A0C2E;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(122, 12, 46, 0.10);
+        outline: none;
+    }
+
+    /* Checkbox & Radio konsisten */
+    [type='checkbox'],
+    [type='radio'] {
+        border-radius: 0.375rem;
+        border-color: #D1C5BA;
+        color: #7A0C2E;
+    }
+    [type='checkbox']:focus,
+    [type='radio']:focus {
+        box-shadow: 0 0 0 3px rgba(122, 12, 46, 0.12);
+        border-color: #7A0C2E;
+    }
+
+    /* Button cursor default */
+    button {
+        cursor: pointer;
+    }
+}
+
+/* ======== Utility Helpers ======== */
+.scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+
 /* Keyframe Animasi Floating & Smooth Entrance PlusFood */
 @keyframes floatSoft {
     0%, 100% {

@@ -84,7 +84,8 @@ export const sampleFoods = [
             { icon: 'tempeh', title: 'Tempe Goreng Crispy' }
         ],
         tags: ['Higienis & Halal', 'Menu Siap Santap Malam'],
-        dietaryTags: ['Halal', 'Bebas Kacang', 'Bebas Gluten'],
+        dietaryTags: ['Halal', 'Tidak Pedas', 'Bebas Kacang'],
+        allergens: ['Kedelai', 'Bawang'],
         minutesLeft: 35
     },
     {
@@ -123,6 +124,7 @@ export const sampleFoods = [
         ],
         tags: ['Higienis & Halal', 'Pilihan Favorit'],
         dietaryTags: ['Halal', 'Pedas'],
+        allergens: ['Kacang Tanah', 'Terasi / Seafood'],
         minutesLeft: 25
     },
     {
@@ -160,7 +162,8 @@ export const sampleFoods = [
             { icon: 'sambal', title: 'Sambal Cabe Rawit Hijau' }
         ],
         tags: ['Higienis & Halal', 'Kuah Hangat'],
-        dietaryTags: ['Halal', 'Bebas Kacang', 'Tanpa Laktosa'],
+        dietaryTags: ['Halal', 'Tidak Pedas', 'Bebas Kacang'],
+        allergens: ['Ebi / Udang', 'Telur'],
         minutesLeft: 18
     },
     {
@@ -198,7 +201,8 @@ export const sampleFoods = [
             { icon: 'salad', title: 'Timun Segar' }
         ],
         tags: ['Pedas Mantap', 'Favorit Mahasiswa ITS'],
-        dietaryTags: ['Halal', 'Bebas Kacang'],
+        dietaryTags: ['Halal', 'Pedas', 'Bebas Kacang'],
+        allergens: ['Ayam', 'Bawang'],
         minutesLeft: 45
     },
     {
@@ -236,7 +240,8 @@ export const sampleFoods = [
             { icon: 'salad', title: 'Kemangi & Timun' }
         ],
         tags: ['Gurih Renyah', 'Favorit Mahasiswa UNAIR'],
-        dietaryTags: ['Halal', 'Bebas Kacang', 'Bebas Gluten'],
+        dietaryTags: ['Halal', 'Pedas', 'Bebas Kacang'],
+        allergens: ['Bebek'],
         minutesLeft: 30
     },
     {
@@ -274,7 +279,8 @@ export const sampleFoods = [
             { icon: 'cracker', title: 'Kerupuk Bawang' }
         ],
         tags: ['Porsi Kenyang', 'Favorit Malam'],
-        dietaryTags: ['Halal', 'Bebas Kacang'],
+        dietaryTags: ['Halal', 'Tidak Pedas', 'Bebas Kacang'],
+        allergens: ['Gluten / Gandum', 'Telur', 'Ebi'],
         minutesLeft: 50
     },
     {
@@ -311,7 +317,8 @@ export const sampleFoods = [
             { icon: 'sauce', title: 'Bumbu Petis Khas Jatim' }
         ],
         tags: ['Garing & Hangat', 'Teman Nugas Mahasiswa UPN'],
-        dietaryTags: ['Halal', 'Vegetarian'],
+        dietaryTags: ['Halal', 'Vegetarian', 'Tidak Pedas'],
+        allergens: ['Gluten / Gandum', 'Kedelai', 'Petis Udang'],
         minutesLeft: 22
     },
     {
@@ -349,7 +356,8 @@ export const sampleFoods = [
             { icon: 'sambal', title: 'Sambal Bawang Pedas Gurih' }
         ],
         tags: ['Super Crispy', 'Favorit Mahasiswa Petra'],
-        dietaryTags: ['Halal', 'Bebas Kacang'],
+        dietaryTags: ['Halal', 'Pedas', 'Bebas Kacang'],
+        allergens: ['Telur', 'Bawang'],
         minutesLeft: 40
     },
     {
@@ -385,7 +393,8 @@ export const sampleFoods = [
             { icon: 'cheese', title: 'Isian Cokelat Belgia & Keju' }
         ],
         tags: ['Tanpa Pengawet', 'Camilan Manis'],
-        dietaryTags: ['Halal', 'Bebas Kacang', 'Vegetarian'],
+        dietaryTags: ['Halal', 'Vegetarian', 'Tidak Pedas', 'Bebas Kacang'],
+        allergens: ['Gluten / Gandum', 'Susu / Mentega', 'Keju'],
         minutesLeft: 42
     }
 ];

@@ -1,8 +1,8 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
-import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-import Dropdown from '@/Components/Dropdown.vue';
-import DropdownLink from '@/Components/DropdownLink.vue';
+import ApplicationLogo from '@/Components/UI/ApplicationLogo.vue';
+import Dropdown from '@/Components/UI/Dropdown.vue';
+import DropdownLink from '@/Components/UI/DropdownLink.vue';
 import { useAuth } from '@/Composables/useAuth';
 
 defineProps({
@@ -52,6 +52,13 @@ const auth = useAuth();
                         >
                             Riwayat
                         </Link>
+                        <Link
+                            :href="route('profil')"
+                            class="rounded-xl px-4 py-2 text-sm font-bold transition-all"
+                            :class="route().current('profil') ? 'bg-[#F5EFE6] text-brand-maroon font-extrabold' : 'text-[#6E5A54] hover:text-brand-maroon hover:bg-[#FAF7F2]'"
+                        >
+                            Profil
+                        </Link>
                     </nav>
                 </div>
 
@@ -68,7 +75,7 @@ const auth = useAuth();
                         <input
                             type="text"
                             placeholder="Cari makanan surplus..."
-                            class="w-full rounded-xl border border-transparent bg-[#F5EFE6]/70 pl-9 pr-3.5 py-2 text-xs font-medium text-[#2D1B1E] placeholder-[#A8988F] transition focus:border-brand-maroon focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-maroon"
+                            class="w-full rounded-xl border border-[#EAE0D5] bg-[#F5EFE6]/70 pl-9 pr-3.5 py-2 text-xs font-medium text-[#2D1B1E] placeholder-[#A8988F] transition focus:border-brand-maroon focus:bg-white focus:outline-none"
                         />
                     </div>
 
@@ -93,6 +100,9 @@ const auth = useAuth();
                                     <p class="font-bold text-[#2D1B1E] truncate">{{ auth.user.value.name }}</p>
                                     <p class="text-[#8C7A72] text-[11px] truncate">{{ auth.user.value.email }}</p>
                                 </div>
+                                <DropdownLink :href="route('profil')">
+                                    Profil Saya
+                                </DropdownLink>
                                 <DropdownLink :href="route('riwayat')">
                                     Riwayat Pesanan
                                 </DropdownLink>
@@ -168,6 +178,19 @@ const auth = useAuth();
                     <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
                 </div>
                 <span class="text-[10px]">Tiket & Riwayat</span>
+            </Link>
+
+            <Link
+                :href="route('profil')"
+                class="flex flex-col items-center gap-1 transition-colors"
+                :class="route().current('profil') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl" :class="route().current('profil') ? 'bg-[#F5EFE6]' : ''">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </div>
+                <span class="text-[10px]">Profil</span>
             </Link>
 
             <Link

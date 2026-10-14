@@ -16,7 +16,7 @@ const currentUser = ref(storedUser ? JSON.parse(storedUser) : defaultUser);
 export function useAuth() {
     const isLoggedIn = computed(() => !!currentUser.value);
 
-    const login = (email = '', password = '') => {
+    const login = (email = '', password = '', redirect = true) => {
         // Ambil nama dari email jika ada, atau gunakan default
         let name = 'Raka Pratama';
         if (email && email.includes('@')) {
@@ -36,7 +36,9 @@ export function useAuth() {
             localStorage.setItem('plusfood_mock_user', JSON.stringify(userObj));
         }
 
-        router.visit(route('beranda'));
+        if (redirect) {
+            router.visit(route('beranda'));
+        }
     };
 
     const register = (userData = {}) => {

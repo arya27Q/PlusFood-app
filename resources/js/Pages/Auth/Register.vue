@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import InputError from '@/Components/UI/InputError.vue';
+import PrimaryButton from '@/Components/UI/PrimaryButton.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useAuth } from '@/Composables/useAuth';
 
