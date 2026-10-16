@@ -13,7 +13,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Plus Jakarta Sans"', 'Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['"Nunito"', ...defaultTheme.fontFamily.sans],
+                display: ['"Nunito"', 'sans-serif'],
             },
             colors: {
                 brand: {

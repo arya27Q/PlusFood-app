@@ -147,9 +147,10 @@ onUnmounted(() => {
             </p>
         </div>
 
-        <!-- Bottom Footer (Image 1 replica) -->
         <div class="flex items-center justify-center gap-1.5 text-xs font-medium text-[#7A6662] pb-4">
-            <span class="text-brand-maroon text-sm">🍂</span>
+            <svg class="h-4 w-4 text-brand-maroon shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
+            </svg>
             <span>1.284 porsi diselamatkan minggu ini</span>
         </div>
     </div>

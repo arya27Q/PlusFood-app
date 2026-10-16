@@ -75,8 +75,12 @@ const simulateSampleScan = () => {
             <!-- ================= STATE 1: SCANNING VIEW ================= -->
             <div v-if="scanState === 'scanning'" class="space-y-4 text-center">
                 <div class="space-y-1">
-                    <span class="inline-block rounded-full bg-amber-100 text-amber-900 px-3 py-1 text-[11px] font-extrabold border border-amber-300">
-                        📸 Validasi Tiket Kasir
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-900 px-3 py-1 text-[11px] font-extrabold border border-amber-300">
+                        <svg class="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Validasi Tiket Kasir
                     </span>
                     <h3 class="text-xl font-black text-[#2D1B1E]">Scan QR Code Mahasiswa</h3>
                     <p class="text-xs text-[#8C7A72]">
@@ -106,9 +110,12 @@ const simulateSampleScan = () => {
                     <!-- Quick Demo Button Overlay -->
                     <button
                         @click="simulateSampleScan"
-                        class="absolute bottom-3 inset-x-4 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md py-1.5 text-[11px] font-bold text-white border border-white/30 transition"
+                        class="absolute bottom-3 inset-x-4 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md py-1.5 text-[11px] font-bold text-white border border-white/30 transition"
                     >
-                        ⚡ Klik untuk Uji Scan PF-88219
+                        <svg class="h-3.5 w-3.5 text-amber-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Klik untuk Uji Scan PF-88219
                     </button>
                 </div>
 

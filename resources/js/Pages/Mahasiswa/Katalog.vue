@@ -179,7 +179,7 @@ onMounted(() => {
                             :key="cat"
                             @click="selectedCategory = cat"
                             class="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
-                            :class="selectedCategory === cat ? 'bg-brand-maroon text-white shadow-sm' : 'bg-[#FAF7F2] text-[#6E5A54] border border-[#EAE0D5] hover:bg-[#F5EFE6]'"
+                            :class="selectedCategory === cat ? 'bg-brand-maroon text-white shadow-xs font-bold' : 'bg-white text-slate-700 border border-slate-200 shadow-2xs hover:border-brand-maroon/50 hover:bg-slate-50'"
                         >
                             {{ cat }}
                         </button>
@@ -200,8 +200,8 @@ onMounted(() => {
                         <button
                             type="button"
                             @click="isCampusDropdownOpen = !isCampusDropdownOpen"
-                            class="w-full flex items-center justify-between rounded-xl border-2 bg-[#FAF7F2] py-2 px-3 text-xs font-bold transition shadow-xs text-left"
-                            :class="isCampusDropdownOpen ? 'border-brand-maroon bg-white ring-2 ring-brand-maroon/20 text-[#2D1B1E]' : 'border-[#EAE0D5] text-[#2D1B1E] hover:border-brand-maroon/50'"
+                            class="w-full flex items-center justify-between rounded-xl border-2 bg-white py-2 px-3 text-xs font-bold transition shadow-2xs text-left"
+                            :class="isCampusDropdownOpen ? 'border-brand-maroon ring-2 ring-brand-maroon/20 text-[#2D1B1E]' : 'border-slate-200 text-[#2D1B1E] hover:border-brand-maroon/50'"
                         >
                             <div class="flex items-center gap-2 truncate">
                                 <!-- Icon Vektor SVG Khusus (Bukan Emoji) -->
@@ -235,11 +235,11 @@ onMounted(() => {
                         <!-- Dropdown Menu List -->
                         <div
                             v-if="isCampusDropdownOpen"
-                            class="absolute left-0 right-0 top-full mt-1.5 z-30 max-h-72 overflow-y-auto rounded-2xl bg-white border-2 border-[#EAE0D5] p-1.5 shadow-2xl space-y-2"
+                            class="absolute left-0 right-0 top-full mt-1.5 z-30 max-h-72 overflow-y-auto rounded-2xl bg-white border-2 border-slate-200 p-1.5 shadow-2xl space-y-2"
                         >
                             <!-- Group 1: Surabaya (Aktif) -->
                             <div>
-                                <div class="px-2 py-1 flex items-center justify-between text-[10px] font-black tracking-wider uppercase text-[#8C7A72]">
+                                <div class="px-2 py-1 flex items-center justify-between text-[10px] font-black tracking-wider uppercase text-slate-500">
                                     <span class="flex items-center gap-1.5">
                                         <svg class="h-3 w-3 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -257,7 +257,7 @@ onMounted(() => {
                                         type="button"
                                         @click="selectCampusZone(c.id)"
                                         class="w-full flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold text-left transition"
-                                        :class="selectedCampus === c.id ? 'bg-brand-maroon text-white shadow-xs' : 'text-[#2D1B1E] hover:bg-[#FAF7F2]'"
+                                        :class="selectedCampus === c.id ? 'bg-brand-maroon text-white shadow-xs' : 'text-slate-800 hover:bg-slate-50'"
                                     >
                                         <span class="flex items-center gap-2 truncate">
                                             <svg
@@ -279,8 +279,8 @@ onMounted(() => {
                             </div>
 
                             <!-- Group 2: Kota Ekspansi (Segera Hadir) -->
-                            <div class="border-t border-[#F5EFE6] pt-1">
-                                <div class="px-2 py-1 flex items-center justify-between text-[10px] font-black tracking-wider uppercase text-[#8C7A72]">
+                            <div class="border-t border-slate-100 pt-1">
+                                <div class="px-2 py-1 flex items-center justify-between text-[10px] font-black tracking-wider uppercase text-slate-500">
                                     <span class="flex items-center gap-1.5">
                                         <svg class="h-3 w-3 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.63 8.41m5.96 5.96a14.926 14.926 0 01-5.84 2.58m-.12-8.54L4.8 3.59a2 2 0 00-2.83 2.83l4.83 4.83" />
@@ -298,7 +298,7 @@ onMounted(() => {
                                         type="button"
                                         @click="selectCampusZone(c.id)"
                                         class="w-full flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-bold text-left transition"
-                                        :class="selectedCampus === c.id ? 'bg-brand-maroon text-white shadow-xs' : 'text-[#2D1B1E] hover:bg-[#FAF7F2]'"
+                                        :class="selectedCampus === c.id ? 'bg-brand-maroon text-white shadow-xs' : 'text-slate-800 hover:bg-slate-50'"
                                     >
                                         <span class="flex items-center gap-2 truncate">
                                             <svg
@@ -334,18 +334,18 @@ onMounted(() => {
                             :key="d"
                             @click="selectedDistance = d"
                             class="rounded-lg py-1.5 text-[11px] font-bold text-center border-2 transition"
-                            :class="selectedDistance === d ? 'border-brand-maroon bg-brand-maroon text-white shadow-xs' : 'border-[#EAE0D5] bg-[#FAF7F2] text-[#6E5A54] hover:bg-[#F5EFE6]'"
+                            :class="selectedDistance === d ? 'border-brand-maroon bg-brand-maroon text-white shadow-xs font-extrabold' : 'border-slate-200 bg-white text-slate-700 shadow-2xs hover:border-brand-maroon/50 hover:bg-slate-50'"
                         >
                             {{ d }}
                         </button>
                     </div>
-                    <p class="mt-2 text-[10px] font-semibold text-[#8C7A72] leading-tight">
+                    <p class="mt-2 text-[10px] font-semibold text-slate-500 leading-tight">
                         {{ currentCampus.hint }}
                     </p>
                 </div>
 
                 <!-- 4. Preferensi Menu & Pantangan Alergi -->
-                <div class="space-y-2.5 pt-2 border-t border-[#F5EFE6]">
+                <div class="space-y-2.5 pt-2 border-t border-slate-100">
                     <div class="flex items-center justify-between">
                         <label class="flex items-center gap-1.5 text-xs font-bold text-[#2D1B1E]">
                             <svg class="h-3.5 w-3.5 text-brand-maroon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -353,43 +353,43 @@ onMounted(() => {
                             </svg>
                             Pantangan & Preferensi Diet
                         </label>
-                        <span class="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <span class="text-[10px] font-black text-white bg-emerald-600 px-2.5 py-0.5 rounded-lg shadow-2xs">
                             Aman Anak Kos
                         </span>
                     </div>
 
                     <div class="space-y-2">
                         <label
-                            class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition"
-                            :class="filterHalal ? 'bg-rose-50/40 border-brand-maroon/40' : 'bg-[#FAF7F2] border-[#EAE0D5] hover:bg-[#F5EFE6]'"
+                            class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition"
+                            :class="filterHalal ? 'bg-rose-50/50 border-brand-maroon/50 shadow-2xs' : 'bg-white border-slate-200 shadow-2xs hover:border-slate-300 hover:bg-slate-50/50'"
                         >
-                            <span class="flex items-center gap-2 text-xs font-semibold text-[#2D1B1E]">
-                                <input type="checkbox" v-model="filterHalal" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
+                            <span class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                                <input type="checkbox" v-model="filterHalal" class="rounded border-slate-300 text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
                                 <span>Halal Tersertifikasi</span>
                             </span>
-                            <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded">100% Halal</span>
+                            <span class="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-200/60">100% Halal</span>
                         </label>
 
                         <label
-                            class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition"
-                            :class="filterVegetarian ? 'bg-rose-50/40 border-brand-maroon/40' : 'bg-[#FAF7F2] border-[#EAE0D5] hover:bg-[#F5EFE6]'"
+                            class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition"
+                            :class="filterVegetarian ? 'bg-rose-50/50 border-brand-maroon/50 shadow-2xs' : 'bg-white border-slate-200 shadow-2xs hover:border-slate-300 hover:bg-slate-50/50'"
                         >
-                            <span class="flex items-center gap-2 text-xs font-semibold text-[#2D1B1E]">
-                                <input type="checkbox" v-model="filterVegetarian" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
+                            <span class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                                <input type="checkbox" v-model="filterVegetarian" class="rounded border-slate-300 text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
                                 <span>Vegetarian / Nabati</span>
                             </span>
-                            <span class="text-[10px] font-extrabold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">Tanpa Daging</span>
+                            <span class="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-200/60">Tanpa Daging</span>
                         </label>
 
                         <label
-                            class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition"
-                            :class="filterTidakPedas ? 'bg-rose-50/40 border-brand-maroon/40' : 'bg-[#FAF7F2] border-[#EAE0D5] hover:bg-[#F5EFE6]'"
+                            class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition"
+                            :class="filterTidakPedas ? 'bg-rose-50/50 border-brand-maroon/50 shadow-2xs' : 'bg-white border-slate-200 shadow-2xs hover:border-slate-300 hover:bg-slate-50/50'"
                         >
-                            <span class="flex items-center gap-2 text-xs font-semibold text-[#2D1B1E]">
-                                <input type="checkbox" v-model="filterTidakPedas" class="rounded border-[#D5C7BD] text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
+                            <span class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                                <input type="checkbox" v-model="filterTidakPedas" class="rounded border-slate-300 text-brand-maroon focus:ring-brand-maroon h-4 w-4" />
                                 <span>Tidak Pedas (Aman Lambung)</span>
                             </span>
-                            <span class="text-[10px] font-extrabold text-sky-800 bg-sky-50 px-1.5 py-0.5 rounded">Bebas Cabe</span>
+                            <span class="text-[10px] font-extrabold text-sky-800 bg-sky-100/80 px-2 py-0.5 rounded-md border border-sky-200/60">Bebas Cabe</span>
                         </label>
                     </div>
 
@@ -600,8 +600,11 @@ onMounted(() => {
                                         Seluruh hasil penjualan surplus 100% masuk ke pemilik usaha tanpa potongan biaya aplikasi.
                                     </p>
                                 </div>
-                                <div class="pt-3 border-t border-[#F5EFE6] flex items-center text-[11px] font-bold text-amber-700">
-                                    <span>✓ Keuntungan Bersih 100%</span>
+                                <div class="pt-3 border-t border-[#F5EFE6] flex items-center gap-1.5 text-[11px] font-bold text-amber-700">
+                                    <svg class="h-3.5 w-3.5 text-amber-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Keuntungan Bersih 100%</span>
                                 </div>
                             </div>
 
@@ -618,8 +621,11 @@ onMounted(() => {
                                         Warung Anda langsung dikenal oleh mahasiswa kampus terdekat sebagai gerai kuliner ramah kantong.
                                     </p>
                                 </div>
-                                <div class="pt-3 border-t border-[#F5EFE6] flex items-center text-[11px] font-bold text-sky-700">
-                                    <span>✓ Jangkauan Pasar Kampus</span>
+                                <div class="pt-3 border-t border-[#F5EFE6] flex items-center gap-1.5 text-[11px] font-bold text-sky-700">
+                                    <svg class="h-3.5 w-3.5 text-sky-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Jangkauan Pasar Kampus</span>
                                 </div>
                             </div>
 
@@ -636,8 +642,11 @@ onMounted(() => {
                                         Bahan dan masakan berkualitas yang berpotensi sisa diubah jadi pendapatan tambahan setiap malam.
                                     </p>
                                 </div>
-                                <div class="pt-3 border-t border-[#F5EFE6] flex items-center text-[11px] font-bold text-emerald-700">
-                                    <span>✓ Optimalisasi Stok & Cuan</span>
+                                <div class="pt-3 border-t border-[#F5EFE6] flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
+                                    <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Optimalisasi Stok & Cuan</span>
                                 </div>
                             </div>
                         </div>

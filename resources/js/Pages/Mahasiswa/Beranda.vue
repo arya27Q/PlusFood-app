@@ -114,7 +114,11 @@ onMounted(() => {
 
                     <h1 class="mt-1.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2D1B1E] flex items-center gap-2">
                         Halo, {{ auth.user.value ? auth.user.value.name.split(' ')[0] : 'Raka' }}! 
-                        <span class="inline-block hover:rotate-12 transition-transform cursor-default">👋</span>
+                        <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-amber-100 text-amber-600 hover:rotate-12 transition-transform cursor-default">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                            </svg>
+                        </span>
                     </h1>
                     <p class="mt-1 text-xs sm:text-sm font-medium text-[#6E5A54]">
                         Ada <strong class="text-brand-maroon font-bold">{{ filteredFoods.length }} porsi surplus</strong> ramah kantong siap diselamatkan di sekitarmu malam ini.
@@ -133,7 +137,12 @@ onMounted(() => {
                             <span class="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-300/80">
                                 Level 3: Green Rescuer
                             </span>
-                            <span class="text-[11px] font-bold text-emerald-700">🌱 2.4 kg CO2e dicegah</span>
+                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                                <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
+                                </svg>
+                                2.4 kg CO2e dicegah
+                            </span>
                         </div>
                         <p class="text-xs sm:text-sm font-black text-[#2D1B1E] mt-1">
                             14 porsi diselamatkan · <span class="text-brand-maroon">hemat Rp168.000</span>

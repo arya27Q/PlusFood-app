@@ -174,7 +174,11 @@ onMounted(() => {
                 v-if="saveToast"
                 class="fixed top-20 right-6 z-50 rounded-2xl bg-emerald-900 text-white px-5 py-3 shadow-xl flex items-center gap-3 border border-emerald-500 animate-fade-in"
             >
-                <span class="text-emerald-300 font-bold">✓</span>
+                <div class="h-6 w-6 rounded-full bg-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
                 <span class="text-xs font-bold">Data profil berhasil diperbarui!</span>
             </div>
 
@@ -183,7 +187,11 @@ onMounted(() => {
                 v-if="passwordSuccessToast"
                 class="fixed top-20 right-6 z-50 rounded-2xl bg-emerald-900 text-white px-5 py-3 shadow-xl flex items-center gap-3 border border-emerald-500 animate-fade-in"
             >
-                <span class="text-emerald-300 font-bold">🔒</span>
+                <div class="h-6 w-6 rounded-full bg-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
                 <span class="text-xs font-bold">Password akun berhasil diubah!</span>
             </div>
 
@@ -234,10 +242,10 @@ onMounted(() => {
                                 <span>{{ profileForm.major }}</span>
                             </p>
 
-                            <!-- Badge Level dengan Daun Hijau -->
+                            <!-- Badge Level dengan Daun Hijau (Solid Full Green Box) -->
                             <div class="mt-3 flex justify-center">
-                                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#EBF5EE] text-[#1D6A3A] font-bold text-xs border border-emerald-200/80">
-                                    <svg class="w-3.5 h-3.5 text-[#1D6A3A]" fill="currentColor" viewBox="0 0 24 24">
+                                <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs shadow-xs border border-emerald-700">
+                                    <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A9.49 9.49 0 0017 8z"/>
                                         <path d="M21 3c-5.52 0-10 4.48-10 10 0 .73.08 1.44.24 2.12C12.79 13.62 15 11 17 8c2-3 4-5 4-5z"/>
                                     </svg>
@@ -385,8 +393,8 @@ onMounted(() => {
                                     v-model="profileForm.name"
                                     :disabled="!isEditing"
                                     type="text"
-                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-[#2D1B1E] transition"
-                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-[#EAE0D5] bg-[#FAF7F2]/60 text-stone-800 cursor-default'"
+                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition"
+                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-slate-200 bg-white text-slate-800 shadow-2xs cursor-default'"
                                 />
                             </div>
 
@@ -398,8 +406,8 @@ onMounted(() => {
                                     v-model="profileForm.nim"
                                     :disabled="!isEditing"
                                     type="text"
-                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-[#2D1B1E] transition"
-                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-[#EAE0D5] bg-[#FAF7F2]/60 text-stone-800 cursor-default'"
+                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition"
+                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-slate-200 bg-white text-slate-800 shadow-2xs cursor-default'"
                                 />
                             </div>
 
@@ -411,8 +419,8 @@ onMounted(() => {
                                     v-model="profileForm.whatsapp"
                                     :disabled="!isEditing"
                                     type="text"
-                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-[#2D1B1E] transition"
-                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-[#EAE0D5] bg-[#FAF7F2]/60 text-stone-800 cursor-default'"
+                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition"
+                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-slate-200 bg-white text-slate-800 shadow-2xs cursor-default'"
                                 />
                             </div>
                         </div>
@@ -427,8 +435,8 @@ onMounted(() => {
                                     v-model="profileForm.email"
                                     :disabled="!isEditing"
                                     type="email"
-                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-[#2D1B1E] transition"
-                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-[#EAE0D5] bg-[#FAF7F2]/60 text-stone-800 cursor-default'"
+                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition"
+                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-slate-200 bg-white text-slate-800 shadow-2xs cursor-default'"
                                 />
                             </div>
 
@@ -440,8 +448,8 @@ onMounted(() => {
                                     v-model="profileForm.address"
                                     :disabled="!isEditing"
                                     type="text"
-                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-[#2D1B1E] transition"
-                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-[#EAE0D5] bg-[#FAF7F2]/60 text-stone-800 cursor-default'"
+                                    class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition"
+                                    :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-slate-200 bg-white text-slate-800 shadow-2xs cursor-default'"
                                 />
                             </div>
                         </div>
@@ -468,8 +476,11 @@ onMounted(() => {
                                     </p>
                                 </div>
                             </div>
-                            <span class="self-start sm:self-auto text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                ✓ Tersimpan Otomatis
+                            <span class="self-start sm:self-auto inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-xs">
+                                <svg class="h-3.5 w-3.5 text-white shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                <span>Tersimpan Otomatis</span>
                             </span>
                         </div>
 
@@ -491,7 +502,7 @@ onMounted(() => {
                                         <select
                                             v-model="selectedCampus"
                                             @change="savePreferences"
-                                            class="w-full rounded-xl border border-[#EAE0D5] bg-[#FAF7F2] px-3.5 py-2.5 text-xs font-bold text-[#2D1B1E] focus:border-[#7A0C2E] focus:bg-white focus:outline-none transition appearance-none cursor-pointer pr-9"
+                                            class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:border-[#7A0C2E] focus:outline-none shadow-2xs transition appearance-none cursor-pointer pr-9"
                                         >
                                             <option
                                                 v-for="campus in availableCampuses"
@@ -525,7 +536,7 @@ onMounted(() => {
                                             type="button"
                                             @click="selectedRadius = r; savePreferences()"
                                             class="py-2 rounded-xl text-xs font-bold transition border cursor-pointer"
-                                            :class="selectedRadius === r ? 'text-white shadow-xs border-[#7A0C2E]' : 'bg-[#FAF7F2] text-stone-600 hover:bg-[#EAE0D5] border-[#EAE0D5]'"
+                                            :class="selectedRadius === r ? 'text-white shadow-xs border-[#7A0C2E]' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 shadow-2xs'"
                                             :style="selectedRadius === r ? 'background-color: #7A0C2E;' : ''"
                                         >
                                             {{ r }}
@@ -551,10 +562,12 @@ onMounted(() => {
                                             @click="toggleDietary(tag)"
                                             type="button"
                                             class="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition active:scale-95 border cursor-pointer"
-                                            :class="tag.selected ? 'border-rose-300' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'"
+                                            :class="tag.selected ? 'border-rose-300' : 'bg-white border-slate-200 text-slate-700 shadow-2xs hover:border-slate-300'"
                                             :style="tag.selected ? 'background-color: #FFF5F5; color: #7A0C2E;' : ''"
                                         >
-                                            <span v-if="tag.selected" class="text-xs">✓</span>
+                                            <svg v-if="tag.selected" class="w-3 h-3 text-[#7A0C2E] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
                                             <span>{{ tag.label }}</span>
                                         </button>
                                     </div>
@@ -574,7 +587,7 @@ onMounted(() => {
                                             type="button"
                                             @click="selectedPayment = 'QRIS'; savePreferences()"
                                             class="flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition border cursor-pointer"
-                                            :class="selectedPayment === 'QRIS' ? 'border-rose-300 shadow-xs' : 'bg-[#FAF7F2] text-stone-600 border-[#EAE0D5] hover:bg-stone-100'"
+                                            :class="selectedPayment === 'QRIS' ? 'border-rose-300 shadow-xs' : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:bg-slate-50'"
                                             :style="selectedPayment === 'QRIS' ? 'background-color: #FFF5F5; color: #7A0C2E;' : ''"
                                         >
                                             <span class="font-extrabold tracking-wide">QRIS</span>
@@ -584,7 +597,7 @@ onMounted(() => {
                                             type="button"
                                             @click="selectedPayment = 'Tunai'; savePreferences()"
                                             class="flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition border cursor-pointer"
-                                            :class="selectedPayment === 'Tunai' ? 'border-rose-300 shadow-xs' : 'bg-[#FAF7F2] text-stone-600 border-[#EAE0D5] hover:bg-stone-100'"
+                                            :class="selectedPayment === 'Tunai' ? 'border-rose-300 shadow-xs' : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:bg-slate-50'"
                                             :style="selectedPayment === 'Tunai' ? 'background-color: #FFF5F5; color: #7A0C2E;' : ''"
                                         >
                                             <span>Tunai</span>
@@ -664,9 +677,11 @@ onMounted(() => {
                         </div>
                         <button
                             @click="showPasswordModal = false"
-                            class="text-stone-400 hover:text-stone-700 font-bold text-sm w-7 h-7 rounded-full hover:bg-stone-100 flex items-center justify-center transition cursor-pointer"
+                            class="text-stone-400 hover:text-stone-700 w-7 h-7 rounded-full hover:bg-stone-100 flex items-center justify-center transition cursor-pointer"
                         >
-                            ✕
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                         </button>
                     </div>
 

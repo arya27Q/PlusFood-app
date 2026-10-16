@@ -4,10 +4,10 @@ import { Head, Link, router } from '@inertiajs/vue3';
 
 // Form State
 const email = ref('kantin.srikandi@gmail.com');
-const password = ref('••••••••');
+const password = ref('');
 const showPassword = ref(false);
-const hasError = ref(true); // Default true agar 100% persis dengan mockup gambar
-const errorMessage = ref('Password salah, coba lagi');
+const hasError = ref(false);
+const errorMessage = ref('');
 const isLoading = ref(false);
 
 const togglePasswordVisibility = () => {
@@ -15,9 +15,9 @@ const togglePasswordVisibility = () => {
 };
 
 const handleInput = () => {
-    // Sembunyikan pesan error jika pengguna mulai mengetik ulang
-    if (hasError.value && password.value !== '••••••••') {
+    if (hasError.value) {
         hasError.value = false;
+        errorMessage.value = '';
     }
 };
 
@@ -34,7 +34,14 @@ const goToRegister = () => {
 };
 
 const submitLogin = () => {
+    if (!email.value.trim() || !password.value.trim()) {
+        hasError.value = true;
+        errorMessage.value = 'Email dan password wajib diisi';
+        return;
+    }
+
     isLoading.value = true;
+    hasError.value = false;
     
     // Simulasi autentikasi singkat lalu redirect langsung ke Dashboard Mitra
     setTimeout(() => {
@@ -133,10 +140,20 @@ const submitLogin = () => {
             <div class="md:col-span-6 bg-white p-8 sm:p-12 lg:p-14 flex flex-col justify-between">
                 
                 <div>
-                    <!-- Badge Portal Mitra UMKM -->
-                    <div class="inline-flex items-center gap-2 rounded-full bg-[#F6EFEA] px-3.5 py-1 text-xs font-semibold text-[#700926]">
-                        <span class="h-2 w-2 rounded-full bg-[#700926]"></span>
-                        <span>Portal Mitra UMKM</span>
+                    <!-- Badge Portal Mitra UMKM & Switcher -->
+                    <div class="flex items-center justify-between">
+                        <Link :href="route('mitra.splash')" class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-maroon hover:underline">
+                            <span>← Splash Screen</span>
+                        </Link>
+
+                        <Link :href="route('beranda')" class="text-xs font-bold text-[#8C7A72] hover:text-brand-maroon transition flex items-center gap-1.5">
+                            <svg class="h-3.5 w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                            </svg>
+                            <span>Mode Mahasiswa</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </Link>
                     </div>
 
                     <!-- Title & Subtitle Form -->

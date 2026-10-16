@@ -220,7 +220,12 @@ const filteredOrders = computed(() => {
                         </div>
                         <div class="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
                             <span class="text-[10px] text-white/70 block uppercase font-bold">Green Points</span>
-                            <span class="text-base sm:text-lg font-black text-amber-200">🌱 {{ totalGreenPoints }} Poin</span>
+                            <span class="inline-flex items-center gap-1.5 text-base sm:text-lg font-black text-amber-200">
+                                <svg class="h-4 w-4 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
+                                </svg>
+                                {{ totalGreenPoints }} Poin
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -294,8 +299,11 @@ const filteredOrders = computed(() => {
                                     Batas Ambil: {{ order.pickupTime }}
                                 </span>
                             </p>
-                            <p v-if="order.ecoPackagingLabel" class="text-[11px] text-emerald-700 font-semibold mt-1">
-                                📦 {{ order.ecoPackagingLabel }}
+                            <p v-if="order.ecoPackagingLabel" class="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 font-bold mt-1">
+                                <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                {{ order.ecoPackagingLabel }}
                             </p>
                         </div>
                     </div>
@@ -331,13 +339,19 @@ const filteredOrders = computed(() => {
                                 @click="openReviewModal(order)"
                                 class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3.5 py-1.5 text-xs font-black text-stone-900 shadow-xs transition"
                             >
-                                <span>⭐ Beri Ulasan (+15 Poin)</span>
+                                <svg class="h-3.5 w-3.5 text-stone-900 fill-stone-900 shrink-0" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                                <span>Beri Ulasan (+15 Poin)</span>
                             </button>
                             <span
                                 v-else
-                                class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 border border-emerald-300"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 border border-emerald-300"
                             >
-                                <span>⭐ Diulas ({{ order.review?.rating }}/5) · +15 Poin</span>
+                                <svg class="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                                <span>Diulas ({{ order.review?.rating }}/5) · +15 Poin</span>
                             </span>
                         </div>
 
@@ -365,7 +379,10 @@ const filteredOrders = computed(() => {
 
                     <div>
                         <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-black border border-emerald-300 mb-2">
-                            <span>🌱 +15 Green Points Reward</span>
+                            <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
+                            </svg>
+                            <span>+15 Green Points Reward</span>
                         </div>
                         <h3 class="text-xl font-black text-[#2D1B1E]">Ulas Makanan Diselamatkan</h3>
                         <p class="text-xs text-[#8C7A72]">
@@ -407,10 +424,16 @@ const filteredOrders = computed(() => {
                                 :key="tag"
                                 type="button"
                                 @click="toggleReviewTag(tag)"
-                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition border"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition border inline-flex items-center gap-1.5"
                                 :class="selectedReviewTags.includes(tag) ? 'bg-brand-maroon text-white border-brand-maroon shadow-2xs' : 'bg-[#FAF7F2] text-[#6E5A54] border-[#EAE0D5] hover:bg-white'"
                             >
-                                {{ selectedReviewTags.includes(tag) ? '✓ ' : '+ ' }}{{ tag }}
+                                <svg v-if="selectedReviewTags.includes(tag)" class="w-3 h-3 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <svg v-else class="w-3 h-3 text-[#8C7A72] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span>{{ tag }}</span>
                             </button>
                         </div>
                     </div>
@@ -448,7 +471,9 @@ const filteredOrders = computed(() => {
                 class="fixed bottom-24 sm:bottom-8 right-6 z-50 rounded-2xl bg-emerald-900 text-white px-5 py-3.5 shadow-2xl flex items-center gap-3 border border-emerald-500 animate-in slide-in-from-bottom duration-300"
             >
                 <div class="h-9 w-9 rounded-xl bg-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0">
-                    🌱
+                    <svg class="h-5 w-5 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
+                    </svg>
                 </div>
                 <div>
                     <h4 class="text-xs font-black">Ulasan Berhasil Terkirim!</h4>
