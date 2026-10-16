@@ -11,10 +11,14 @@ use Inertia\Inertia;
 | Tidak memerlukan backend database authentication atau API controller.
 */
 
-// 1. Landing / Welcome Screen
+// 1. Landing / Register Mitra (Halaman Pertama Dibuka)
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    return Inertia::render('Mitra UMKM/Register');
 })->name('home');
+
+Route::get('/welcome', function () {
+    return Inertia::render('Welcome');
+})->name('welcome');
 
 // 2. Autentikasi (Frontend Mock)
 Route::get('/login', function () {
@@ -79,16 +83,24 @@ Route::get('/loading', function () {
 })->name('loading');
 
 // 4. POV Mitra UMKM (Merchant)
+Route::get('/mitra/register', function () {
+    return Inertia::render('Mitra UMKM/Register');
+})->name('mitra.register');
+
+Route::get('/mitra/login', function () {
+    return Inertia::render('Mitra UMKM/Login');
+})->name('mitra.login');
+
 Route::get('/mitra/dashboard', function () {
-    return Inertia::render('Mitra/Dashboard');
+    return Inertia::render('Mitra UMKM/Dashboard');
 })->name('mitra.dashboard');
 
 Route::get('/mitra/kelola-menu', function () {
-    return Inertia::render('Mitra/KelolaMenu');
+    return Inertia::render('Mitra UMKM/KelolaMenu');
 })->name('mitra.kelola-menu');
 
 Route::get('/mitra/pesanan', function () {
-    return Inertia::render('Mitra/Pesanan');
+    return Inertia::render('Mitra UMKM/Pesanan');
 })->name('mitra.pesanan');
 
 // 5. Fallback Dashboard
