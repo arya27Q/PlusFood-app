@@ -140,6 +140,7 @@ const navItems = [
                         v-for="item in navItems"
                         :key="item.route"
                         :href="route(item.route)"
+                        @click="isMobileOpen = false"
                         class="flex items-center rounded-2xl text-xs font-bold transition-all group"
                         :class="[
                             route().current(item.route)
@@ -215,9 +216,11 @@ const navItems = [
 
             <!-- Bagian Bawah Sidebar: Profil Ringkas Mitra -->
             <div class="border-t border-slate-100 p-3 shrink-0">
-                <div
+                <Link
+                    :href="route('mitra.profil')"
+                    @click="isMobileOpen = false"
                     v-if="!isCollapsed"
-                    class="rounded-2xl p-2.5 bg-slate-50 border border-slate-200/80 flex items-center gap-3 transition"
+                    class="rounded-2xl p-2.5 bg-slate-50 border border-slate-200/80 flex items-center gap-3 transition hover:bg-slate-100/80"
                 >
                     <div class="h-9 w-9 rounded-xl bg-brand-maroon text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">
                         WB
@@ -226,7 +229,7 @@ const navItems = [
                         <p class="text-xs font-bold text-slate-900 truncate">Warung Bu Sari</p>
                         <p class="text-[10px] text-slate-500 truncate">Kantin Vokasi Stand 04</p>
                     </div>
-                </div>
+                </Link>
                 <div v-else class="flex justify-center">
                     <button
                         @click="isCollapsed = false"
@@ -245,11 +248,11 @@ const navItems = [
             :class="isCollapsed ? 'md:pl-20' : 'md:pl-64'"
         >
             <!-- TOPBAR HEADER MITRA UMKM -->
-            <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.03)] h-16 flex items-center px-4 sm:px-6">
+            <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.03)] h-16 flex items-center px-3 sm:px-6">
                 <div class="flex items-center justify-between w-full">
                     
                     <!-- Sisi Kiri: Tombol Toggle Buka-Tutup Sidebar & Nama Panel -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 sm:gap-3">
                         <button
                             @click="toggleSidebar"
                             class="p-2 rounded-xl text-slate-600 hover:text-brand-maroon hover:bg-slate-100 transition cursor-pointer"
@@ -268,12 +271,12 @@ const navItems = [
                     </div>
 
                     <!-- Sisi Kanan: Action Buttons Status Sesi, Scan QR, Tambah Surplus -->
-                    <div class="flex items-center gap-2.5 shrink-0">
+                    <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                         
                         <!-- Toggle Status Sesi Gerai -->
                         <button
                             @click="isStoreOpen = !isStoreOpen"
-                            class="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition shadow-xs cursor-pointer whitespace-nowrap"
+                            class="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-bold transition shadow-xs cursor-pointer whitespace-nowrap"
                             :class="isStoreOpen ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'"
                         >
                             <span class="h-2 w-2 rounded-full" :class="isStoreOpen ? 'bg-white animate-ping' : 'bg-slate-400'"></span>
@@ -284,7 +287,7 @@ const navItems = [
                         <!-- Tombol Buka Scanner QR Kasir -->
                         <button
                             @click="showScanModal = true"
-                            class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-3.5 py-2 text-xs font-bold text-stone-900 shadow-sm hover:bg-amber-300 transition hover:scale-105 whitespace-nowrap cursor-pointer"
+                            class="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-amber-400 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold text-stone-900 shadow-sm hover:bg-amber-300 transition hover:scale-105 whitespace-nowrap cursor-pointer"
                         >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -295,9 +298,10 @@ const navItems = [
                         <!-- Tombol Tambah Surplus Kilat -->
                         <Link
                             :href="route('mitra.kelola-menu')"
-                            class="inline-flex items-center gap-1.5 rounded-xl bg-brand-maroon px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition whitespace-nowrap"
+                            class="inline-flex items-center gap-1 sm:gap-1.5 rounded-xl bg-brand-maroon px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition whitespace-nowrap"
                         >
-                            <span>+ Tambah Surplus</span>
+                            <span class="hidden sm:inline">+ Tambah Surplus</span>
+                            <span class="sm:hidden">+ Surplus</span>
                         </Link>
 
                     </div>
@@ -306,11 +310,86 @@ const navItems = [
             </header>
 
             <!-- ================= MAIN CONTENT SLOT ================= -->
-            <main class="flex-1 p-4 sm:p-5 lg:p-6 w-full mx-auto animate-page-enter">
+            <main class="flex-1 p-3 sm:p-5 lg:p-6 pb-24 md:pb-6 w-full mx-auto animate-page-enter">
                 <slot />
             </main>
 
         </div>
+
+        <!-- ================= BOTTOM NAVIGATION BAR MITRA (MOBILE-FIRST) ================= -->
+        <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 py-2 px-2 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <Link
+                :href="route('mitra.dashboard')"
+                class="flex-1 flex flex-col items-center gap-1 transition-colors"
+                :class="route().current('mitra.dashboard') ? 'text-brand-maroon font-black' : 'text-slate-500 hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl" :class="route().current('mitra.dashboard') ? 'bg-rose-50' : ''">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="3" width="7.5" height="7.5" rx="2.5" />
+                        <rect x="13.5" y="3" width="7.5" height="7.5" rx="2.5" />
+                        <rect x="3" y="13.5" width="7.5" height="7.5" rx="2.5" />
+                        <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.5" />
+                    </svg>
+                </div>
+                <span class="text-[10px] leading-tight">Dashboard</span>
+            </Link>
+
+            <Link
+                :href="route('mitra.kelola-menu')"
+                class="flex-1 flex flex-col items-center gap-1 transition-colors"
+                :class="route().current('mitra.kelola-menu') ? 'text-brand-maroon font-black' : 'text-slate-500 hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl" :class="route().current('mitra.kelola-menu') ? 'bg-rose-50' : ''">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                </div>
+                <span class="text-[10px] leading-tight">Menu</span>
+            </Link>
+
+            <!-- Center Action: Scan QR Button -->
+            <button
+                type="button"
+                @click="showScanModal = true"
+                class="flex flex-col items-center gap-0.5 px-2 -mt-3.5 group cursor-pointer"
+            >
+                <div class="h-11 w-11 rounded-2xl bg-amber-400 text-stone-900 flex items-center justify-center shadow-md shadow-amber-400/30 group-active:scale-95 transition-transform border-2 border-white">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                </div>
+                <span class="text-[9px] font-black text-stone-800">Scan QR</span>
+            </button>
+
+            <Link
+                :href="route('mitra.pesanan')"
+                class="flex-1 flex flex-col items-center gap-1 transition-colors relative"
+                :class="route().current('mitra.pesanan') ? 'text-brand-maroon font-black' : 'text-slate-500 hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl relative" :class="route().current('mitra.pesanan') ? 'bg-rose-50' : ''">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    <span class="absolute -top-1 -right-1.5 h-4 w-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
+                        3
+                    </span>
+                </div>
+                <span class="text-[10px] leading-tight">Pesanan</span>
+            </Link>
+
+            <Link
+                :href="route('mitra.profil')"
+                class="flex-1 flex flex-col items-center gap-1 transition-colors"
+                :class="route().current('mitra.profil') ? 'text-brand-maroon font-black' : 'text-slate-500 hover:text-brand-maroon font-medium'"
+            >
+                <div class="p-1 rounded-xl" :class="route().current('mitra.profil') ? 'bg-rose-50' : ''">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+                <span class="text-[10px] leading-tight">Profil</span>
+            </Link>
+        </nav>
 
         <!-- Global Modal Scanner QR Kasir -->
         <ScanQrModal

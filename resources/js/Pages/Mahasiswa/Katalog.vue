@@ -105,6 +105,8 @@ const filteredFoods = computed(() => {
     });
 });
 
+const isMobileFilterOpen = ref(false);
+
 import { onMounted } from 'vue';
 onMounted(() => {
     if (typeof window !== 'undefined') {
@@ -132,10 +134,39 @@ onMounted(() => {
     <MahasiswaLayout>
         <Head title="Katalog Surplus - PlusFood" />
 
+        <!-- Mobile Filter Toggle Bar (< lg) -->
+        <div class="lg:hidden flex items-center justify-between bg-white rounded-2xl p-3.5 border border-[#EAE0D5] shadow-xs mb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="h-9 w-9 rounded-xl bg-brand-maroon/10 text-brand-maroon flex items-center justify-center font-bold shrink-0">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-black text-[#2D1B1E] truncate">Filter & Kategori</p>
+                    <p class="text-[10px] text-[#8C7A72] truncate">{{ currentCampus.name }} · {{ selectedCategory }}</p>
+                </div>
+            </div>
+            <button
+                type="button"
+                @click="isMobileFilterOpen = !isMobileFilterOpen"
+                class="rounded-xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs"
+                :class="isMobileFilterOpen ? 'bg-brand-maroon text-white' : 'bg-[#FAF7F2] text-brand-maroon border border-[#EAE0D5]'"
+            >
+                <span>{{ isMobileFilterOpen ? 'Tutup Filter' : 'Buka Filter' }}</span>
+                <svg class="h-3.5 w-3.5 transition-transform" :class="{ 'rotate-180': isMobileFilterOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             <!-- ================= SISI KIRI: PANEL FILTER PERSIS GAMBAR 2 ================= -->
-            <div class="lg:col-span-3 rounded-[24px] bg-white p-6 border border-[#EAE0D5] shadow-sm space-y-6">
+            <div
+                class="lg:col-span-3 rounded-[24px] bg-white p-6 border border-[#EAE0D5] shadow-sm space-y-6"
+                :class="[ isMobileFilterOpen ? 'block' : 'hidden lg:block' ]"
+            >
                 
                 <!-- Filter Header & Reset -->
                 <div class="flex items-center justify-between pb-2 border-b border-[#F5EFE6]">

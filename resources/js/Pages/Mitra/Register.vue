@@ -66,7 +66,7 @@ const submitRegister = () => {
         >
             
             <!-- ================= KOLOM KIRI: FORM DAFTAR TOKO (PUTIH) ================= -->
-            <div class="md:col-span-6 bg-white p-8 sm:p-12 lg:p-14 flex flex-col justify-between order-2 md:order-1">
+            <div class="md:col-span-6 bg-white p-6 sm:p-12 lg:p-14 flex flex-col justify-between order-2 md:order-1">
                 
                 <div>
                     <!-- Badge Portal Mitra UMKM & Switcher -->
@@ -223,7 +223,7 @@ const submitRegister = () => {
             </div>
 
             <!-- ================= KOLOM KANAN: HERO MITRA (MAROON & FOTO KASIR) ================= -->
-            <div class="relative md:col-span-6 bg-[#700926] flex flex-col items-center justify-center p-8 sm:p-12 text-center text-white overflow-hidden min-h-[380px] md:min-h-full order-1 md:order-2">
+            <div class="relative md:col-span-6 bg-[#700926] flex flex-col items-center justify-center p-6 sm:p-12 text-center text-white overflow-hidden min-h-[200px] md:min-h-full order-1 md:order-2">
                 
                 <!-- Background Foto Kasir Kafe / Resto dengan Maroon Tint -->
                 <div class="absolute inset-0 z-0">
@@ -240,8 +240,8 @@ const submitRegister = () => {
                 <div class="relative z-10 flex flex-col items-center max-w-[340px]">
                     
                     <!-- Icon Toko / Storefront Lingkaran Semi-Transparan -->
-                    <div class="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur-xs flex items-center justify-center mb-6 shadow-inner">
-                        <svg class="h-8 w-8 sm:h-9 sm:w-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="h-14 w-14 sm:h-20 sm:w-20 rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur-xs flex items-center justify-center mb-3 sm:mb-6 shadow-inner">
+                        <svg class="h-7 w-7 sm:h-9 sm:w-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 9l1-5h16l1 5" />
                             <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
                             <path d="M4 14v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6" />

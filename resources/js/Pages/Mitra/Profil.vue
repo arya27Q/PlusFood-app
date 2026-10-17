@@ -87,10 +87,9 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head title="Profil Gerai Mitra - PlusFood UMKM" />
-
     <MitraLayout title="Profil Gerai Mitra - PlusFood">
-        <div class="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+        <Head title="Profil Gerai Mitra - PlusFood UMKM" />
+        <div class="mx-auto max-w-[1440px] space-y-6 sm:space-y-8">
             
             <!-- Breadcrumbs & Heading -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

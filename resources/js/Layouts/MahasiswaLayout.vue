@@ -21,7 +21,7 @@ const auth = useAuth();
         
         <!-- ================= NAVBAR ATAS MAHASISWA ================= -->
         <header class="sticky top-0 z-40 border-b border-[#EAE0D5] bg-white/95 backdrop-blur-md">
-            <div class="mx-auto flex max-w-[1380px] items-center justify-between px-6 py-3.5 sm:px-8">
+            <div class="mx-auto flex max-w-[1380px] items-center justify-between px-4 py-3 sm:px-8">
                 
                 <!-- Logo & Brand -->
                 <div class="flex items-center gap-8">
@@ -63,7 +63,7 @@ const auth = useAuth();
                 </div>
 
                 <!-- Sisi Kanan: Search Bar, Notifikasi, Avatar Mahasiswa -->
-                <div class="flex items-center gap-3.5">
+                <div class="flex items-center gap-2 sm:gap-3.5">
                     
                     <!-- Search Input Pill -->
                     <div class="relative hidden sm:block w-64 lg:w-72">
@@ -133,15 +133,15 @@ const auth = useAuth();
         </header>
 
         <!-- ================= MAIN CONTENT SLOT ================= -->
-        <main class="mx-auto max-w-[1380px] p-6 sm:p-8 pb-24 md:pb-8 animate-page-enter">
+        <main class="mx-auto max-w-[1380px] p-4 sm:p-8 pb-24 md:pb-8 animate-page-enter">
             <slot />
         </main>
 
         <!-- ================= BOTTOM NAVIGATION BAR (MOBILE-FIRST) ================= -->
-        <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE0D5] py-2 px-6 flex items-center justify-around shadow-lg">
+        <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE0D5] py-2 px-2 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             <Link
                 :href="route('beranda')"
-                class="flex flex-col items-center gap-1 transition-colors"
+                class="flex-1 flex flex-col items-center gap-0.5 transition-colors"
                 :class="route().current('beranda') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
             >
                 <div class="p-1 rounded-xl" :class="route().current('beranda') ? 'bg-[#F5EFE6]' : ''">
@@ -149,12 +149,12 @@ const auth = useAuth();
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                 </div>
-                <span class="text-[10px]">Beranda</span>
+                <span class="text-[10px] leading-tight">Beranda</span>
             </Link>
 
             <Link
                 :href="route('katalog')"
-                class="flex flex-col items-center gap-1 transition-colors"
+                class="flex-1 flex flex-col items-center gap-0.5 transition-colors"
                 :class="route().current('katalog') || route().current('makanan.detail') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
             >
                 <div class="p-1 rounded-xl" :class="route().current('katalog') || route().current('makanan.detail') ? 'bg-[#F5EFE6]' : ''">
@@ -162,12 +162,12 @@ const auth = useAuth();
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                     </svg>
                 </div>
-                <span class="text-[10px]">Katalog</span>
+                <span class="text-[10px] leading-tight">Katalog</span>
             </Link>
 
             <Link
                 :href="route('riwayat')"
-                class="flex flex-col items-center gap-1 relative transition-colors"
+                class="flex-1 flex flex-col items-center gap-0.5 relative transition-colors"
                 :class="route().current('riwayat') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
             >
                 <div class="p-1 rounded-xl relative" :class="route().current('riwayat') ? 'bg-[#F5EFE6]' : ''">
@@ -177,12 +177,12 @@ const auth = useAuth();
                     <!-- Ping dot for active ticket -->
                     <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
                 </div>
-                <span class="text-[10px]">Tiket & Riwayat</span>
+                <span class="text-[10px] leading-tight">Riwayat</span>
             </Link>
 
             <Link
                 :href="route('profil')"
-                class="flex flex-col items-center gap-1 transition-colors"
+                class="flex-1 flex flex-col items-center gap-0.5 transition-colors"
                 :class="route().current('profil') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
             >
                 <div class="p-1 rounded-xl" :class="route().current('profil') ? 'bg-[#F5EFE6]' : ''">
@@ -190,19 +190,19 @@ const auth = useAuth();
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                 </div>
-                <span class="text-[10px]">Profil</span>
+                <span class="text-[10px] leading-tight">Profil</span>
             </Link>
 
             <Link
                 :href="route('mitra.dashboard')"
-                class="flex flex-col items-center gap-1 text-amber-800 font-bold hover:text-amber-900 transition-colors"
+                class="flex-1 flex flex-col items-center gap-0.5 text-amber-800 font-bold hover:text-amber-900 transition-colors"
             >
                 <div class="p-1 rounded-xl bg-amber-100 border border-amber-300">
                     <svg class="h-5 w-5 text-amber-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                 </div>
-                <span class="text-[10px]">Mitra UMKM</span>
+                <span class="text-[10px] leading-tight">Mitra</span>
             </Link>
         </nav>
 

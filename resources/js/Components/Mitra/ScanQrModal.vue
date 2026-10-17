@@ -60,7 +60,7 @@ const simulateSampleScan = () => {
 
 <template>
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-page-enter">
-        <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5">
+        <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5 max-h-[92vh] overflow-y-auto">
             
             <!-- Close Button -->
             <button
