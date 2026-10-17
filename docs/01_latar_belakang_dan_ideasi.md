@@ -14,9 +14,11 @@ Pengembangan PlusFood didasari oleh dua masalah nyata yang saling berkaitan di s
 * **Kanal Promosi Tradisional Tidak Efektif:** Upaya memberikan diskon dadakan lewat Instagram Story sering kali tidak efektif dan memakan waktu, karena sebaran audiens terbatas hanya pada *followers*, algoritma lambat, dan tidak memiliki mekanisme booking instan.
 
 ### B. Dari Sisi Konsumen (Mahasiswa Perantauan / Anak Kos)
-* **Krisis Finansial Akhir Bulan:** Mahasiswa perantauan kerap mengalami krisis finansial di akhir bulan, sehingga terpaksa memotong anggaran makan harian dengan sangat ketat (misalnya maksimal Rp20.000 per hari).
-* **Sulit Mencari Makan Malam Porsi Berat yang Terjangkau:** Mereka kesulitan mencari makanan berat bergizi (nasi dan lauk) dalam rentang budget Rp11.000 - Rp15.000 menjelang malam hari.
+* **Krisis Finansial Akhir Bulan:** Mahasiswa perantauan kerap mengalami krisis finansial di akhir bulan, sehingga terpaksa memotong anggaran makan harian dengan sangat ketat (misalnya maksimal Rp20.000 per hari seperti hasil wawancara dengan Agus).
+* **Sulit Mencari Makan Malam Porsi Berat yang Terjangkau:** Mereka kesulitan mencari makanan berat bergizi (nasi dan lauk) dalam rentang budget Rp11.000 - Rp15.000 menjelang malam hari (seperti hasil wawancara dengan Riko).
 * **Inefisiensi Waktu & Ketidakpastian:** Mahasiswa membuang waktu 15–30 menit berkeliling mencari warung murah yang masih buka, hanya untuk menemukan makanannya sudah habis atau warung sudah bersiap tutup.
+
+> *Catatan Metodologi: Data temuan lapangan di atas diperoleh dari hasil wawancara kolaboratif tim (Arya Pratama & Muhammad Mirza Fatih) terhadap mitra kantin dan mahasiswa sekitar kampus UNESA. Rincian log wawancara terdokumentasi lengkap pada [Dokumen PRD (`02_prd.md`)](02_prd.md).*
 
 ---
 
