@@ -1,5 +1,5 @@
 <script setup>
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/UI/ApplicationLogo.vue';
 import Dropdown from '@/Components/UI/Dropdown.vue';
 import DropdownLink from '@/Components/UI/DropdownLink.vue';
@@ -12,7 +12,6 @@ defineProps({
     },
 });
 
-const page = usePage();
 const auth = useAuth();
 </script>
 

@@ -4,7 +4,8 @@ import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/UI/InputError.vue';
 import PrimaryButton from '@/Components/UI/PrimaryButton.vue';
 import LoadingScreen from '@/Components/UI/LoadingScreen.vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { useAuth } from '@/Composables/useAuth';
 
 defineProps({
     canResetPassword: {
@@ -15,8 +16,6 @@ defineProps({
         type: String,
     },
 });
-
-import { useAuth } from '@/Composables/useAuth';
 
 const isVisible = ref(false);
 const showPassword = ref(false);

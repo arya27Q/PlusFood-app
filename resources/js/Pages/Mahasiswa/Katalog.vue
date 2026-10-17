@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
 import { sampleFoods, campusZones } from '@/Utils/mockFoods';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 const maxPrice = ref(25000);
 const selectedCategory = ref('Semua');
@@ -107,7 +107,6 @@ const filteredFoods = computed(() => {
 
 const isMobileFilterOpen = ref(false);
 
-import { onMounted } from 'vue';
 onMounted(() => {
     if (typeof window !== 'undefined') {
         const savedPref = localStorage.getItem('plusfood_preferences');
