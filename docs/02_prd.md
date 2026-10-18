@@ -5,7 +5,7 @@
 * **Modul Terkait:** Modul 5 (Canteen Pre-Order & Express Checkout / QR Pickup)
 * **Platform:** Responsive Web Application (Mobile-Optimized untuk Mahasiswa, Desktop/Tablet Dashboard untuk Mitra UMKM)
 * **Tautan Repositori GitHub:** [https://github.com/arya27Q/PlusFood-app](https://github.com/arya27Q/PlusFood-app)
-* **Tautan Figma Prototype:** `[Figma Design - Modul 5 Canteen Pre-Order & Checkout]`
+* **Tautan Figma Prototype:** [https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0)
 
 ---
 

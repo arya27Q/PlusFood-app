@@ -98,5 +98,5 @@ Untuk memastikan hasil implementasi frontend (Vue + Tailwind) 100% presisi (*pix
    * Kode Hex warna spesifik (jika ada warna sekunder/aksen khusus).
    * Logo PlusFood (SVG atau PNG transparan).
    * Ikon spesifik (misal: ikon eco-packaging, dietary badges, bottom nav icons).
-3. **Link Figma (Opsional):**
-   * Jika ada link file Figma publik / screenshot frame utamanya, itu sangat mempercepat penyesuaian CSS dan layout.
+3. **Link Figma Resmi:**
+   * Tautan Desain & Prototype Figma Modul 5: [https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0)

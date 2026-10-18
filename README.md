@@ -8,14 +8,24 @@
 [![Inertia.js](https://img.shields.io/badge/Inertia.js-Modern%20Monolith-9553E9?style=for-the-badge&logo=inertia&logoColor=white)](https://inertiajs.com/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-arya27Q%2FPlusFood--app-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/arya27Q/PlusFood-app)
+[![Figma Prototype](https://img.shields.io/badge/Figma-Surplus%20Design%20Modul%205-F24E1E?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0)
+
+---
+
+## 📋 Checklist Pemenuhan Berkas 02: README.md Lengkap
+Berdasarkan rubrik penugasan resmi **BERKAS 02**, dokumen ini memuat seluruh komponen wajib:
+* [x] **Instruksi Jalan Lokal:** Tersedia di [Bagian 2 - Panduan Menjalankan Aplikasi Secara Lokal](#-panduan-menjalankan-aplikasi-secara-lokal).
+* [x] **Tautan Desain Figma Modul 5:** [https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0).
+* [x] **Pembagian Kontribusi Anggota Kelompok:** Tersedia di [Bagian 4 - Pembagian Kontribusi Anggota Kelompok](#-pembagian-kontribusi-anggota-kelompok).
+* [x] **Log Prompt AI & Catatan Perbaikan Manual:** Tersedia di [Bagian 5 - Dokumentasi Log Prompt AI & Catatan Perbaikan Manual](#-dokumentasi-log-prompt-ai--catatan-perbaikan-manual).
 
 ---
 
 ## 🔗 Tautan Penting Proyek
 
 * **Repositori GitHub:** [https://github.com/arya27Q/PlusFood-app](https://github.com/arya27Q/PlusFood-app)
-* **Tautan Figma Prototype (Modul 5):** [https://www.figma.com/design/surplus-plusfood-canteen-preorder](https://www.figma.com/design/surplus-plusfood-canteen-preorder) *(Sesuaikan tautan file/board Figma tim)*
-* **Folder Dokumentasi Lengkap:** [docs/](file:///d:/laragon/www/plusfood-app/docs/) (PRD, Arsitektur, User Flow, UI Spec)
+* **Tautan Figma Prototype (Modul 5):** [https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0)
+* **Folder Dokumentasi Lengkap:** [docs/](file:///d:/laragon/www/plusfood-app/docs/) (PRD, Arsitektur, User Flow, UI Spec, Logbook)
 
 ---
 

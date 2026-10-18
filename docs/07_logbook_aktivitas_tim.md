@@ -1,0 +1,31 @@
+# 📅 LOGBOOK AKTIVITAS PENGEMBANGAN PROYEK PLUSFOOD
+### Program: Web UI/UX Developer — Modul 5: Canteen Pre-Order & Checkout
+* **Repositori GitHub:** [https://github.com/arya27Q/PlusFood-app](https://github.com/arya27Q/PlusFood-app)
+* **Tautan Figma Prototype (Modul 5):** [https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0)
+
+---
+
+## 👥 Profil Anggota Tim
+1. **Arya Pratama (`@arya27Q`)** — *Project Lead, Lead Fullstack Engineer & UI/UX Refiner*
+2. **Muhammad Mirza Fatih (`@MuhammadMirzaFatih`)** — *UI/UX Drafter, Research Assistant & QA Tester*
+
+---
+
+## 📋 Tabel Rekapitulasi Aktivitas Harian (Daily Logbook)
+
+| No | Hari & Tanggal | Aktivitas Utama Arya Pratama (Lead Fullstack & UI/UX) | Aktivitas Utama Muhammad Mirza Fatih (Drafter & QA) | Bukti / Luaran Proyek (*Deliverables*) |
+|:---:|:---|:---|:---|:---|
+| **1** | **Senin, 12 Oktober 2026** | • Inisiasi repositori Git & setup arsitektur proyek (Laravel 11, Inertia.js, Vue 3, Tailwind CSS).<br>• Menyusun struktur folder kode & routing awal dual-POV.<br>• Menyusun draf awal dokumentasi sistem (`docs/`). | • Brainstorming ideasi produk bersama (konsep *Food Surplus & Canteen Pre-Order*).<br>• Eksplorasi referensi antarmuka aplikasi pemesanan kantin. | • Commit `3ee49fc` & `df8873a` (Init Laravel & Vue).<br>• Commit `97dfe87` (Dokumentasi awal sistem). |
+| **2** | **Selasa, 13 Oktober 2026** | • Mengikuti **Sesi Mentorship Week 1** via Zoom bersama mentor Frenki Herlambang.<br>• Mengembangkan halaman Katalog Surplus Mahasiswa (Custom SVG, Dropdown Lokasi Kampus, Filter Cepat).<br>• Implementasi halaman Checkout & logic reservasi kupon digital. | • Mengikuti **Sesi Mentorship Week 1** via Zoom.<br>• Memulai *drafting* awal wireframe komponen keranjang & checkout di [Figma Modul 5](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0).<br>• Mencatat arahan mentor terkait penyusunan PRD berbasis AI. | • Tangkapan layar Zoom Mentorship Week 1.<br>• Commit `c67e80c` (Katalog upgrade).<br>• Commit `a42bc7a` (Halaman Checkout & logic reservasi). |
+| **3** | **Rabu, 14 Oktober 2026** | • **Wawancara Lapangan Sesi 1 (Lead Moderator):** Menggali masalah kerugian stok sisa Rp40.000/minggu ke Mas Danu (Kantin Greenwood UNESA).<br>• Mengembangkan halaman Profil Mahasiswa & integrasi modal ubah password interaktif.<br>• Sinkronisasi model zona kampus. | • **Asistensi Wawancara Sesi 1:** Membantu mendokumentasikan dan merekam sesi wawancara Mas Danu.<br>• Melanjutkan eksplorasi komponen visual tombol dan kartu di Figma. | • Rekaman & transkrip wawancara Merchant (Mas Danu).<br>• Commit `cb811fa` (Halaman Profil & Modal Password). |
+| **4** | **Kamis, 15 Oktober 2026** | • **Wawancara Lapangan Sesi 2 & 3 (Lead Interviewer):** Menggali perilaku mahasiswa perantauan (Agus - budget ketat Rp20k & Riko - fokus porsi berat Rp11k-15k).<br>• Mengambil alih penyempurnaan menyeluruh (*full refinement*) wireframe & prototipe Figma Modul 5 yang belum maksimal.<br>• Merancang diagram User Flow dual-POV lengkap. | • **Asistensi Riset Pengguna:** Membantu pencatatan poin penting respon mahasiswa pada sesi wawancara.<br>• Menyerahkan draf visual awal Figma untuk direview dan disempurnakan oleh Lead. | • Catatan hasil riset pengguna mahasiswa.<br>• File Prototipe [Figma Modul 5](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0).<br>• Dokumen `04_user_flow_dan_panduan.md`. |
+| **5** | **Jumat, 16 Oktober 2026** | • Melakukan sesi transfer pengetahuan (mentoring internal) ke rekan tim terkait instalasi Laragon, PHP, Composer, Git, dan workflow AI.<br>• Membagi tugas implementasi tampilan otentikasi mitra.<br>• Melakukan *code review* dan perbaikan routing pada kode yang dikerjakan rekan. | • Mengikuti sesi belajar setup environment lokal bersama Arya.<br>• Membuat draf antarmuka formulir Register dan Login Mitra UMKM.<br>• Mengunggah hasil pekerjaan ke GitHub. | • Commit `728e8d2` oleh `MforMirza` (feat: tambah tampilan register dan login mitra umkm serta alur navigasi). |
+| **6** | **Sabtu, 17 Oktober 2026 (Pagi)** | • **Overhaul UI Mitra UMKM:** Mengubah layout navigasi menjadi *Collapsible Sidebar* dengan transisi halus.<br>• Memperbaiki *overflow* tabel pesanan agar dapat digeser horizontal (*overflow-x-auto*).<br>• Mengintegrasikan tipografi modern font **Nunito** di seluruh aplikasi. | • Menguji tampilan Dashboard Mitra pada resolusi laptop/desktop.<br>• Mencatat beberapa masukan terkait kerapian teks kolom tabel yang sempat terlipat (*wrapped*). | • Commit `fb3bf4f` (Overhaul Mitra UI, Collapsible Sidebar, Table Scroll). |
+| **7** | **Sabtu, 17 Oktober 2026 (Siang - Selesai)** | • **Penyempurnaan Penuh Responsif Mobile (Dual-POV):**<br>&nbsp;&nbsp;1. Membangun *Mobile Bottom Navigation Bar* khusus Mitra (dengan tombol tengah raised Scan QR).<br>&nbsp;&nbsp;2. Membangun *Collapsible Filter Accordion* di Katalog Mahasiswa.<br>&nbsp;&nbsp;3. Mengamankan modal Scan QR (`max-h-[92vh]`).<br>• Pembersihan *deadcode* & optimasi performa Vite (0 error).<br>• Menyusun PRD lengkap (`02_prd.md`), Log Wawancara resmi, dan dokumen `README.md`. | • Melakukan pengujian manual (*User Acceptance Testing / UAT*) pada browser HP dan desktop (memastikan tidak ada tombol rusak atau layout terpotong).<br>• Membantu pengecekan keselarasan PRD dengan rubrik penugasan. | • Commit `85ee77a` (Full Mobile Responsiveness).<br>• Commit `3b73400` / `6c3f865` (Deadcode cleanups).<br>• Dokumen resmi `02_prd.md` dan `README.md`. |
+
+---
+
+## 📌 Catatan Korelasi dengan Rekaman Video Mentorship Zoom
+* **Sinkronisasi Modul 5:** Berdasarkan sesi Zoom bersama mentor Frenki Herlambang pada Selasa, 13 Oktober 2026, materi utama berfokus pada alur *Canteen Pre-Order & Checkout* (Review Tray, Scan & Pay QR e-wallet, dan 3-digit Pickup Token).
+* **Penerapan Prompt AI:** Seluruh prompt perancangan PRD dan komponen Vue.js yang didiskusikan di Zoom telah diimplementasikan dan didokumentasikan di `README.md` lengkap dengan catatan perbaikan manual (*human-in-the-loop*).
+* **Kolaborasi Tim:** Pembagian tugas memadukan riset pengguna lapangan, perancangan antarmuka Figma, rekayasa kode fullstack, dan pengujian kualitas antarmuka.
