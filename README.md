@@ -195,6 +195,7 @@ Dokumen spesifikasi resmi dapat dibaca pada folder `docs/`:
 * [**04. User Flow & Panduan**](docs/04_user_flow_dan_panduan.md): Alur perjalanan mahasiswa dan mitra dari reservasi hingga validasi QR.
 * [**05. Spesifikasi Desain UI**](docs/05_spesifikasi_desain_ui.md): Hirarki komponen dan panduan keselarasan desain Figma.
 * [**06. Skema Database & Relasi**](docs/06_skema_database_dan_relasi.md): Spesifikasi ERD, kamus data lengkap, foreign key cascading, dan query bisnis utama.
+* [**07. Panduan Git Workflow & Kontribusi**](docs/07_panduan_git_workflow_dan_kontribusi.md): SOP branching 2-branch, panduan push, PR, merge, dan log kontribusi tim.
 * [**Desain Sistem Dual-POV**](docs/desain_sistem_plusfood_2_pov.md): Penjelasan pilar LBS, Single-Item reservation paradigm, dan skema database.
 
 ---
