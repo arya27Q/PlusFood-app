@@ -110,10 +110,10 @@ const savedAmount = computed(() => (food.value.price - food.value.priceDiscount)
 const weightSaved = computed(() => quantity.value * 400);
 
 const paymentOptions = [
-    { id: 'qris', label: 'QRIS', sublabel: 'Scan & bayar', color: 'bg-blue-600', initial: 'GR' },
-    { id: 'gopay', label: 'GoPay', sublabel: 'SaldoGoPay', color: 'bg-emerald-500', initial: 'GP' },
-    { id: 'dana', label: 'DANA', sublabel: 'Saldo DANA', color: 'bg-blue-500', initial: 'DA' },
-    { id: 'kasir', label: 'Bayar di Kasir', sublabel: 'Tunai atau QRIS', color: 'bg-brand-maroon', initial: 'Rp' },
+    { id: 'qris', label: 'QRIS', sublabel: 'Sandbox Instant', color: 'bg-blue-600', initial: 'QR' },
+    { id: 'gopay', label: 'GoPay', sublabel: 'Sandbox E-Wallet', color: 'bg-emerald-500', initial: 'GP' },
+    { id: 'dana', label: 'DANA', sublabel: 'Sandbox E-Wallet', color: 'bg-blue-500', initial: 'DA' },
+    { id: 'kasir', label: 'Bayar di Kasir', sublabel: 'Tunai saat ambil', color: 'bg-brand-maroon', initial: 'Rp' },
 ];
 
 const fmt = (n) => n.toLocaleString('id-ID');
@@ -161,6 +161,11 @@ const confirmReservation = () => {
                 pickupTime: food.value.pickupTime || '19.30 – 20.30 WIB',
                 pickupDeadline: food.value.pickupDeadlineInfo || 'Hari ini tutup 21.00 WIB',
                 date: 'Hari ini, 13 Okt 2026',
+                paymentMethod: paymentMethod.value,
+                paymentGateway: paymentMethod.value === 'kasir' ? 'cash_on_pickup' : 'sandbox_simulator',
+                paymentReference: 'SBX-' + paymentMethod.value.toUpperCase() + '-' + newId,
+                paymentStatus: paymentMethod.value === 'kasir' ? 'menunggu_bayar' : 'lunas',
+                paidAt: paymentMethod.value === 'kasir' ? null : new Date().toISOString(),
                 status: 'menunggu',
                 statusLabel: 'Menunggu Pickup',
                 qrCode: newId + '-' + (food.value.merchantInitial || 'PF'),
@@ -356,9 +361,14 @@ const confirmReservation = () => {
                         </div>
                     </div>
 
-                    <!-- Metode Pembayaran -->
+                    <!-- Metode Pembayaran (Sandbox Simulator Tanpa Vendor Token) -->
                     <div class="border-t border-[#F5EFE6] pt-4">
-                        <p class="text-[11px] font-bold text-[#8C7A72] mb-2">Metode Pembayaran</p>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[11px] font-bold text-[#8C7A72]">Metode Pembayaran</p>
+                            <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[9px] font-extrabold text-amber-800 border border-amber-200">
+                                Sandbox Simulator
+                            </span>
+                        </div>
                         <div class="grid grid-cols-2 gap-2">
                             <label
                                 v-for="opt in paymentOptions"

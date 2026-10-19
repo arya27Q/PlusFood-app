@@ -16,6 +16,14 @@ const reloadOrders = () => {
 
 onMounted(() => {
     reloadOrders();
+    // Sinkronisasi Real-Time Dua Arah Bawaan Browser (Tanpa Websocket Vendor)
+    if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'plusfood_orders') {
+                reloadOrders();
+            }
+        });
+    }
 });
 
 // Metrik Finansial Sesuai Spesifikasi PRD & Desain Sistem

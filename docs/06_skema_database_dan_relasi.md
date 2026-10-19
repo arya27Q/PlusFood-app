@@ -24,6 +24,9 @@ Arsitektur database PlusFood dirancang berdasarkan prinsip-prinsip utama dual-pe
    - Setiap mitra (`merchants`) dan makanan (`foods`) dipetakan ke dalam zona kampus (`campus_zone`), memungkinkan filter radius instan (500m – 3km).
 6. **Gamifikasi Penyelamatan Makanan (*Green Impact Tracker*):**
    - Tabel `users` secara kumulatif mencatat metrik dampak: gram emisi CO2 dicegah (`co2_saved_grams`), total penghematan rupiah (`money_saved_rp`), dan level penghargaan (*Green Rescuer Level*).
+7. **Sandbox Payment Simulator & Zero-Vendor Real-Time Architecture:**
+   - **Metode Pembayaran:** Menggunakan **Sandbox Payment Simulator** (Mock QRIS Dinamis, E-Wallet Sandbox GoPay/DANA, dan Tunai Kasir) dengan pencatatan `payment_gateway` (`'sandbox_simulator'`) dan `payment_reference` (`'SBX-QRIS-PF84920'`). Tidak membutuhkan akun vendor produksi berbayar atau kredensial rahasia yang rawan kedaluwarsa.
+   - **Tanpa WebSocket Vendor Pihak Ketiga (No Pusher / No Ably / No Socket.io Server):** Sinkronisasi status pesanan dan tiket QR antara tab Mahasiswa dan Mitra memanfaatkan **Browser Cross-Tab Storage Event Synchronization** (`window.addEventListener('storage', ...)`). Ini menjamin keterhubungan real-time instan dengan **zero configuration**, bebas biaya, dan 100% tahan banting terhadap firewall/proxy WiFi kampus yang sering memblokir port WebSocket.
 
 ---
 
@@ -144,7 +147,10 @@ erDiagram
         enum arrival_estimate "awal, tengah, akhir"
         boolean remind_before
         enum payment_method "kasir, qris, gopay, dana"
+        string payment_gateway "sandbox_simulator"
+        string payment_reference "nullable"
         enum payment_status "menunggu_bayar, lunas"
+        timestamp paid_at "nullable"
         enum status "menunggu, siap_ambil, selesai, batal"
         string qr_token UK
         boolean has_review
@@ -334,8 +340,11 @@ Menyimpan transaksi pemesanan mahasiswa, token QR tiket, dan snapshot data.
 | `pickup_time` | `VARCHAR(255)` | Tidak | - | Jadwal rentang waktu pickup resmi. |
 | `arrival_estimate`| `ENUM('awal', 'tengah', 'akhir')` | Tidak | `'tengah'` | Perkiraan kedatangan mahasiswa di gerai. |
 | `remind_before` | `BOOLEAN` | Tidak | `TRUE` | Pengingat via WhatsApp 30 menit sebelum tutup. |
-| `payment_method` | `ENUM('kasir', 'qris', 'gopay', 'dana')` | Tidak | `'kasir'` | Cara pembayaran. |
+| `payment_method` | `ENUM('kasir', 'qris', 'gopay', 'dana')` | Tidak | `'kasir'` | Kanal pembayaran terpilih. |
+| `payment_gateway` | `VARCHAR(255)` | Tidak | `'sandbox_simulator'` | Gateway simulator (tanpa akun vendor berbayar). |
+| `payment_reference`| `VARCHAR(255)` | Ya | `NULL` | Nomor referensi transaksi sandbox (misal: `SBX-QRIS-PF84920`). |
 | `payment_status` | `ENUM('menunggu_bayar', 'lunas')` | Tidak | `'lunas'` | Status pembayaran. |
+| `paid_at` | `TIMESTAMP` | Ya | `NULL` | Timestamp pelunasan pembayaran sandbox. |
 | `status` | `ENUM('menunggu', 'siap_ambil', 'selesai', 'batal')` | Tidak | `'menunggu'` | Status alur pesanan. |
 | `qr_token` | `VARCHAR(255)` | Tidak | - | Token string QR unik untuk pemindaian kasir. |
 | `has_review` | `BOOLEAN` | Tidak | `FALSE` | Penanda ulasan sudah diberikan. |
@@ -547,5 +556,6 @@ Seluruh skema di atas telah dieksekusi secara resmi melalui migration di `databa
 8. [`2026_10_19_000008_create_merchant_payouts_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000008_create_merchant_payouts_table.php) — Penarikan Saldo Penjualan Mitra (Payout)
 9. [`2026_10_19_000009_create_qr_scan_logs_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000009_create_qr_scan_logs_table.php) — Log Audit Keamanan Scanner QR Kasir (Anti Klaim Ganda)
 10. [`2026_10_19_000010_create_merchant_daily_metrics_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000010_create_merchant_daily_metrics_table.php) — Agregat Analitik Penjualan Harian Mitra
+11. [`2026_10_19_000011_add_sandbox_payment_fields_to_orders_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000011_add_sandbox_payment_fields_to_orders_table.php) — Integrasi Sandbox Payment Gateway & Reference SBX
 
 Dokumen ini disusun untuk melengkapi seluruh berkas arsitektur teknis dan evaluasi proyek PlusFood © 2026.
