@@ -544,18 +544,17 @@ DB::transaction(function () use ($merchant, $withdrawAmount) {
 
 ## 📑 6. Daftar Lengkap File Migration Proyek
 
-Seluruh skema di atas telah dieksekusi secara resmi melalui migration di `database/migrations/`:
+Seluruh skema di atas telah dieksekusi secara rapi melalui migration tunggal (*create table only*, tanpa file `add_...` tambal-sulam) di `database/migrations/`:
 
-1. [`2026_10_19_000001_add_profile_and_gamification_to_users_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000001_add_profile_and_gamification_to_users_table.php) — Profil Mahasiswa & Gamifikasi CO2/Rupiah
-2. [`2026_10_19_000002_create_merchants_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000002_create_merchants_table.php) — Profil Dasar Warung Mitra
-3. [`2026_10_19_000003_create_foods_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000003_create_foods_table.php) — Menu Makanan Surplus
-4. [`2026_10_19_000004_create_orders_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000004_create_orders_table.php) — Reservasi Makanan & Tiket QR
-5. [`2026_10_19_000005_create_reviews_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000005_create_reviews_table.php) — Ulasan & Rating Mahasiswa
-6. [`2026_10_19_000006_create_user_preferences_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000006_create_user_preferences_table.php) — Preferensi Diet & Kampus
-7. [`2026_10_19_000007_add_business_and_payout_details_to_merchants_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000007_add_business_and_payout_details_to_merchants_table.php) — Legalitas NIB, Stand Kantin, Rekening Bank, Saldo & Omzet
-8. [`2026_10_19_000008_create_merchant_payouts_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000008_create_merchant_payouts_table.php) — Penarikan Saldo Penjualan Mitra (Payout)
-9. [`2026_10_19_000009_create_qr_scan_logs_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000009_create_qr_scan_logs_table.php) — Log Audit Keamanan Scanner QR Kasir (Anti Klaim Ganda)
-10. [`2026_10_19_000010_create_merchant_daily_metrics_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000010_create_merchant_daily_metrics_table.php) — Agregat Analitik Penjualan Harian Mitra
-11. [`2026_10_19_000011_add_sandbox_payment_fields_to_orders_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000011_add_sandbox_payment_fields_to_orders_table.php) — Integrasi Sandbox Payment Gateway & Reference SBX
+0. [`0001_01_01_000000_create_users_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/0001_01_01_000000_create_users_table.php) — Akun Pengguna (Mahasiswa & Mitra UMKM), Privasi Tanpa Wajib NIM, serta Gamifikasi Impact Tracker CO2 & Rupiah
+1. [`2026_10_19_000001_create_merchants_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000001_create_merchants_table.php) — Profil Warung Mitra UMKM, Legalitas NIB, Stand Kantin, Rekening Bank Payout, Saldo Dompet & Total Omzet
+2. [`2026_10_19_000002_create_foods_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000002_create_foods_table.php) — Menu Makanan Surplus Kilat, Kuota Stok, Jadwal Pickup Malam, & Tag Diet/Alergen
+3. [`2026_10_19_000003_create_orders_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000003_create_orders_table.php) — Reservasi Makanan, Token QR Digital, Eco-Packaging, & Sandbox Payment Simulator
+4. [`2026_10_19_000004_create_reviews_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000004_create_reviews_table.php) — Ulasan & Rating Mahasiswa, Tag Evaluasi, serta Poin Reward Gamifikasi
+5. [`2026_10_19_000005_create_user_preferences_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000005_create_user_preferences_table.php) — Preferensi Diet Mahasiswa & Filter Radius Zona Kampus
+6. [`2026_10_19_000006_create_merchant_payouts_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000006_create_merchant_payouts_table.php) — Penarikan Saldo Hasil Penjualan Mitra (Payout Withdrawal) ke Rekening Bank
+7. [`2026_10_19_000007_create_qr_scan_logs_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000007_create_qr_scan_logs_table.php) — Audit Log Validasi Tiket QR Kasir Mitra & Proteksi Anti Klaim Ganda (*Double-Claim Protection*)
+8. [`2026_10_19_000008_create_merchant_daily_metrics_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000008_create_merchant_daily_metrics_table.php) — Agregat Analitik Penjualan Harian Mitra UMKM (Modal Terselamatkan, Tingkat Pemulihan, Emisi Dicegah)
 
 Dokumen ini disusun untuk melengkapi seluruh berkas arsitektur teknis dan evaluasi proyek PlusFood © 2026.
+

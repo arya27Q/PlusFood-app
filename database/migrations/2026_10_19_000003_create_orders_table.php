@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('customer_phone');
             $table->string('customer_email');
             $table->string('customer_address')->nullable();
-            $table->string('customer_nim')->nullable(); // Opsional
+            $table->string('customer_nim')->nullable(); // Opsional / bebas tanpa NIM
             $table->text('notes')->nullable(); // Alergi / instruksi
             
             // Pickup & Kedatangan
@@ -44,9 +44,14 @@ return new class extends Migration
             $table->enum('arrival_estimate', ['awal', 'tengah', 'akhir'])->default('tengah');
             $table->boolean('remind_before')->default(true);
             
-            // Pembayaran & Status Alur
+            // Pembayaran Sandbox Simulator (Tanpa Vendor Pihak Ketiga)
             $table->enum('payment_method', ['kasir', 'qris', 'gopay', 'dana'])->default('kasir');
+            $table->string('payment_gateway')->default('sandbox_simulator');
+            $table->string('payment_reference')->nullable(); // e.g. SBX-QRIS-PF84920
             $table->enum('payment_status', ['menunggu_bayar', 'lunas'])->default('lunas');
+            $table->timestamp('paid_at')->nullable();
+            
+            // Status Alur Penjemputan
             $table->enum('status', ['menunggu', 'siap_ambil', 'selesai', 'batal'])->default('menunggu')->index();
             
             // Token QR Digital 3-digit / string

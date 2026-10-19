@@ -17,6 +17,18 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->enum('role', ['mahasiswa', 'mitra', 'admin'])->default('mahasiswa');
+            $table->string('phone')->nullable();
+            $table->string('campus')->nullable();
+            $table->string('nim')->nullable(); // Opsional / bebas tanpa NIM
+            $table->string('avatar')->nullable();
+
+            // Gamifikasi & Impact Tracker Penyelamatan Makanan
+            $table->unsignedInteger('co2_saved_grams')->default(0);
+            $table->unsignedBigInteger('money_saved_rp')->default(0);
+            $table->unsignedInteger('portions_rescued')->default(0);
+            $table->unsignedTinyInteger('rescuer_level')->default(1);
+
             $table->rememberToken();
             $table->timestamps();
         });
