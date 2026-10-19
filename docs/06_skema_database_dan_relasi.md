@@ -163,6 +163,7 @@ erDiagram
     FOODS ||--o{ ORDERS : "reserved_in"
     FOODS ||--o{ REVIEWS : "reviewed_in"
 
+    ORDERS ||--|| PAYMENTS : "paid_through"
     ORDERS ||--o| REVIEWS : "evaluated_by"
     ORDERS ||--o{ QR_SCAN_LOGS : "validated_in"
 
@@ -262,15 +263,22 @@ erDiagram
         string pickup_deadline
         enum arrival_estimate "awal, tengah, akhir"
         boolean remind_before
-        enum payment_method "kasir, qris, gopay, dana"
-        string payment_gateway "sandbox_simulator"
-        string payment_reference "nullable"
-        enum payment_status "menunggu_bayar, lunas"
-        timestamp paid_at "nullable"
         enum status "menunggu, siap_ambil, selesai, batal"
         string qr_token UK
         boolean has_review
         timestamp completed_at
+        timestamps timestamps
+    }
+
+    PAYMENTS {
+        bigint id PK
+        bigint order_id FK
+        enum payment_method "kasir, qris, gopay, dana"
+        string payment_gateway "sandbox_simulator"
+        string payment_reference UK
+        int amount
+        enum status "menunggu_bayar, lunas, kadaluarsa, batal"
+        timestamp paid_at "nullable"
         timestamps timestamps
     }
 
@@ -458,11 +466,6 @@ Menyimpan transaksi pemesanan mahasiswa, token QR tiket, dan snapshot data.
 | `pickup_time` | `VARCHAR(255)` | Tidak | - | Jadwal rentang waktu pickup resmi. |
 | `arrival_estimate`| `ENUM('awal', 'tengah', 'akhir')` | Tidak | `'tengah'` | Perkiraan kedatangan mahasiswa di gerai. |
 | `remind_before` | `BOOLEAN` | Tidak | `TRUE` | Pengingat via WhatsApp 30 menit sebelum tutup. |
-| `payment_method` | `ENUM('kasir', 'qris', 'gopay', 'dana')` | Tidak | `'kasir'` | Kanal pembayaran terpilih. |
-| `payment_gateway` | `VARCHAR(255)` | Tidak | `'sandbox_simulator'` | Gateway simulator (tanpa akun vendor berbayar). |
-| `payment_reference`| `VARCHAR(255)` | Ya | `NULL` | Nomor referensi transaksi sandbox (misal: `SBX-QRIS-PF84920`). |
-| `payment_status` | `ENUM('menunggu_bayar', 'lunas')` | Tidak | `'lunas'` | Status pembayaran. |
-| `paid_at` | `TIMESTAMP` | Ya | `NULL` | Timestamp pelunasan pembayaran sandbox. |
 | `status` | `ENUM('menunggu', 'siap_ambil', 'selesai', 'batal')` | Tidak | `'menunggu'` | Status alur pesanan. |
 | `qr_token` | `VARCHAR(255)` | Tidak | - | Token string QR unik untuk pemindaian kasir. |
 | `has_review` | `BOOLEAN` | Tidak | `FALSE` | Penanda ulasan sudah diberikan. |
@@ -470,7 +473,24 @@ Menyimpan transaksi pemesanan mahasiswa, token QR tiket, dan snapshot data.
 
 ---
 
-### E. Tabel Pencairan Saldo Mitra (`merchant_payouts`)
+### E. Tabel Pembayaran (`payments`)
+Menyimpan transaksi finansial pembayaran pesanan melalui Sandbox Payment Simulator (Mock QRIS Dinamis, E-Wallet GoPay/DANA Sandbox, atau Kasir Tunai).
+
+| Nama Kolom | Tipe Data | Nullable | Default | Deskripsi Bisnis |
+|:---|:---|:---:|:---:|:---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Auto | Primary key rekaman pembayaran. |
+| `order_id` | `BIGINT UNSIGNED` | Tidak | - | Foreign key ke `orders.id` (`cascadeOnDelete`). |
+| `payment_method` | `ENUM('kasir', 'qris', 'gopay', 'dana')` | Tidak | `'kasir'` | Kanal pembayaran terpilih. |
+| `payment_gateway` | `VARCHAR(255)` | Tidak | `'sandbox_simulator'` | Gateway simulator (tanpa vendor berbayar). |
+| `payment_reference`| `VARCHAR(255)` | Ya | `NULL` | Nomor referensi transaksi sandbox unik (misal: `SBX-QRIS-PF84920`). |
+| `amount` | `INT UNSIGNED` | Tidak | - | Total nominal rupiah yang dibayarkan. |
+| `status` | `ENUM('menunggu_bayar', 'lunas', 'kadaluarsa', 'batal')` | Tidak | `'lunas'` | Status pelunasan transaksi. |
+| `paid_at` | `TIMESTAMP` | Ya | `NULL` | Timestamp penyelesaian pembayaran. |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | `NULL` | Waktu pembuatan transaksi pembayaran. |
+
+---
+
+### F. Tabel Pencairan Saldo Mitra (`merchant_payouts`)
 Mencatat permohonan penarikan saldo dompet hasil penjualan mitra ke rekening bank/e-wallet.
 
 | Nama Kolom | Tipe Data | Nullable | Default | Deskripsi Bisnis |
@@ -490,7 +510,7 @@ Mencatat permohonan penarikan saldo dompet hasil penjualan mitra ke rekening ban
 
 ---
 
-### F. Tabel Log Audit Scanner QR Kasir (`qr_scan_logs`)
+### G. Tabel Log Audit Scanner QR Kasir (`qr_scan_logs`)
 Merekam setiap aktivitas pemindaian QR code di kasir mitra untuk menjamin keamanan dan mencegah klaim ganda.
 
 | Nama Kolom | Tipe Data | Nullable | Default | Deskripsi Bisnis |
@@ -509,7 +529,7 @@ Merekam setiap aktivitas pemindaian QR code di kasir mitra untuk menjamin keaman
 
 ---
 
-### G. Tabel Analitik Harian Mitra (`merchant_daily_metrics`)
+### H. Tabel Analitik Harian Mitra (`merchant_daily_metrics`)
 Menyimpan agregat penjualan harian untuk render grafik di Dashboard Mitra (`SalesAnalyticsChart.vue`).
 
 | Nama Kolom | Tipe Data | Nullable | Default | Deskripsi Bisnis |
@@ -525,7 +545,7 @@ Menyimpan agregat penjualan harian untuk render grafik di Dashboard Mitra (`Sale
 
 ---
 
-### H. Tabel Ulasan (`reviews`) & Preferensi Mahasiswa (`user_preferences`)
+### I. Tabel Ulasan (`reviews`) & Preferensi Mahasiswa (`user_preferences`)
 * **`reviews`**: Menyimpan penilaian rating 1–5 bintang, komentar, dan tag pujian cepat pasca pickup.
 * **`user_preferences`**: Menyimpan zona kampus default dan filter diet mahasiswa agar katalog otomatis terfilter saat pertama kali dibuka.
 
@@ -540,6 +560,7 @@ Menyimpan agregat penjualan harian untuk render grafik di Dashboard Mitra (`Sale
 | `orders` | `user_id` | `users.id` | `CASCADE` | Pesanan terhubung ke akun mahasiswa pemilik. |
 | `orders` | `food_id` | `foods.id` | `CASCADE` | Pesanan terikat ke menu makanan yang direservasi. |
 | `orders` | `merchant_id` | `merchants.id` | `CASCADE` | Pesanan terhubung ke kasir gerai penyedia. |
+| `payments` | `order_id` | `orders.id` | `CASCADE` | Transaksi finansial terikat langsung ke reservasi pesanan terkait. |
 | `merchant_payouts`| `merchant_id` | `merchants.id` | `CASCADE` | Riwayat pencairan dana terikat langsung ke gerai mitra. |
 | `qr_scan_logs` | `merchant_id` | `merchants.id` | `CASCADE` | Log audit scanner terikat ke gerai mitra. |
 | `qr_scan_logs` | `order_id` | `orders.id` | `CASCADE` | Log audit terhubung ke transaksi pesanan yang discan. |
@@ -667,12 +688,13 @@ Seluruh skema di atas telah dieksekusi secara rapi melalui migration tunggal (*c
 0. [`0001_01_01_000000_create_users_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/0001_01_01_000000_create_users_table.php) — Akun Pengguna (Mahasiswa & Mitra UMKM), Privasi Tanpa Wajib NIM, serta Gamifikasi Impact Tracker CO2 & Rupiah
 1. [`2026_10_19_000001_create_merchants_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000001_create_merchants_table.php) — Profil Warung Mitra UMKM, Legalitas NIB, Stand Kantin, Rekening Bank Payout, Saldo Dompet & Total Omzet
 2. [`2026_10_19_000002_create_foods_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000002_create_foods_table.php) — Menu Makanan Surplus Kilat, Kuota Stok, Jadwal Pickup Malam, & Tag Diet/Alergen
-3. [`2026_10_19_000003_create_orders_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000003_create_orders_table.php) — Reservasi Makanan, Token QR Digital, Eco-Packaging, & Sandbox Payment Simulator
-4. [`2026_10_19_000004_create_reviews_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000004_create_reviews_table.php) — Ulasan & Rating Mahasiswa, Tag Evaluasi, serta Poin Reward Gamifikasi
-5. [`2026_10_19_000005_create_user_preferences_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000005_create_user_preferences_table.php) — Preferensi Diet Mahasiswa & Filter Radius Zona Kampus
-6. [`2026_10_19_000006_create_merchant_payouts_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000006_create_merchant_payouts_table.php) — Penarikan Saldo Hasil Penjualan Mitra (Payout Withdrawal) ke Rekening Bank
-7. [`2026_10_19_000007_create_qr_scan_logs_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000007_create_qr_scan_logs_table.php) — Audit Log Validasi Tiket QR Kasir Mitra & Proteksi Anti Klaim Ganda (*Double-Claim Protection*)
-8. [`2026_10_19_000008_create_merchant_daily_metrics_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000008_create_merchant_daily_metrics_table.php) — Agregat Analitik Penjualan Harian Mitra UMKM (Modal Terselamatkan, Tingkat Pemulihan, Emisi Dicegah)
+3. [`2026_10_19_000003_create_orders_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000003_create_orders_table.php) — Reservasi Makanan, Token QR Digital, Eco-Packaging, Logistik Jadwal Pickup
+4. [`2026_10_19_000004_create_payments_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000004_create_payments_table.php) — Transaksi Finansial & Sandbox Payment Simulator (QRIS, E-Wallet GoPay/DANA, Kasir Tunai)
+5. [`2026_10_19_000005_create_reviews_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000005_create_reviews_table.php) — Ulasan & Rating Mahasiswa, Tag Evaluasi, serta Poin Reward Gamifikasi
+6. [`2026_10_19_000006_create_user_preferences_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000006_create_user_preferences_table.php) — Preferensi Diet Mahasiswa & Filter Radius Zona Kampus
+7. [`2026_10_19_000007_create_merchant_payouts_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000007_create_merchant_payouts_table.php) — Penarikan Saldo Hasil Penjualan Mitra (Payout Withdrawal) ke Rekening Bank
+8. [`2026_10_19_000008_create_qr_scan_logs_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000008_create_qr_scan_logs_table.php) — Audit Log Validasi Tiket QR Kasir Mitra & Proteksi Anti Klaim Ganda (*Double-Claim Protection*)
+9. [`2026_10_19_000009_create_merchant_daily_metrics_table.php`](file:///d:/laragon/www/plusfood-app/database/migrations/2026_10_19_000009_create_merchant_daily_metrics_table.php) — Agregat Analitik Penjualan Harian Mitra UMKM (Modal Terselamatkan, Tingkat Pemulihan, Emisi Dicegah)
 
 Dokumen ini disusun untuk melengkapi seluruh berkas arsitektur teknis dan evaluasi proyek PlusFood © 2026.
 
