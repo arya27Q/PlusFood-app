@@ -17,11 +17,56 @@ const loadingProgress = ref(0);
 
 // Form
 const userName = ref(auth.user.value?.name || 'Raka Pratama');
-const userAddress = ref('');
-const userWhatsapp = ref(auth.user.value?.whatsapp || '0812 3456 7890');
+const userAddress = ref('Jl. Ketintang Baru No. 14, Gayungan');
+const userWhatsapp = ref(auth.user.value?.whatsapp || '081234567890');
 const userEmail = ref(auth.user.value?.email || 'raka.pratama@mhs.unesa.ac.id');
 const userNim = ref(auth.user.value?.nim || '23051204088');
 const userNote = ref('');
+
+// Touched tracking for inline field errors (Modul 8 Target 2)
+const touched = ref({
+    name: false,
+    address: false,
+    whatsapp: false,
+    email: false,
+});
+
+// Inline Field Validation & Sanitization (.trim() checked)
+const nameError = computed(() => {
+    const val = userName.value.trim();
+    if (!val) return 'Nama lengkap wajib diisi.';
+    if (val.length < 3) return 'Nama minimal 3 karakter.';
+    return '';
+});
+
+const addressError = computed(() => {
+    const val = userAddress.value.trim();
+    if (!val) return 'Alamat kos/penjemputan wajib diisi.';
+    return '';
+});
+
+const whatsappError = computed(() => {
+    const raw = userWhatsapp.value.trim().replace(/[-\s]/g, '');
+    if (!raw) return 'Nomor WhatsApp wajib diisi.';
+    if (!/^\d+$/.test(raw)) return 'Nomor WhatsApp hanya boleh angka.';
+    if (raw.length < 10 || raw.length > 15) return 'Nomor WhatsApp tidak valid (10-15 digit).';
+    return '';
+});
+
+const emailError = computed(() => {
+    const val = userEmail.value.trim();
+    if (!val) return 'Alamat email wajib diisi.';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(val)) return 'Format email tidak valid (contoh: nama@gmail.com).';
+    return '';
+});
+
+// Overall Form Validity & Toast state
+const isFormValid = computed(() => {
+    return !nameError.value && !addressError.value && !whatsappError.value && !emailError.value;
+});
+
+const showSuccessToast = ref(false);
 
 // Packaging
 const ecoPackaging = ref('bawa_sendiri');
@@ -64,20 +109,28 @@ const totalPayment = computed(() => subtotal.value + packagingFee.value + servic
 const savedAmount = computed(() => (food.value.price - food.value.priceDiscount) * quantity.value);
 const weightSaved = computed(() => quantity.value * 400);
 
-const isFormValid = computed(() => userName.value.trim() !== '' && userWhatsapp.value.trim() !== '');
-
 const paymentOptions = [
-    { id: 'qris', label: 'QRIS', sublabel: 'Scan & bayar', color: 'bg-blue-600', initial: 'GR' },
-    { id: 'gopay', label: 'GoPay', sublabel: 'SaldoGoPay', color: 'bg-emerald-500', initial: 'GP' },
-    { id: 'dana', label: 'DANA', sublabel: 'Saldo DANA', color: 'bg-blue-500', initial: 'DA' },
-    { id: 'kasir', label: 'Bayar di Kasir', sublabel: 'Tunai atau QRIS', color: 'bg-brand-maroon', initial: 'Rp' },
+    { id: 'qris', label: 'QRIS', sublabel: 'Sandbox Instant', color: 'bg-blue-600', initial: 'QR' },
+    { id: 'gopay', label: 'GoPay', sublabel: 'Sandbox E-Wallet', color: 'bg-emerald-500', initial: 'GP' },
+    { id: 'dana', label: 'DANA', sublabel: 'Sandbox E-Wallet', color: 'bg-blue-500', initial: 'DA' },
+    { id: 'kasir', label: 'Bayar di Kasir', sublabel: 'Tunai saat ambil', color: 'bg-brand-maroon', initial: 'Rp' },
 ];
 
 const fmt = (n) => n.toLocaleString('id-ID');
 
 let progressTimer = null;
 const confirmReservation = () => {
+    // Sanitasi data form (.trim())
+    userName.value = userName.value.trim();
+    userAddress.value = userAddress.value.trim();
+    userWhatsapp.value = userWhatsapp.value.trim();
+    userEmail.value = userEmail.value.trim();
+
+    // Tandai semua field sebagai disentuh
+    touched.value = { name: true, address: true, whatsapp: true, email: true };
+
     if (!isFormValid.value) return;
+
     orderState.value = 'loading';
     loadingProgress.value = 0;
     let elapsed = 0;
@@ -96,6 +149,8 @@ const confirmReservation = () => {
                 nim: userNim.value,
                 whatsapp: userWhatsapp.value,
                 email: userEmail.value,
+                address: userAddress.value,
+                note: userNote.value.trim(),
                 food: food.value,
                 quantity: quantity.value,
                 ecoPackaging: ecoPackaging.value,
@@ -106,13 +161,21 @@ const confirmReservation = () => {
                 pickupTime: food.value.pickupTime || '19.30 – 20.30 WIB',
                 pickupDeadline: food.value.pickupDeadlineInfo || 'Hari ini tutup 21.00 WIB',
                 date: 'Hari ini, 13 Okt 2026',
+                paymentMethod: paymentMethod.value,
+                paymentGateway: paymentMethod.value === 'kasir' ? 'cash_on_pickup' : 'sandbox_simulator',
+                paymentReference: 'SBX-' + paymentMethod.value.toUpperCase() + '-' + newId,
+                paymentStatus: paymentMethod.value === 'kasir' ? 'menunggu_bayar' : 'lunas',
+                paidAt: paymentMethod.value === 'kasir' ? null : new Date().toISOString(),
                 status: 'menunggu',
                 statusLabel: 'Menunggu Pickup',
                 qrCode: newId + '-' + (food.value.merchantInitial || 'PF'),
                 mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
                 hasReview: false,
             });
+            // Tampilkan toast notifikasi halus
+            showSuccessToast.value = true;
             setTimeout(() => { orderState.value = 'success'; }, 300);
+            setTimeout(() => { showSuccessToast.value = false; }, 4000);
         }
     }, tick);
 };
@@ -298,9 +361,14 @@ const confirmReservation = () => {
                         </div>
                     </div>
 
-                    <!-- Metode Pembayaran -->
+                    <!-- Metode Pembayaran (Sandbox Simulator Tanpa Vendor Token) -->
                     <div class="border-t border-[#F5EFE6] pt-4">
-                        <p class="text-[11px] font-bold text-[#8C7A72] mb-2">Metode Pembayaran</p>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[11px] font-bold text-[#8C7A72]">Metode Pembayaran</p>
+                            <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[9px] font-extrabold text-amber-800 border border-amber-200">
+                                Sandbox Simulator
+                            </span>
+                        </div>
                         <div class="grid grid-cols-2 gap-2">
                             <label
                                 v-for="opt in paymentOptions"
@@ -332,25 +400,97 @@ const confirmReservation = () => {
                 <!-- RIGHT form -->
                 <div class="space-y-5">
 
-                    <!-- Data Pengambil -->
+                    <!-- Data Pengambil (Modul 8 Validasi & Sanitasi) -->
                     <div class="rounded-[20px] bg-white border border-slate-200 shadow-sm p-6 space-y-4">
-                        <h2 class="text-base font-extrabold text-[#2D1B1E]">Langkah 2 · Data Pengambil</h2>
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-base font-extrabold text-[#2D1B1E]">Langkah 2 · Data Pengambil</h2>
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                Validasi Aktif
+                            </span>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Nama Lengkap -->
                             <div>
-                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">Nama Lengkap</label>
-                                <input type="text" v-model="userName" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon focus:outline-none shadow-2xs transition" placeholder="Nama sesuai KTM" />
+                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">
+                                    Nama Lengkap <span class="text-rose-600">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    v-model="userName"
+                                    @blur="touched.name = true"
+                                    class="w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none shadow-2xs transition"
+                                    :class="touched.name && nameError ? 'border-rose-500 focus:border-rose-600 focus:ring-1 focus:ring-rose-500 bg-rose-50/20' : 'border-slate-200 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon'"
+                                    placeholder="Nama sesuai identitas"
+                                />
+                                <p v-if="touched.name && nameError" class="text-[11px] font-semibold text-rose-600 mt-1 flex items-center gap-1">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ nameError }}</span>
+                                </p>
                             </div>
+
+                            <!-- Alamat -->
                             <div>
-                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">Alamat</label>
-                                <input type="text" v-model="userAddress" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon focus:outline-none shadow-2xs transition" placeholder="Alamat kos/rumah" />
+                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">
+                                    Alamat Kos / Penjemputan <span class="text-rose-600">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    v-model="userAddress"
+                                    @blur="touched.address = true"
+                                    class="w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none shadow-2xs transition"
+                                    :class="touched.address && addressError ? 'border-rose-500 focus:border-rose-600 focus:ring-1 focus:ring-rose-500 bg-rose-50/20' : 'border-slate-200 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon'"
+                                    placeholder="Alamat kos/rumah terdekat"
+                                />
+                                <p v-if="touched.address && addressError" class="text-[11px] font-semibold text-rose-600 mt-1 flex items-center gap-1">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ addressError }}</span>
+                                </p>
                             </div>
+
+                            <!-- No. WhatsApp -->
                             <div>
-                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">No. WhatsApp</label>
-                                <input type="tel" v-model="userWhatsapp" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon focus:outline-none shadow-2xs transition" placeholder="08xxxxxxxxxx" />
+                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">
+                                    No. WhatsApp <span class="text-rose-600">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    v-model="userWhatsapp"
+                                    @blur="touched.whatsapp = true"
+                                    class="w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none shadow-2xs transition"
+                                    :class="touched.whatsapp && whatsappError ? 'border-rose-500 focus:border-rose-600 focus:ring-1 focus:ring-rose-500 bg-rose-50/20' : 'border-slate-200 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon'"
+                                    placeholder="Contoh: 081234567890"
+                                />
+                                <p v-if="touched.whatsapp && whatsappError" class="text-[11px] font-semibold text-rose-600 mt-1 flex items-center gap-1">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ whatsappError }}</span>
+                                </p>
                             </div>
+
+                            <!-- Email -->
                             <div>
-                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">Email</label>
-                                <input type="email" v-model="userEmail" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon focus:outline-none shadow-2xs transition" placeholder="email@mhs.ac.id" />
+                                <label class="block text-xs font-bold text-[#2D1B1E] mb-1.5">
+                                    Email Aktif <span class="text-rose-600">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    v-model="userEmail"
+                                    @blur="touched.email = true"
+                                    class="w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none shadow-2xs transition"
+                                    :class="touched.email && emailError ? 'border-rose-500 focus:border-rose-600 focus:ring-1 focus:ring-rose-500 bg-rose-50/20' : 'border-slate-200 focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon'"
+                                    placeholder="contoh: raka@gmail.com"
+                                />
+                                <p v-if="touched.email && emailError" class="text-[11px] font-semibold text-rose-600 mt-1 flex items-center gap-1">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ emailError }}</span>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -479,7 +619,7 @@ const confirmReservation = () => {
                         </div>
                     </div>
 
-                    <!-- Action bar -->
+                    <!-- Action bar (Modul 8 Form UX State & Button Lock) -->
                     <div class="flex items-center gap-3 pb-6">
                         <Link :href="route('makanan.detail', food.slug)" class="flex items-center gap-1.5 px-5 py-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition">
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -488,16 +628,38 @@ const confirmReservation = () => {
                         <button
                             type="button"
                             @click="confirmReservation"
-                            :disabled="!isFormValid"
-                            class="flex-1 rounded-xl bg-brand-maroon py-3 text-sm font-bold text-white shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="!isFormValid || orderState === 'loading'"
+                            class="flex-1 rounded-xl bg-brand-maroon py-3 text-sm font-bold text-white shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            Lanjut Bayar
+                            <svg v-if="orderState === 'loading'" class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>{{ orderState === 'loading' ? 'Mengirim Pesanan...' : 'Lanjut Bayar' }}</span>
                         </button>
                     </div>
 
                 </div>
             </div>
         </div>
+
+        <!-- ================= TOAST NOTIFIKASI HALUS (Modul 8 UX State) ================= -->
+        <Transition name="fade">
+            <div
+                v-if="showSuccessToast"
+                class="fixed bottom-6 right-6 z-50 rounded-2xl bg-[#1B5E3B] text-white px-5 py-3.5 shadow-2xl flex items-center gap-3 text-xs font-bold border border-emerald-500 animate-in fade-in slide-in-from-bottom-4"
+            >
+                <div class="h-7 w-7 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-extrabold text-white">✅ Pesanan Berhasil Dikirim!</p>
+                    <p class="text-[11px] text-emerald-100 font-normal">Data reservasi makanan telah disimpan ke sistem.</p>
+                </div>
+            </div>
+        </Transition>
 
     </MahasiswaLayout>
 </template>

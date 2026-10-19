@@ -9,6 +9,9 @@ const maxPrice = ref(25000);
 const selectedCategory = ref('Semua');
 const selectedCampus = ref('all');
 const selectedDistance = ref('2 km');
+const searchQuery = ref('');
+const isLoading = ref(true);
+const fetchError = ref(null);
 
 // Dietary & Pantangan Alergi Filters
 const filterHalal = ref(true);
@@ -72,6 +75,8 @@ const currentCampus = computed(() => {
 });
 
 const resetFilters = () => {
+    searchQuery.value = '';
+    fetchError.value = null;
     maxPrice.value = 25000;
     selectedCategory.value = 'Semua';
     selectedCampus.value = 'all';
@@ -89,6 +94,14 @@ const resetFilters = () => {
 // Filtered Foods
 const filteredFoods = computed(() => {
     return sampleFoods.filter(item => {
+        // Filter search keyword
+        if (searchQuery.value && searchQuery.value.trim() !== '') {
+            const q = searchQuery.value.trim().toLowerCase();
+            const matchName = item.name.toLowerCase().includes(q) || (item.shortName && item.shortName.toLowerCase().includes(q));
+            const matchMerchant = item.merchant.toLowerCase().includes(q);
+            const matchCategory = item.category.toLowerCase().includes(q);
+            if (!matchName && !matchMerchant && !matchCategory) return false;
+        }
         // Filter price
         if (item.priceDiscount > maxPrice.value) return false;
         // Filter category
@@ -108,23 +121,37 @@ const filteredFoods = computed(() => {
 const isMobileFilterOpen = ref(false);
 
 onMounted(() => {
-    if (typeof window !== 'undefined') {
-        const savedPref = localStorage.getItem('plusfood_preferences');
-        if (savedPref) {
-            try {
-                const p = JSON.parse(savedPref);
-                if (p.campus && p.campus !== 'all') selectedCampus.value = p.campus;
-                if (p.radius) selectedDistance.value = p.radius;
-                if (p.dietary) {
-                    const halalTag = p.dietary.find(d => d.id === 'halal');
-                    if (halalTag) filterHalal.value = halalTag.selected;
-                    const vegTag = p.dietary.find(d => d.id === 'vegetarian');
-                    if (vegTag) filterVegetarian.value = vegTag.selected;
-                    const spicyTag = p.dietary.find(d => d.id === 'tidak_pedas');
-                    if (spicyTag) filterTidakPedas.value = spicyTag.selected;
-                }
-            } catch (e) {}
+    try {
+        isLoading.value = true;
+        setTimeout(() => {
+            isLoading.value = false;
+        }, 350);
+
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const q = urlParams.get('q');
+            if (q) searchQuery.value = q;
+
+            const savedPref = localStorage.getItem('plusfood_preferences');
+            if (savedPref) {
+                try {
+                    const p = JSON.parse(savedPref);
+                    if (p.campus && p.campus !== 'all') selectedCampus.value = p.campus;
+                    if (p.radius) selectedDistance.value = p.radius;
+                    if (p.dietary) {
+                        const halalTag = p.dietary.find(d => d.id === 'halal');
+                        if (halalTag) filterHalal.value = halalTag.selected;
+                        const vegTag = p.dietary.find(d => d.id === 'vegetarian');
+                        if (vegTag) filterVegetarian.value = vegTag.selected;
+                        const spicyTag = p.dietary.find(d => d.id === 'tidak_pedas');
+                        if (spicyTag) filterTidakPedas.value = spicyTag.selected;
+                    }
+                } catch (e) {}
+            }
         }
+    } catch (err) {
+        fetchError.value = 'Gagal memuat katalog makanan. Coba lagi ↻';
+        isLoading.value = false;
     }
 });
 </script>
@@ -686,7 +713,7 @@ onMounted(() => {
                 <!-- 2. JIKA KOTA AKTIF (SURABAYA) -->
                 <template v-else>
                     <!-- Header Katalog & Sort Dropdown -->
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                         <div>
                             <h1 class="text-2xl font-black text-[#2D1B1E]">Katalog Surplus</h1>
                             <p class="text-xs font-medium text-[#8C7A72] mt-0.5">
@@ -695,26 +722,81 @@ onMounted(() => {
                         </div>
 
                         <!-- Sort Pill Badge -->
-                        <div class="inline-flex items-center gap-2 rounded-xl bg-[#F5EFE6] px-3.5 py-1.5 text-xs font-bold text-brand-maroon border border-[#EAE0D5]">
+                        <div class="inline-flex items-center gap-2 rounded-xl bg-[#F5EFE6] px-3.5 py-1.5 text-xs font-bold text-brand-maroon border border-[#EAE0D5] self-start sm:self-auto">
                             <span>Urutkan: Terdekat</span>
                         </div>
                     </div>
 
-                    <!-- Empty State jika tidak ada yang cocok -->
-                    <div v-if="filteredFoods.length === 0" class="rounded-[24px] bg-white p-12 text-center border border-[#EAE0D5]">
-                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-brand-maroon mb-4">
-                            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <!-- Search Input Bar (Fitur Pencarian Kata Kunci) -->
+                    <div class="relative mb-6">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-[#9E8B83] pointer-events-none">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                        </div>
-                        <h3 class="text-base font-bold text-[#2D1B1E]">Tidak Ada Makanan Ditemukan</h3>
-                        <p class="text-xs text-[#8C7A72] mt-1 max-w-sm mx-auto">Coba naikkan batas rentang harga atau reset filter untuk melihat pilihan menu lainnya.</p>
-                        <button @click="resetFilters" class="mt-4 rounded-xl bg-brand-maroon px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition">
-                            Reset Filter
+                        </span>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Cari makanan favorit, warung, atau kategori..."
+                            class="w-full rounded-2xl border border-[#EAE0D5] bg-white py-3 pl-11 pr-10 text-xs font-medium text-[#2D1B1E] placeholder-[#9E8B83] transition focus:border-brand-maroon focus:outline-none shadow-2xs"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            @click="searchQuery = ''"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-xs text-[#8C7A72] hover:text-[#2D1B1E]"
+                            title="Hapus pencarian"
+                        >
+                            ✕
                         </button>
                     </div>
 
-                    <!-- Grid Kartu Makanan Menggunakan FoodCard Component -->
+                    <!-- 1. LOADING SKELETON STATE (Modul 8 UX State) -->
+                    <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <div v-for="n in 6" :key="n" class="rounded-[24px] bg-white p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
+                            <div class="h-44 w-full rounded-2xl bg-stone-200"></div>
+                            <div class="space-y-2">
+                                <div class="h-4 w-3/4 rounded-lg bg-stone-200"></div>
+                                <div class="h-3 w-1/2 rounded-lg bg-stone-100"></div>
+                            </div>
+                            <div class="flex justify-between items-center pt-3 border-t border-stone-100">
+                                <div class="space-y-1">
+                                    <div class="h-3 w-14 rounded bg-stone-100"></div>
+                                    <div class="h-5 w-24 rounded-lg bg-stone-200"></div>
+                                </div>
+                                <div class="h-8 w-24 rounded-xl bg-stone-200"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. ERROR STATE (Modul 8 UX State) -->
+                    <div v-else-if="fetchError" class="rounded-[24px] bg-white p-12 text-center border border-rose-200 shadow-sm space-y-3">
+                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 mb-2">
+                            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-bold text-[#2D1B1E]">Gagal memuat data. Coba lagi ↻</h3>
+                        <p class="text-xs text-[#8C7A72] max-w-sm mx-auto">{{ fetchError }}</p>
+                        <button @click="resetFilters" class="mt-4 rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition">
+                            Muat Ulang
+                        </button>
+                    </div>
+
+                    <!-- 3. EMPTY STATE (Modul 8 UX State) -->
+                    <div v-else-if="filteredFoods.length === 0" class="rounded-[24px] bg-white p-12 text-center border border-[#EAE0D5] space-y-3">
+                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-brand-maroon mb-2 text-2xl">
+                            🔍
+                        </div>
+                        <h3 class="text-base font-bold text-[#2D1B1E]">Yah, produk tidak ditemukan 🔍</h3>
+                        <p class="text-xs text-[#8C7A72] max-w-sm mx-auto">
+                            Tidak ada menu surplus yang cocok dengan filter atau kata kunci "{{ searchQuery }}". Coba ubah kategori atau naikkan rentang harga.
+                        </p>
+                        <button @click="resetFilters" class="mt-4 rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition">
+                            Reset Filter ↻
+                        </button>
+                    </div>
+
+                    <!-- 4. GRID DATA DINAMIS -->
                     <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                         <FoodCard
                             v-for="item in filteredFoods"
