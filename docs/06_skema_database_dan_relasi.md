@@ -30,7 +30,121 @@ Arsitektur database PlusFood dirancang berdasarkan prinsip-prinsip utama dual-pe
 
 ---
 
-## 📊 2. Entity Relationship Diagram (ERD) Dual-Perspective
+## 🏛️ 2. Analisis Normalisasi Basis Data (Pragmatic 3NF & Strategic Denormalization)
+
+Skema database PlusFood mengadopsi arsitektur **Relasional Hibrida Ter-normalisasi (Pragmatic Third Normal Form / 3NF)** yang dipadukan secara terukur dengan **Strategic Denormalization**. Pendekatan ini merupakan standar de-facto industri perangkat lunak modern untuk sistem *Food-Tech* dan *E-Commerce* (seperti Gojek, Grab, ShopeeFood) guna menyeimbangkan antara **integritas relasional tanpa redundansi** dan **kecepatan baca/tulis transaksi tinggi (*low latency*)**.
+
+### A. Evaluasi Kepatuhan Kaidah Normalisasi Formal
+
+#### 1. Bentuk Normal Pertama (1NF - First Normal Form)
+* **Kriteria:** Setiap tabel memiliki baris yang teridentifikasi secara unik, setiap sel bernilai atomik (satu nilai logis), dan tidak ada grup kolom yang berulang (*repeating groups*).
+* **Implementasi di PlusFood:**
+  - Setiap tabel menggunakan Primary Key bertipe numerik auto-increment (`id BIGINT UNSIGNED`).
+  - Atribut entitas seperti nama, email, nomor telepon, dan status disimpan dalam kolom tersendiri secara atomik.
+  - *Pemanfaatan Kolom JSON Modern:* Atribut `dietary_tags` pada tabel `foods` dan `tags` pada tabel `reviews` disimpan menggunakan tipe data `JSON` bawaan database. Dalam rekayasa perangkat lunak modern (PostgreSQL/MySQL 8/SQLite 3.38+), pendekatan *semi-structured JSON attribute* untuk tag chip/badge non-relasional diakui secara luas karena menghindari keharusan membuat 4 tabel *junction* perantara (*over-engineering*) yang membebani query `JOIN` hanya untuk membaca label visual seperti `["Halal", "Tidak Pedas"]`.
+
+#### 2. Bentuk Normal Kedua (2NF - Second Normal Form)
+* **Kriteria:** Telah memenuhi 1NF, dan setiap atribut non-kunci harus bergantung penuh secara fungsional (*fully functional dependent*) pada Primary Key tabel (tidak boleh ada ketergantungan parsial / *partial dependency*).
+* **Implementasi di PlusFood:**
+  - Karena seluruh tabel PlusFood mengadopsi pola *Surrogate Primary Key* tunggal (`id`), maka secara matematis **ketergantungan parsial tidak mungkin terjadi** (ketergantungan parsial hanya dapat muncul jika Primary Key berbentuk kunci komposit/*composite key*).
+  - Setiap kolom non-kunci (seperti `price_discount`, `stock`, `pickup_time_start`) bergantung secara mutlak pada ID baris tersebut.
+
+#### 3. Bentuk Normal Ketiga (3NF - Third Normal Form)
+* **Kriteria:** Telah memenuhi 2NF, dan tidak ada ketergantungan transitif (*no transitive dependency*) di mana atribut non-kunci bergantung pada atribut non-kunci lainnya ($X \to Y \to Z$).
+* **Implementasi di PlusFood:**
+  - Seluruh domain master data telah dipisahkan ke dalam tabel entitas mandiri yang dihubungkan melalui *Foreign Key*:
+    - Informasi gerai mitra UMKM (`name`, `nib`, `canteen_location`, `bank_account`) dipisahkan ke tabel `merchants`, bukan menumpang di dalam tabel `foods`.
+    - Preferensi filter diet mahasiswa dipisahkan ke tabel `user_preferences`, bukan menumpuk di tabel `users`.
+    - Data ulasan dan rating dipisahkan ke tabel `reviews`, bukan disatukan di tabel `orders`.
+    - Pengajuan pencairan saldo omzet dipisahkan ke tabel `merchant_payouts`.
+    - Riwayat keamanan scanner kasir dipisahkan ke tabel `qr_scan_logs`.
+
+---
+
+### B. Strategic Denormalization (Pola Standar Industri E-Commerce)
+
+Meskipun fondasi skema mengikuti kaidah 3NF, terdapat area kunci di mana diterapkan **denormalisasi terkontrol yang disengaja (*intentional strategic denormalization*)**:
+
+```mermaid
+flowchart TD
+    subgraph S1["1. Snapshot Transaksi Finansial (orders)"]
+        A["Food: price = 10.000"] -->|Saat Checkout| B["Order: subtotal = 10.000 (Snapshot)"]
+        C["User: name = Raka"] -->|Saat Checkout| D["Order: customer_name = Raka (Snapshot)"]
+        E["Food diubah: price = 15.000"] -.->|TIDAK mengubah nota lama| B
+    end
+
+    subgraph S2["2. Counter-Cache Performa Tinggi (merchants & users)"]
+        F["Tiap Order Berhasil Selesai"] -->|Atomic Increment| G["merchants.balance_rp += subtotal"]
+        F -->|Atomic Increment| H["users.co2_saved_grams += 400g"]
+        I["Dashboard Request"] -->|O(1) Direct Read| J["Fast Load tanpa SUM() Ribuan Baris"]
+    end
+```
+
+#### 1. Snapshot Riwayat Transaksi (*Immutable Historical Receipt Pattern*) pada `orders`:
+* **Kolom Terdampak:** `customer_name`, `customer_phone`, `customer_email`, `customer_address`, `customer_nim`, `subtotal`, `total_price`, `money_saved`.
+* **Rationale Teknis & Bisnis:**
+  Dalam sistem keuangan, e-commerce, dan faktur pajak, **nota/struk transaksi yang sudah diterbitkan wajib bersifat kekal (*immutable*)**. Jika seorang mitra memperbarui harga menu di tabel `foods` pada minggu depan, atau mahasiswa memperbarui nomor telepon/pindah alamat di tabel `users`, data struk pesanan yang terjadi hari ini **tidak boleh ikut berubah secara retroaktif**. Menyimpan snapshot ini melindungi integritas audit finansial dan mencegah sengketa pesanan.
+
+#### 2. Counter-Cache Akumulasi Saldo & Metrik Gamifikasi (*Zero-Latency Read Aggregation*):
+* **Kolom Terdampak:** `merchants.balance_rp`, `merchants.total_revenue_rp`, `users.co2_saved_grams`, `users.money_saved_rp`, `users.portions_rescued`.
+* **Rationale Teknis & Bisnis:**
+  Setiap kali mahasiswa membuka halaman Beranda atau mitra membuka Dashboard, sistem harus menampilkan total saldo dompet dan total gram CO2 yang dicegah. Jika kolom ini dihitung murni secara 3NF (menggunakan fungsi agregat `SUM()` dan `COUNT()` terhadap seluruh riwayat transaksi di tabel `orders`), maka kompleksitas query adalah $O(N)$ yang akan melumpuhkan performa basis data saat volume transaksi bertumbuh. Dengan menyimpan akumulator ter-cache yang diperbarui secara atomik (`DB::transaction()`) saat status pesanan menjadi `selesai`, proses pembacaan menjadi $O(1)$ instan (*sub-millisecond*).
+
+#### 3. Daily Analytics Pre-aggregation (`merchant_daily_metrics`):
+* Meringkas penjualan per hari (`metric_date`) untuk visualisasi grafik analitik cepat pada dashboard mitra tanpa membebani tabel transaksional `orders`.
+
+---
+
+## 👤 3. Matriks Pemetaan Antarmuka (UI/UX) ke Skema Database
+
+Seluruh elemen formulir dan tampilan data pada antarmuka pengguna PlusFood memiliki representasi data yang sinkron dan terpetakan secara presisi:
+
+### A. Antarmuka Mahasiswa (`resources/js/Pages/Mahasiswa/Profil.vue`)
+
+| Komponen / Field UI | Tipe Input | Kolom Database Tujuan | Keterangan & Karakteristik |
+|---|---|---|---|
+| **Nama Lengkap** | Text Input | `users.name` | Nama mahasiswa terdaftar. |
+| **Email Akun** | Email Input | `users.email` | Mendukung **email pribadi (Gmail/dsb) maupun email institusi**. |
+| **Nomor WhatsApp** | Tel Input | `users.phone` | Kontak untuk konfirmasi penjemputan makanan. |
+| **Kampus Binaan** | Select Dropdown | `users.campus` | Kampus tempat beraktivitas (contoh: "UNESA Ketintang"). |
+| **Program Studi / Jurusan** | Text Input | `users.major` | Jurusan mahasiswa (contoh: "S1 Teknik Informatika · 2023"). |
+| **NIM (Nomor Induk)** | Text Input | `users.nim` | **Bersifat Nullable (Opsional).** Menjaga privasi tanpa hambatan birokrasi. |
+| **Alamat Domisili / Kost** | Text Input | `users.address` | Alamat tempat tinggal untuk acuan jarak penjemputan. |
+| **Foto Profil / Avatar** | Image URL | `users.avatar` | Foto avatar pengguna. |
+| **Zona Kampus Default** | Select Dropdown | `user_preferences.campus_zone` | Zona filter katalog (contoh: `unesa-ketintang`). |
+| **Radius Penjemputan** | Pill Radio | `user_preferences.radius` | Radius jarak pencarian makanan (500m – 5km). |
+| **Preferensi Halal** | Checkbox Chip | `user_preferences.prefer_halal` | Filter otomatis makanan bersertifikat halal. |
+| **Preferensi Vegetarian** | Checkbox Chip | `user_preferences.prefer_vegetarian`| Filter khusus menu tanpa olahan daging. |
+| **Bebas Alergen Kacang** | Checkbox Chip | `user_preferences.prefer_nut_free` | Filter keamanan alergi kacang-kacangan. |
+| **Preferensi Tidak Pedas** | Checkbox Chip | `user_preferences.prefer_not_spicy` | Filter menu ramah lambung / non-pedas. |
+| **Portofolio Jejak Hijau** | Visual Cards | `users.co2_saved_grams`<br>`users.money_saved_rp`<br>`users.portions_rescued` | Metrik kumulatif penyelamatan surplus makanan. |
+| **Pangkat Penyelamat** | Badge Level | `users.rescuer_level` | Level gamifikasi (Level 1–5: Rescuer Pemula s/d Guardian). |
+
+---
+
+### B. Antarmuka Mitra UMKM (`resources/js/Pages/Mitra/Profil.vue`)
+
+| Komponen / Field UI | Tipe Input | Kolom Database Tujuan | Keterangan & Karakteristik |
+|---|---|---|---|
+| **Nama Gerai / Warung** | Text Input | `merchants.name` | Nama usaha/warung makan di kantin. |
+| **Nama Pemilik Usaha** | Text Input | `merchants.owner_name` | Penanggung jawab operasional gerai mitra. |
+| **Nomor Telepon Gerai** | Tel Input | `merchants.phone` | Nomor kontak gerai untuk komunikasi pelanggan. |
+| **Email Pengelola** | Email Input | `users.email` (via `user_id`) | Email akun otentikasi login pemilik mitra. |
+| **NIB (Nomor Induk Berusaha)** | Text Input | `merchants.nib` | Legalitas resmi UMKM (contoh: `NIB 9120004510291`). |
+| **Zona Kampus** | Select Dropdown | `merchants.campus_zone` | Area operasional gerai (contoh: `unesa-ketintang`). |
+| **Lokasi Kantin & Stand** | Text Input | `merchants.canteen_location` | Lokasi fisik stand (contoh: "Kantin Vokasi Lt. 1 Stand 04"). |
+| **Sesi Waktu Standar** | Select Dropdown | `merchants.default_session` | Sesi surplus dominan: `siang`, `sore`, atau `malam`. |
+| **Jam Operasional Ambil** | Text Input | `merchants.operating_hours` | Rentang waktu penjemputan (contoh: "19.00 – 20.30 WIB"). |
+| **Dukung Bawa Wadah Sendiri** | Toggle Switch | `merchants.support_eco` | Memberikan opsi tanpa biaya kemasan plastik (`eco_packaging`). |
+| **Nama Bank Penerima** | Select / Text | `merchants.bank_name` | Bank tujuan transfer pencairan (BCA, Mandiri, BRI, BNI). |
+| **Nomor Rekening Bank** | Text Input | `merchants.bank_account` | Nomor rekening penampungan pencairan dana. |
+| **Nama Pemilik Rekening** | Text Input | `merchants.bank_holder` | Nama pada buku tabungan rekening pencairan dana. |
+| **Saldo Dompet Aktif** | Display Card | `merchants.balance_rp` | Saldo hasil penjualan surplus yang siap dicairkan (*payout*). |
+| **Akumulasi Omzet Selamat** | Display Card | `merchants.total_revenue_rp` | Total nilai rupiah modal surplus yang terselamatkan. |
+
+---
+
+## 📊 4. Entity Relationship Diagram (ERD) Dual-Perspective
 
 ```mermaid
 erDiagram
@@ -231,7 +345,7 @@ erDiagram
 
 ---
 
-## 📋 3. Kamus Data Detail (*Data Dictionary*)
+## 📋 5. Kamus Data Detail (*Data Dictionary*)
 
 ### A. Tabel Pengguna (`users`)
 Menyimpan data akun mahasiswa dan pengelola gerai mitra.
@@ -417,7 +531,7 @@ Menyimpan agregat penjualan harian untuk render grafik di Dashboard Mitra (`Sale
 
 ---
 
-## 🔗 4. Matriks Relasi Antar Tabel (*Foreign Key Rules*)
+## 🔗 6. Matriks Relasi Antar Tabel (*Foreign Key Rules*)
 
 | Tabel Asal | Kolom FK | Tabel Rujukan | Aksi `ON DELETE` | Rationale Bisnis |
 |:---|:---|:---|:---:|:---|
@@ -435,7 +549,7 @@ Menyimpan agregat penjualan harian untuk render grafik di Dashboard Mitra (`Sale
 
 ---
 
-## 💡 5. Contoh Skenario Query Bisnis Mitra (Eloquent ORM)
+## 💡 7. Contoh Skenario Query Bisnis Mitra (Eloquent ORM)
 
 ### A. Mitra Posting Makanan Surplus Kilat (< 1 Menit)
 ```php
@@ -546,7 +660,7 @@ DB::transaction(function () use ($merchant, $withdrawAmount) {
 
 ---
 
-## 📑 6. Daftar Lengkap File Migration Proyek
+## 📑 8. Daftar Lengkap File Migration Proyek
 
 Seluruh skema di atas telah dieksekusi secara rapi melalui migration tunggal (*create table only*, tanpa file `add_...` tambal-sulam) di `database/migrations/`:
 
