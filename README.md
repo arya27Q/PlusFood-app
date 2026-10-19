@@ -12,12 +12,30 @@
 
 ---
 
-## 📋 Checklist Pemenuhan Berkas 02: README.md Lengkap
-Berdasarkan rubrik penugasan resmi **BERKAS 02**, dokumen ini memuat seluruh komponen wajib:
-* [x] **Instruksi Jalan Lokal:** Tersedia di [Bagian 2 - Panduan Menjalankan Aplikasi Secara Lokal](#-panduan-menjalankan-aplikasi-secara-lokal).
-* [x] **Tautan Desain Figma Modul 5:** [https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0](https://www.figma.com/design/4ZD6btsfpaokBTCG17xz9k/surplus?node-id=0-1&t=51TlRTjdnSjmJlwc-0).
-* [x] **Pembagian Kontribusi Anggota Kelompok:** Tersedia di [Bagian 4 - Pembagian Kontribusi Anggota Kelompok](#-pembagian-kontribusi-anggota-kelompok).
-* [x] **Log Prompt AI & Catatan Perbaikan Manual:** Tersedia di [Bagian 5 - Dokumentasi Log Prompt AI & Catatan Perbaikan Manual](#-dokumentasi-log-prompt-ai--catatan-perbaikan-manual).
+## 📋 Checklist Pemenuhan Berkas 02 & Modul 8: Data Dinamis & Logika Aplikasi
+Berdasarkan rubrik penugasan resmi **MODUL 8 (100 Poin Penuh)** dan berkas dokumentasi, repositori ini telah memenuhi:
+* [x] **Target 1: Data Dinamis & Fitur Search/Filter (25%):** Bebas hardcode berulang, looping komponen kartu (`v-for`), sumber data terstruktur (`mockFoods.js` & reactive state), fitur pencarian kata kunci dan filter multi-kategori/radius/harga yang langsung menyaring di layar.
+* [x] **Target 2: Fungsionalitas Form, Validasi & Sanitasi (25%):** Formulir checkout & tambah surplus terhubung ke storage/state, sanitasi spasi `.trim()`, pengecekan regex email & nomor telepon, pesan error inline tepat di bawah kolom yang salah, serta proteksi tombol terkunci (*disabled*).
+* [x] **Target 3: Kelengkapan UX States (20%):**
+  - **Loading State:** Animasi kotak berdenyut (*Loading Skeleton Shimmer* `animate-pulse`) saat memuat data dan status tombol *"Mengirim..."* / spinner saat submit.
+  - **Empty State:** Tampilan ramah *"Yah, produk tidak ditemukan 🔍"* dengan tombol *"Reset Filter ↻"* ketika pencarian nihil.
+  - **Error State:** Penanganan try/catch dengan pesan kesalahan manusiawi (*"Gagal memuat data. Coba lagi ↻"*).
+  - **Toast Notification:** Pop-up notifikasi halus (*"✅ Pesanan berhasil dikirim!"*) menggantikan `alert()` bawaan browser.
+* [x] **Target 4: Kerapian Kode, Keamanan .env & Alur Git Branch (15%):** Dikerjakan pada branch `feat/dynamic-data`, seluruh credential/secret tersimpan di `.env` (tidak ikut ter-commit), dan riwayat commit terstruktur.
+* [x] **Target 5: Dokumentasi README.md & Panduan Uji Mentor (15%):** Penjelasan sumber data, layanan formulir, log prompt AI, dan panduan halaman yang dapat diuji.
+
+---
+
+## 🎯 Panduan Pengujian Fitur Modul 8 untuk Mentor / Evaluator
+
+Bagi mentor atau penguji yang ingin mencoba alur interaktif aplikasi, berikut halaman dan form utama yang siap diuji:
+
+| Fitur / Halaman | URL Rute | Yang Dapat Dicoba Penguji | Kriteria Modul 8 yang Terpenuhi |
+|:---|:---|:---|:---|
+| **1. Pencarian & Filter Cepat (Beranda Mahasiswa)** | `/beranda` | - Ketik kata kunci (misal: "ayam", "soto", "roti") pada search bar.<br>- Klik filter cepat ("Nasi", "Roti", "Halal Only", "< Rp15.000").<br>- Ubah radius kampus via selector lokasi pill.<br>- Perhatikan animasi skeleton shimmer saat pertama kali memuat. | Data Dinamis, Looping `v-for`, Fast Filter, Loading Skeleton. |
+| **2. Filter Multi-Kriteria & Empty State (Katalog Surplus)** | `/katalog` | - Geser slider harga maksimum (Rp5.000 - Rp25.000).<br>- Filter berdasarkan kategori pill makanan.<br>- Ketik kata kunci yang tidak ada (misal: "pizza spageti") untuk melihat **Empty State ramah** dan klik **Reset Filter ↻**.<br>- Coba ganti kampus ke kota lain (Malang/Jogja) untuk mencoba alur Form Waitlist. | Search Bar, Filter Multi-Kriteria, Empty State + Reset Button, Skeleton Shimmer. |
+| **3. Formulir Checkout & Validasi Input** | `/makanan/nasi-campur-madura-pak-joko/checkout` | - Hapus isi nama / masukkan nomor WhatsApp tidak valid (huruf atau < 10 digit) untuk memicu **pesan error inline merah di bawah input**.<br>- Perhatikan tombol "Lanjut Bayar" otomatis **terkunci / disabled** saat form tidak valid.<br>- Isi data lengkap dan klik bayar untuk melihat **Loading Overlay Spinner**, **Toast Notifikasi Halus**, dan halaman sukses receipt. | Validasi Form, Sanitasi `.trim()`, Error Inline, Button Lock, Toast Pop-up. |
+| **4. Tambah Surplus Kilat (< 1 Menit)** | `/mitra/menu` | - Isi formulir tambah menu surplus baru di sisi kiri.<br>- Cek kalkulasi otomatis harga diskon & persentase hemat.<br>- Submit menu baru dan saksikan menu langsung bertambah ke daftar aktif serta memicu **Toast Sukses Posting**. | Form Input Write, Two-way Data Binding, Toast Notification. |
 
 ---
 

@@ -12,6 +12,7 @@ const selectedCampus = ref('unesa-ketintang');
 const selectedRadius = ref('2 km');
 const selectedFastFilter = ref('Semua');
 const showLocationModal = ref(false);
+const isLoading = ref(true);
 
 const radiuses = ['500 m', '1 km', '2 km', '3 km', '5 km'];
 const availableCampuses = computed(() => campusZones.filter(c => !c.isComingSoon));
@@ -70,6 +71,11 @@ const filteredFoods = computed(() => {
 
 import { onMounted } from 'vue';
 onMounted(() => {
+    isLoading.value = true;
+    setTimeout(() => {
+        isLoading.value = false;
+    }, 300);
+
     if (typeof window !== 'undefined') {
         const savedPref = localStorage.getItem('plusfood_preferences');
         if (savedPref) {
@@ -301,26 +307,42 @@ onMounted(() => {
                     </Link>
                 </div>
 
-                <!-- Empty state if filter has no match -->
-                <div v-if="filteredFoods.length === 0" class="rounded-[24px] bg-white p-12 text-center border border-[#EAE0D5] space-y-3">
-                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-brand-maroon">
-                        <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                <!-- 1. LOADING SKELETON STATE (Modul 8 UX State) -->
+                <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div v-for="n in 4" :key="n" class="rounded-[22px] bg-white p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
+                        <div class="h-40 w-full rounded-2xl bg-stone-200"></div>
+                        <div class="space-y-2">
+                            <div class="h-4 w-3/4 rounded-lg bg-stone-200"></div>
+                            <div class="h-3 w-1/2 rounded-lg bg-stone-100"></div>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-stone-100">
+                            <div class="space-y-1">
+                                <div class="h-3 w-12 rounded bg-stone-100"></div>
+                                <div class="h-5 w-20 rounded-lg bg-stone-200"></div>
+                            </div>
+                            <div class="h-8 w-20 rounded-xl bg-stone-200"></div>
+                        </div>
                     </div>
-                    <h3 class="text-base font-bold text-[#2D1B1E]">Tidak Ada Makanan Ditemukan</h3>
+                </div>
+
+                <!-- 2. EMPTY STATE (Modul 8 UX State) -->
+                <div v-else-if="filteredFoods.length === 0" class="rounded-[24px] bg-white p-12 text-center border border-[#EAE0D5] space-y-3">
+                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-brand-maroon text-2xl">
+                        🔍
+                    </div>
+                    <h3 class="text-base font-bold text-[#2D1B1E]">Yah, produk tidak ditemukan 🔍</h3>
                     <p class="text-xs text-[#8C7A72] max-w-sm mx-auto">
-                        Coba pilih filter lain atau reset pencarian untuk melihat surplus lainnya.
+                        Coba sesuaikan kata kunci pencarian atau ubah tombol filter cepat di atas.
                     </p>
                     <button
                         @click="selectedFastFilter = 'Semua'; searchQuery = ''"
                         class="rounded-xl bg-brand-maroon px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition"
                     >
-                        Reset Filter Cepat
+                        Reset Filter Cepat ↻
                     </button>
                 </div>
 
-                <!-- Grid Kartu Makanan Menggunakan FoodCard Component Sesuai Spec -->
+                <!-- 3. GRID DATA DINAMIS -->
                 <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <FoodCard
                         v-for="item in filteredFoods.slice(0, 8)"
