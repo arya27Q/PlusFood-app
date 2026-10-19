@@ -60,7 +60,9 @@ erDiagram
         enum role "mahasiswa, mitra, admin"
         string phone
         string campus
+        string major "nullable"
         string nim "nullable"
+        string address "nullable"
         string avatar
         int co2_saved_grams
         bigint money_saved_rp
@@ -243,7 +245,9 @@ Menyimpan data akun mahasiswa dan pengelola gerai mitra.
 | `role` | `ENUM('mahasiswa', 'mitra', 'admin')` | Tidak | `'mahasiswa'` | Perspektif peran pengguna dalam sistem. |
 | `phone` | `VARCHAR(255)` | Ya | `NULL` | Nomor WhatsApp untuk koordinasi pesanan. |
 | `campus` | `VARCHAR(255)` | Ya | `NULL` | Kampus binaan (misal: "UNESA Ketintang"). |
+| `major` | `VARCHAR(255)` | Ya | `NULL` | Jurusan / Program Studi mahasiswa (misal: "S1 Teknik Informatika"). |
 | `nim` | `VARCHAR(255)` | **Ya** | `NULL` | Nomor Induk Mahasiswa (**opsional**, tidak dipaksakan). |
+| `address` | `VARCHAR(255)` | Ya | `NULL` | Alamat tempat tinggal / kost mahasiswa. |
 | `avatar` | `VARCHAR(255)` | Ya | `NULL` | URL avatar profil. |
 | `co2_saved_grams` | `INT UNSIGNED` | Tidak | `0` | Total gram emisi CO2 yang berhasil dicegah mahasiswa. |
 | `money_saved_rp` | `BIGINT UNSIGNED` | Tidak | `0` | Total uang saku yang dihemat mahasiswa (Rp). |

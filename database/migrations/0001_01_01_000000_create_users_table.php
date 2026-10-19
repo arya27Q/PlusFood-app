@@ -20,7 +20,9 @@ return new class extends Migration
             $table->enum('role', ['mahasiswa', 'mitra', 'admin'])->default('mahasiswa');
             $table->string('phone')->nullable();
             $table->string('campus')->nullable();
+            $table->string('major')->nullable(); // Jurusan / Program Studi
             $table->string('nim')->nullable(); // Opsional / bebas tanpa NIM
+            $table->string('address')->nullable(); // Alamat Domisili / Kost
             $table->string('avatar')->nullable();
 
             // Gamifikasi & Impact Tracker Penyelamatan Makanan
