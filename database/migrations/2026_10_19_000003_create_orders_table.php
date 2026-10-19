@@ -15,30 +15,27 @@ return new class extends Migration
             $table->id();
             $table->string('order_number')->unique(); // e.g. PF-84920
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('food_id')->constrained('foods')->cascadeOnDelete();
             $table->foreignId('merchant_id')->constrained('merchants')->cascadeOnDelete();
             
-            // Item & Biaya
-            $table->unsignedSmallInteger('quantity')->default(1);
-            $table->unsignedInteger('subtotal');
-            $table->enum('eco_packaging', ['bawa_sendiri', 'kotak_kertas', 'thinwall'])->default('bawa_sendiri');
-            $table->unsignedInteger('packaging_fee')->default(0);
-            $table->unsignedInteger('service_fee')->default(1000);
-            $table->unsignedInteger('total_price');
+            // Ringkasan Finansial Header Transaksi
+            $table->unsignedInteger('total_items_price'); // Subtotal seluruh porsi makanan
+            $table->unsignedInteger('total_packaging_fee')->default(0); // Total biaya wadah kemasan
+            $table->unsignedInteger('service_fee')->default(1000); // Biaya operasional sistem
+            $table->unsignedInteger('total_price'); // Total tagihan keseluruhan (Rp)
             
-            // Dampak Penghematan & Lingkungan
-            $table->unsignedInteger('money_saved');
-            $table->unsignedInteger('weight_saved_grams')->default(400);
+            // Dampak Akumulatif Penyelamatan
+            $table->unsignedInteger('money_saved'); // Total rupiah yang dihemat
+            $table->unsignedInteger('weight_saved_grams')->default(400); // Estimasi sampah makanan dicegah (gram)
             
-            // Data Pemesan Mahasiswa (Snapshot form)
+            // Data Pemesan Mahasiswa (Snapshot form reservasi)
             $table->string('customer_name');
             $table->string('customer_phone');
             $table->string('customer_email');
             $table->string('customer_address')->nullable();
             $table->string('customer_nim')->nullable(); // Opsional / bebas tanpa NIM
-            $table->text('notes')->nullable(); // Alergi / instruksi
+            $table->text('notes')->nullable(); // Alergi / instruksi tambahan
             
-            // Pickup & Kedatangan
+            // Pickup & Jadwal Kedatangan
             $table->string('pickup_time');
             $table->string('pickup_deadline')->nullable();
             $table->enum('arrival_estimate', ['awal', 'tengah', 'akhir'])->default('tengah');
@@ -47,7 +44,7 @@ return new class extends Migration
             // Status Alur Penjemputan
             $table->enum('status', ['menunggu', 'siap_ambil', 'selesai', 'batal'])->default('menunggu')->index();
             
-            // Token QR Digital 3-digit / string
+            // Token QR Digital unik untuk validasi kasir
             $table->string('qr_token')->unique(); // e.g. PF-84920-WS
             $table->boolean('has_review')->default(false);
             $table->timestamp('completed_at')->nullable();
