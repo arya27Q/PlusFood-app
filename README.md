@@ -194,6 +194,7 @@ Dokumen spesifikasi resmi dapat dibaca pada folder `docs/`:
 * [**03. Arsitektur Sistem**](docs/03_arsitektur_sistem.md): Alasan pemilihan arsitektur Laravel 11 + Inertia.js + Vue 3 Monolith Modern.
 * [**04. User Flow & Panduan**](docs/04_user_flow_dan_panduan.md): Alur perjalanan mahasiswa dan mitra dari reservasi hingga validasi QR.
 * [**05. Spesifikasi Desain UI**](docs/05_spesifikasi_desain_ui.md): Hirarki komponen dan panduan keselarasan desain Figma.
+* [**06. Skema Database & Relasi**](docs/06_skema_database_dan_relasi.md): Spesifikasi ERD, kamus data lengkap, foreign key cascading, dan query bisnis utama.
 * [**Desain Sistem Dual-POV**](docs/desain_sistem_plusfood_2_pov.md): Penjelasan pilar LBS, Single-Item reservation paradigm, dan skema database.
 
 ---
