@@ -432,13 +432,15 @@ const userStats = computed(() => {
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold text-stone-600 mb-1.5">
-                                    NIM
+                                <label class="block text-xs font-bold text-stone-600 mb-1.5 flex items-center justify-between">
+                                    <span>NIM</span>
+                                    <span class="text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-md">Opsional</span>
                                 </label>
                                 <input
                                     v-model="profileForm.nim"
                                     :disabled="!isEditing"
                                     type="text"
+                                    placeholder="Opsional (boleh dikosongkan)"
                                     class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition"
                                     :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-slate-200 bg-white text-slate-800 shadow-2xs cursor-default'"
                                 />
