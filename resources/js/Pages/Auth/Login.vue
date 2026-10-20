@@ -198,9 +198,14 @@ const submit = () => {
                         <!-- Submit Button -->
                         <div class="pt-2">
                             <PrimaryButton :disabled="form.processing">
-                                <span>Masuk</span>
-                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <span v-if="form.processing">Memverifikasi Akun...</span>
+                                <span v-else>Masuk</span>
+                                <svg v-if="!form.processing" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <svg v-else class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                                 </svg>
                             </PrimaryButton>
                         </div>
