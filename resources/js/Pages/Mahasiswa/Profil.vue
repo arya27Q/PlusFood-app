@@ -200,7 +200,7 @@ const userStats = computed(() => {
     <MahasiswaLayout>
         <Head title="Profil Mahasiswa - PlusFood" />
 
-        <div class="space-y-6 max-w-[1280px] mx-auto animate-fade-in pb-12">
+        <div class="space-y-6 w-full animate-fade-in pb-12">
             
             <!-- Toast Feedback Penyimpanan -->
             <div

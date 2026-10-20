@@ -308,8 +308,8 @@ onMounted(() => {
                 </div>
 
                 <!-- 1. LOADING SKELETON STATE (Modul 8 UX State) -->
-                <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div v-for="n in 4" :key="n" class="rounded-[22px] bg-white p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
+                <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6">
+                    <div v-for="n in 5" :key="n" class="rounded-[22px] bg-white p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
                         <div class="h-40 w-full rounded-2xl bg-stone-200"></div>
                         <div class="space-y-2">
                             <div class="h-4 w-3/4 rounded-lg bg-stone-200"></div>
@@ -343,9 +343,9 @@ onMounted(() => {
                 </div>
 
                 <!-- 3. GRID DATA DINAMIS -->
-                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6">
                     <FoodCard
-                        v-for="item in filteredFoods.slice(0, 8)"
+                        v-for="item in filteredFoods.slice(0, 10)"
                         :key="item.id"
                         :food="item"
                     />
