@@ -110,8 +110,13 @@ const submit = () => {
                     </p>
 
                     <!-- Flash / Session Status -->
-                    <div v-if="status" class="mt-3 text-xs font-bold text-emerald-600">
-                        {{ status }}
+                    <div v-if="status" class="mt-4 flex items-center gap-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 p-3.5 text-xs font-semibold text-emerald-800 shadow-sm animate-fade-in">
+                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <span class="leading-relaxed">{{ status }}</span>
                     </div>
 
                     <!-- Form -->

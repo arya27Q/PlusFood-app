@@ -34,12 +34,28 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->post('/login', [
+        $response = $this->post('/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
 
         $this->assertGuest();
+        $response->assertSessionHasErrors([
+            'password' => 'Password salah. Silakan coba lagi.',
+        ]);
+    }
+
+    public function test_users_can_not_authenticate_with_unregistered_email(): void
+    {
+        $response = $this->post('/login', [
+            'email' => 'unregistered@example.com',
+            'password' => 'password123',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors([
+            'email' => 'Email belum terdaftar. Silakan daftar akun baru terlebih dahulu.',
+        ]);
     }
 
     public function test_users_can_logout(): void
