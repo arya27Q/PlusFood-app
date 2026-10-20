@@ -20,29 +20,12 @@ Route::get('/welcome', function () {
     return Inertia::render('Welcome');
 })->name('welcome');
 
-// 2. Autentikasi (Frontend Mock)
-Route::get('/login', function () {
-    return Inertia::render('Auth/Login');
-})->name('login');
-
-Route::get('/register', function () {
-    return Inertia::render('Auth/Register');
-})->name('register');
-
-Route::get('/forgot-password', function () {
-    return Inertia::render('Auth/ForgotPassword');
-})->name('password.request');
-
-Route::post('/forgot-password', function () {
-    return redirect()->route('login')->with('status', 'Tautan pemulihan password tiruan telah dikirim!');
-})->name('password.email');
-
-Route::get('/logout', function () {
-    return redirect()->route('login');
-})->name('logout');
-
-Route::post('/logout', function () {
-    return redirect()->route('login');
+// 2. Profil Mahasiswa & Edit Profil (Tersambung ke Database MySQL)
+Route::middleware('auth')->group(function () {
+    Route::get('/profil', [\App\Http\Controllers\ProfileController::class, 'show'])->name('profil');
+    Route::put('/profil', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profil.update');
+    Route::post('/profil/preferences', [\App\Http\Controllers\ProfileController::class, 'updatePreferences'])->name('profil.preferences');
+    Route::put('/profil/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profil.password');
 });
 
 // 3. POV Mahasiswa (Konsumen)
@@ -67,10 +50,6 @@ Route::get('/checkout', function () {
 Route::get('/riwayat', function () {
     return Inertia::render('Mahasiswa/Riwayat');
 })->name('riwayat');
-
-Route::get('/profil', function () {
-    return Inertia::render('Mahasiswa/Profil');
-})->name('profil');
 
 Route::get('/tiket/{id?}', function ($id = 'PF-88219') {
     return Inertia::render('Mahasiswa/Riwayat', [
@@ -119,3 +98,6 @@ Route::get('/mitra/profil', function () {
 Route::get('/dashboard', function () {
     return redirect()->route('beranda');
 })->name('dashboard');
+
+require __DIR__.'/auth.php';
+

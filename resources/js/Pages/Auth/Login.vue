@@ -3,9 +3,7 @@ import { ref, onMounted } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/UI/InputError.vue';
 import PrimaryButton from '@/Components/UI/PrimaryButton.vue';
-import LoadingScreen from '@/Components/UI/LoadingScreen.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { useAuth } from '@/Composables/useAuth';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 defineProps({
     canResetPassword: {
@@ -19,14 +17,11 @@ defineProps({
 
 const isVisible = ref(false);
 const showPassword = ref(false);
-const isLoggingIn = ref(false);
-const auth = useAuth();
 
-const form = ref({
+const form = useForm({
     email: 'raka@mhs.unesa.ac.id',
     password: 'password123',
     remember: true,
-    errors: {},
 });
 
 onMounted(() => {
@@ -36,25 +31,15 @@ onMounted(() => {
 });
 
 const submit = () => {
-    isLoggingIn.value = true;
-    auth.login(form.value.email, form.value.password, false);
-};
-
-const handleLoginFinish = () => {
-    router.visit(route('beranda'));
+    form.post(route('login'), {
+        onFinish: () => form.reset('password'),
+    });
 };
 </script>
 
 <template>
     <GuestLayout>
         <Head title="Masuk Akun - PlusFood" />
-
-        <!-- Transition Loading Screen ke Beranda -->
-        <LoadingScreen
-            v-if="isLoggingIn"
-            :duration="2000"
-            @finish="handleLoginFinish"
-        />
 
         <div class="grid grid-cols-1 md:grid-cols-12 min-h-[580px] overflow-hidden">
             

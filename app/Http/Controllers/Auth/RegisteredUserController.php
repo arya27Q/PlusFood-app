@@ -35,18 +35,40 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'phone' => 'nullable|string|max:20',
+            'campus' => 'nullable|string|max:255',
+            'nim' => 'nullable|string|max:50',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'mahasiswa',
+            'phone' => $request->phone ?: '081234567890',
+            'campus' => $request->campus ?: 'Universitas Negeri Surabaya',
+            'nim' => $request->nim ?: null,
+            'avatar' => 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+            'co2_saved_grams' => 0,
+            'money_saved_rp' => 0,
+            'portions_rescued' => 0,
+            'rescuer_level' => 1,
+        ]);
+
+        \App\Models\UserPreference::create([
+            'user_id' => $user->id,
+            'campus_zone' => 'unesa-ketintang',
+            'radius' => '2 km',
+            'prefer_halal' => true,
+            'prefer_vegetarian' => false,
+            'prefer_nut_free' => false,
+            'prefer_not_spicy' => true,
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect(route('beranda'));
     }
 }
