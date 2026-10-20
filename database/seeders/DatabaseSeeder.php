@@ -45,5 +45,7 @@ class DatabaseSeeder extends Seeder
                 'prefer_not_spicy' => true,
             ]
         );
+
+        $this->call(FoodSeeder::class);
     }
 }

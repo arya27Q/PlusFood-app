@@ -98,10 +98,15 @@ const props = defineProps({
         type: String,
         default: 'nasi-ayam-bakar',
     },
+    food: {
+        type: Object,
+        default: null,
+    },
 });
 
-// Ambil makanan berdasarkan slug, default ke item pertama jika tidak ketemu
+// Ambil makanan dari database via props.food, atau fallback ke mockFoods
 const food = computed(() => {
+    if (props.food) return props.food;
     return sampleFoods.find(f => f.slug === props.slug) || sampleFoods[0];
 });
 
@@ -437,17 +442,17 @@ const subsidySaved = computed(() => {
                     <div class="pt-4 border-t border-[#F5EFE6] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="flex items-center gap-3.5">
                             <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-maroon text-white font-black text-sm">
-                                {{ food.merchantInitial }}
+                                {{ food.merchant?.initial || food.merchantInitial || 'PF' }}
                             </div>
                             <div>
                                 <h4 class="text-sm font-black text-[#2D1B1E] flex items-center gap-2">
-                                    {{ food.merchant }}
+                                    {{ food.merchant?.name || food.merchantName || food.merchant }}
                                     <span class="rounded-md bg-[#F5EFE6] px-2 py-0.5 text-[10px] font-bold text-brand-maroon">
-                                        Mitra Kampus Surabaya
+                                        {{ food.merchant?.campus_name || food.merchantZoneLabel || 'Mitra Kampus Surabaya' }}
                                     </span>
                                 </h4>
                                 <p class="text-xs text-[#8C7A72]">
-                                    Bergabung sejak {{ food.merchantActiveSince }} · {{ food.merchantRescuedCount }} porsi diselamatkan
+                                    Bergabung sejak {{ food.merchantActiveSince || '2023' }} · {{ food.merchantRescuedCount || '1.000+' }} porsi diselamatkan
                                 </p>
                             </div>
                         </div>
@@ -569,7 +574,7 @@ const subsidySaved = computed(() => {
                             <span>Aturan Food Rescue Kampus Surabaya</span>
                         </h4>
                         <p class="text-[10px] sm:text-[11px] text-amber-800 leading-relaxed">
-                            Tunjukkan kode pemesanan kepada staf Warung Bu Sari saat mengambil makanan pukul {{ food.pickupTime }}.
+                            Tunjukkan kode pemesanan kepada staf {{ food.merchant?.name || food.merchantName || food.merchant }} saat mengambil makanan pukul {{ food.pickupTime }}.
                         </p>
                     </div>
 

@@ -6,6 +6,13 @@ import { sampleFoods, campusZones } from '@/Utils/mockFoods';
 import { ref, computed } from 'vue';
 import { useAuth } from '@/Composables/useAuth';
 
+const props = defineProps({
+    foods: {
+        type: Array,
+        default: () => [],
+    },
+});
+
 const auth = useAuth();
 const searchQuery = ref('');
 const selectedCampus = ref('unesa-ketintang');
@@ -32,8 +39,12 @@ const fastFilters = [
     '< Rp15.000'
 ];
 
+const foodsList = computed(() => {
+    return (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
+});
+
 const filteredFoods = computed(() => {
-    return sampleFoods.filter(item => {
+    return foodsList.value.filter(item => {
         // Search query filter
         if (searchQuery.value) {
             const q = searchQuery.value.toLowerCase();

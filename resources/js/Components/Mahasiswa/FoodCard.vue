@@ -56,11 +56,11 @@ const isBookmarked = ref(false);
             <div>
                 <!-- Warung & Rating Ringkas -->
                 <div class="flex items-center justify-between text-[10px] sm:text-[11px] font-semibold text-[#8C7A72]">
-                    <p class="flex items-center gap-1 truncate max-w-[90px] sm:max-w-[170px]" :title="food.merchant">
+                    <p class="flex items-center gap-1 truncate max-w-[90px] sm:max-w-[170px]" :title="food.merchant?.name || food.merchantName || food.merchant">
                         <svg class="h-2.5 w-2.5 sm:h-3 sm:w-3 text-[#A8988F] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                        <span class="truncate">{{ food.merchant }}</span>
+                        <span class="truncate">{{ food.merchant?.name || food.merchantName || food.merchant }}</span>
                     </p>
                     <span class="flex items-center gap-0.5 sm:gap-1 text-amber-500 font-bold shrink-0">
                         <svg class="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-400 text-amber-400" viewBox="0 0 20 20">

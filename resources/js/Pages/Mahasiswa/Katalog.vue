@@ -5,11 +5,26 @@ import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
 import { sampleFoods, campusZones } from '@/Utils/mockFoods';
 import { ref, computed, onMounted } from 'vue';
 
-const maxPrice = ref(25000);
-const selectedCategory = ref('Semua');
-const selectedCampus = ref('all');
+const props = defineProps({
+    foods: {
+        type: Array,
+        default: () => [],
+    },
+    filters: {
+        type: Object,
+        default: () => ({}),
+    },
+});
+
+const foodsList = computed(() => {
+    return (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
+});
+
+const maxPrice = ref(props.filters?.max_price || 25000);
+const selectedCategory = ref(props.filters?.category || 'Semua');
+const selectedCampus = ref(props.filters?.campus || 'all');
 const selectedDistance = ref('2 km');
-const searchQuery = ref('');
+const searchQuery = ref(props.filters?.q || '');
 const isLoading = ref(true);
 const fetchError = ref(null);
 
@@ -93,7 +108,7 @@ const resetFilters = () => {
 
 // Filtered Foods
 const filteredFoods = computed(() => {
-    return sampleFoods.filter(item => {
+    return foodsList.value.filter(item => {
         // Filter search keyword
         if (searchQuery.value && searchQuery.value.trim() !== '') {
             const q = searchQuery.value.trim().toLowerCase();
