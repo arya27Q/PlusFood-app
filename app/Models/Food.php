@@ -70,6 +70,13 @@ class Food extends Model
         'distanceMins',
         'minutesLeft',
         'packages',
+        'dietaryTags',
+        'tags',
+        'rating',
+        'isCookedToday',
+        'isSealed',
+        'isVerified',
+        'distanceKm',
     ];
 
     /**
@@ -217,20 +224,65 @@ class Food extends Model
         return $this->merchant?->address ?? 'Kantin Kampus Surabaya';
     }
 
+    public function getDistanceKmAttribute(): float
+    {
+        $distances = [
+            'unesa-ketintang' => 1.2,
+            'its-sukolilo' => 0.8,
+            'unair-b' => 0.7,
+            'unesa-lidah' => 1.5,
+            'upn-rungkut' => 0.8,
+            'petra-siwalankerto' => 0.5,
+        ];
+
+        return (float) ($distances[$this->campusZone] ?? 1.2);
+    }
+
     public function getDistanceAttribute(): string
     {
-        return '1,2 km';
+        return str_replace('.', ',', (string) $this->distanceKm) . ' km';
     }
 
     public function getDistanceMinsAttribute(): string
     {
         $campus = $this->merchant?->campus_name ?? 'Kampus';
-        return "8 mnt dari {$campus}";
+        $mins = (int) round($this->distanceKm * 6);
+        return "{$mins} mnt dari {$campus}";
     }
 
     public function getMinutesLeftAttribute(): int
     {
         return 45;
+    }
+
+    public function getDietaryTagsAttribute(): array
+    {
+        return $this->dietary_tags ?? [];
+    }
+
+    public function getTagsAttribute(): array
+    {
+        return $this->dietary_tags ?? [];
+    }
+
+    public function getRatingAttribute(): float
+    {
+        return (float) ($this->merchant?->rating ?? 4.8);
+    }
+
+    public function getIsCookedTodayAttribute(): bool
+    {
+        return (bool) ($this->is_cooked_today ?? true);
+    }
+
+    public function getIsSealedAttribute(): bool
+    {
+        return (bool) ($this->is_sealed ?? true);
+    }
+
+    public function getIsVerifiedAttribute(): bool
+    {
+        return (bool) ($this->merchant?->is_verified ?? true);
     }
 
     /**

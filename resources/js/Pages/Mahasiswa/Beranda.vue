@@ -48,16 +48,24 @@ const filteredFoods = computed(() => {
         // Search query filter
         if (searchQuery.value) {
             const q = searchQuery.value.toLowerCase();
-            const matchName = item.name.toLowerCase().includes(q) || item.shortName.toLowerCase().includes(q);
-            const matchMerchant = item.merchant.toLowerCase().includes(q);
-            const matchCategory = item.category.toLowerCase().includes(q);
-            if (!matchName && !matchMerchant && !matchCategory) return false;
+            const name = (item.name || '').toLowerCase();
+            const shortName = (item.shortName || '').toLowerCase();
+            const merchantStr = typeof item.merchant === 'string' ? item.merchant : (item.merchant?.name || item.merchantName || '');
+            const matchMerchant = merchantStr.toLowerCase().includes(q);
+            const category = (item.category || '').toLowerCase();
+            if (!name.includes(q) && !shortName.includes(q) && !matchMerchant && !category.includes(q)) return false;
         }
 
         // Campus zone filter if not all
-        if (selectedCampus.value !== 'all' && item.campusZone !== selectedCampus.value) {
-            // Keep nearby foods for demo if radius >= 2km
-            if (selectedRadius.value === '500 m' || selectedRadius.value === '1 km') {
+        const itemZone = item.campusZone ?? item.campus_zone ?? item.merchant?.campus_zone;
+        if (selectedCampus.value !== 'all' && itemZone !== selectedCampus.value) {
+            const distKm = typeof item.distanceKm === 'number' ? item.distanceKm :
+                           parseFloat(String(item.distance || '1.2').replace(',', '.')) || 1.2;
+            const maxRadius = selectedRadius.value === '500 m' ? 0.5 :
+                              selectedRadius.value === '1 km' ? 1.0 :
+                              selectedRadius.value === '2 km' ? 2.0 :
+                              selectedRadius.value === '3 km' ? 3.0 : 5.0;
+            if (distKm > maxRadius) {
                 return false;
             }
         }
@@ -66,13 +74,19 @@ const filteredFoods = computed(() => {
         if (selectedFastFilter.value === 'Nasi' && item.category !== 'Nasi') return false;
         if (selectedFastFilter.value === 'Roti' && item.category !== 'Roti') return false;
         if (selectedFastFilter.value === 'Soto' && item.category !== 'Soto') return false;
-        if (selectedFastFilter.value === '< Rp15.000' && item.priceDiscount >= 15000) return false;
+        const price = Number(item.priceDiscount ?? item.price_discount ?? 0);
+        if (selectedFastFilter.value === '< Rp15.000' && price >= 15000) return false;
+
+        const rawDietTags = item.dietaryTags ?? item.dietary_tags ?? [];
+        const rawTags = item.tags ?? [];
+        const allTags = [...rawDietTags, ...rawTags].map(t => String(t).toLowerCase());
+
         if (selectedFastFilter.value === 'Halal Only') {
-            const isHalal = item.dietaryTags?.includes('Halal') || item.tags.some(t => t.includes('Halal'));
+            const isHalal = allTags.some(t => t.includes('halal'));
             if (!isHalal) return false;
         }
         if (selectedFastFilter.value === 'Bebas Kacang') {
-            const isNutFree = item.dietaryTags?.includes('Bebas Kacang') || (!item.name.toLowerCase().includes('kacang') && !item.description.toLowerCase().includes('kacang'));
+            const isNutFree = allTags.some(t => t.includes('bebas kacang')) || (!item.name.toLowerCase().includes('kacang') && !(item.description || '').toLowerCase().includes('kacang'));
             if (!isNutFree) return false;
         }
 
