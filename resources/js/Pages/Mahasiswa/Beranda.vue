@@ -119,7 +119,7 @@ onMounted(() => {
                     </div>
 
                     <h1 class="mt-1.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2D1B1E] flex items-center gap-2">
-                        Halo, {{ auth.user.value ? auth.user.value.name.split(' ')[0] : 'Raka' }}! 
+                        Selamat Datang, {{ auth.user.value ? auth.user.value.name.split(' ')[0] : 'Raka' }}! 
                         <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-amber-100 text-amber-600 hover:rotate-12 transition-transform cursor-default">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
@@ -308,19 +308,19 @@ onMounted(() => {
                 </div>
 
                 <!-- 1. LOADING SKELETON STATE (Modul 8 UX State) -->
-                <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6">
-                    <div v-for="n in 5" :key="n" class="rounded-[22px] bg-white p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
-                        <div class="h-40 w-full rounded-2xl bg-stone-200"></div>
+                <div v-if="isLoading" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-6">
+                    <div v-for="n in 6" :key="n" class="rounded-2xl sm:rounded-[22px] bg-white p-2.5 sm:p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
+                        <div class="h-28 sm:h-40 w-full rounded-xl sm:rounded-2xl bg-stone-200"></div>
                         <div class="space-y-2">
-                            <div class="h-4 w-3/4 rounded-lg bg-stone-200"></div>
-                            <div class="h-3 w-1/2 rounded-lg bg-stone-100"></div>
+                            <div class="h-3.5 sm:h-4 w-3/4 rounded-lg bg-stone-200"></div>
+                            <div class="h-2.5 sm:h-3 w-1/2 rounded-lg bg-stone-100"></div>
                         </div>
-                        <div class="flex justify-between items-center pt-3 border-t border-stone-100">
+                        <div class="flex justify-between items-center pt-2 sm:pt-3 border-t border-stone-100">
                             <div class="space-y-1">
-                                <div class="h-3 w-12 rounded bg-stone-100"></div>
-                                <div class="h-5 w-20 rounded-lg bg-stone-200"></div>
+                                <div class="h-2.5 sm:h-3 w-10 sm:w-12 rounded bg-stone-100"></div>
+                                <div class="h-4 sm:h-5 w-16 sm:w-20 rounded-lg bg-stone-200"></div>
                             </div>
-                            <div class="h-8 w-20 rounded-xl bg-stone-200"></div>
+                            <div class="h-6 sm:h-8 w-14 sm:w-20 rounded-xl bg-stone-200"></div>
                         </div>
                     </div>
                 </div>
@@ -343,7 +343,7 @@ onMounted(() => {
                 </div>
 
                 <!-- 3. GRID DATA DINAMIS -->
-                <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6">
+                <div v-else class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-6">
                     <FoodCard
                         v-for="item in filteredFoods.slice(0, 10)"
                         :key="item.id"

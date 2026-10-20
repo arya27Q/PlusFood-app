@@ -751,19 +751,19 @@ onMounted(() => {
                     </div>
 
                     <!-- 1. LOADING SKELETON STATE (Modul 8 UX State) -->
-                    <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div v-for="n in 6" :key="n" class="rounded-[24px] bg-white p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
-                            <div class="h-44 w-full rounded-2xl bg-stone-200"></div>
+                    <div v-if="isLoading" class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
+                        <div v-for="n in 6" :key="n" class="rounded-2xl sm:rounded-[24px] bg-white p-2.5 sm:p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
+                            <div class="h-28 sm:h-44 w-full rounded-xl sm:rounded-2xl bg-stone-200"></div>
                             <div class="space-y-2">
-                                <div class="h-4 w-3/4 rounded-lg bg-stone-200"></div>
-                                <div class="h-3 w-1/2 rounded-lg bg-stone-100"></div>
+                                <div class="h-3.5 sm:h-4 w-3/4 rounded-lg bg-stone-200"></div>
+                                <div class="h-2.5 sm:h-3 w-1/2 rounded-lg bg-stone-100"></div>
                             </div>
-                            <div class="flex justify-between items-center pt-3 border-t border-stone-100">
+                            <div class="flex justify-between items-center pt-2 sm:pt-3 border-t border-stone-100">
                                 <div class="space-y-1">
-                                    <div class="h-3 w-14 rounded bg-stone-100"></div>
-                                    <div class="h-5 w-24 rounded-lg bg-stone-200"></div>
+                                    <div class="h-2.5 sm:h-3 w-10 sm:w-14 rounded bg-stone-100"></div>
+                                    <div class="h-4 sm:h-5 w-16 sm:w-24 rounded-lg bg-stone-200"></div>
                                 </div>
-                                <div class="h-8 w-24 rounded-xl bg-stone-200"></div>
+                                <div class="h-6 sm:h-8 w-14 sm:w-24 rounded-xl bg-stone-200"></div>
                             </div>
                         </div>
                     </div>
@@ -797,7 +797,7 @@ onMounted(() => {
                     </div>
 
                     <!-- 4. GRID DATA DINAMIS -->
-                    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div v-else class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                         <FoodCard
                             v-for="item in filteredFoods"
                             :key="item.id"
