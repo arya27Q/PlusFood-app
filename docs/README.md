@@ -48,7 +48,14 @@ Selamat datang di repositori dokumentasi resmi sistem **PlusFood**. Dokumentasi 
    - SOP Praktis: Branching, Commit, Push, Pull Request (PR), dan Merge.
    - Rekam Jejak Kontribusi Anggota Tim untuk Penilaian & Evaluasi Mentor.
 
-8. [**Dokumen Desain Sistem Inti (`desain_sistem_plusfood_2_pov.md`)**](file:///d:/laragon/www/plusfood-app/docs/desain_sistem_plusfood_2_pov.md)
+8. [**08. Model Operasional Admin, Kemitraan UMKM & Ekspansi Pasar (`08_model_operasional_admin_dan_kemitraan_umkm.md`)**](file:///d:/laragon/www/plusfood-app/docs/08_model_operasional_admin_dan_kemitraan_umkm.md)
+   - Filosofi platform 2-sisi dan peran nyata Admin internal.
+   - 4 pilar pengawasan (KYC Mitra, Food Safety, Payout Settlement, Ekspansi).
+   - Strategi kemitraan kantin/warung grassroots vs birokrasi korporasi.
+   - Dasar hukum perjanjian digital (*Click-wrap Agreement* UU ITE Pasal 18).
+   - SOP chat onboarding WhatsApp & panduan pertanggungjawaban akademis (Defense Playbook).
+
+9. [**Dokumen Desain Sistem Inti (`desain_sistem_plusfood_2_pov.md`)**](file:///d:/laragon/www/plusfood-app/docs/desain_sistem_plusfood_2_pov.md)
    - 3 Pilar teknologi: LBS, Time-sensitive trigger, dan Gamification engine.
    - Dual-perspective user flow lengkap.
    - Penanganan konkurensi (pessimistic locking) dan token desain.
