@@ -2,7 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import { sampleFoods, addOrder } from '@/Utils/mockFoods';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuth } from '@/Composables/useAuth';
 
 const auth = useAuth();
@@ -103,21 +103,6 @@ const arrivalEstimates = [
 const selectedArrival = ref('tengah');
 const remindBefore = ref(true);
 
-onMounted(() => {
-    if (!props.food && typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const slug = params.get('slug');
-        const qty = parseInt(params.get('qty'), 10);
-        if (slug) {
-            const found = sampleFoods.find(f => f.slug === slug);
-            if (found) food.value = found;
-        }
-        if (qty && !isNaN(qty) && qty > 0) {
-            quantity.value = Math.min(qty, food.value.stock);
-        }
-    }
-});
-
 const unitPrice = computed(() => {
     return food.value?.priceDiscount ?? food.value?.price_discount ?? 12000;
 });
@@ -134,6 +119,70 @@ const serviceFee = 1000;
 const totalPayment = computed(() => subtotal.value + packagingFee.value + serviceFee);
 const savedAmount = computed(() => (originalPrice.value - unitPrice.value) * quantity.value);
 const weightSaved = computed(() => quantity.value * (food.value?.weight_grams || 400));
+
+// Simpan & Kelola Draft Checkout (Mencegah pesanan hilang jika kepencet Home)
+const saveCheckoutDraft = () => {
+    if (typeof window === 'undefined' || !food.value) return;
+    try {
+        const draft = {
+            slug: food.value.slug,
+            foodId: food.value.id,
+            foodName: food.value.name,
+            foodImage: food.value.image,
+            merchantName: food.value.merchantName || food.value.merchant?.name || food.value.merchant || 'Mitra Kampus',
+            quantity: quantity.value,
+            packaging: ecoPackaging.value,
+            paymentMethod: paymentMethod.value,
+            totalPayment: totalPayment.value,
+            pickupTime: food.value.pickupTime || food.value.pickup_time_display || '19.30 – 20.30 WIB',
+            address: food.value.address || 'Surabaya',
+            timestamp: Date.now(),
+        };
+        localStorage.setItem('plusfood_draft_checkout', JSON.stringify(draft));
+    } catch (e) {}
+};
+
+const clearCheckoutDraft = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem('plusfood_draft_checkout');
+    } catch (e) {}
+};
+
+onMounted(() => {
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const slug = params.get('slug');
+        const qty = parseInt(params.get('qty'), 10);
+        if (slug) {
+            const found = sampleFoods.find(f => f.slug === slug);
+            if (found) food.value = found;
+        } else {
+            // Pulihkan dari draft lokal jika membuka checkout kembali
+            const rawDraft = localStorage.getItem('plusfood_draft_checkout');
+            if (rawDraft) {
+                try {
+                    const draft = JSON.parse(rawDraft);
+                    if (draft.slug) {
+                        const found = sampleFoods.find(f => f.slug === draft.slug);
+                        if (found) food.value = found;
+                    }
+                    if (draft.quantity) quantity.value = Math.min(draft.quantity, food.value?.stock || 10);
+                    if (draft.packaging) ecoPackaging.value = draft.packaging;
+                    if (draft.paymentMethod) paymentMethod.value = draft.paymentMethod;
+                } catch (e) {}
+            }
+        }
+        if (qty && !isNaN(qty) && qty > 0 && food.value) {
+            quantity.value = Math.min(qty, food.value.stock);
+        }
+    }
+    saveCheckoutDraft();
+});
+
+watch([quantity, ecoPackaging, paymentMethod, food], () => {
+    saveCheckoutDraft();
+});
 
 const paymentOptions = [
     { id: 'qris', label: 'QRIS', sublabel: 'Sandbox Instant', color: 'bg-blue-600', initial: 'QR' },
@@ -222,6 +271,9 @@ const confirmReservation = () => {
                 mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
                 hasReview: false,
             });
+
+            // Hapus draft checkout karena pesanan sudah resmi masuk
+            clearCheckoutDraft();
 
             showSuccessToast.value = true;
             setTimeout(() => { orderState.value = 'success'; }, 300);
