@@ -3,9 +3,7 @@ import { ref, onMounted } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/UI/InputError.vue';
 import PrimaryButton from '@/Components/UI/PrimaryButton.vue';
-import LoadingScreen from '@/Components/UI/LoadingScreen.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { useAuth } from '@/Composables/useAuth';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 defineProps({
     canResetPassword: {
@@ -19,14 +17,11 @@ defineProps({
 
 const isVisible = ref(false);
 const showPassword = ref(false);
-const isLoggingIn = ref(false);
-const auth = useAuth();
 
-const form = ref({
+const form = useForm({
     email: 'raka@mhs.unesa.ac.id',
     password: 'password123',
     remember: true,
-    errors: {},
 });
 
 onMounted(() => {
@@ -36,25 +31,15 @@ onMounted(() => {
 });
 
 const submit = () => {
-    isLoggingIn.value = true;
-    auth.login(form.value.email, form.value.password, false);
-};
-
-const handleLoginFinish = () => {
-    router.visit(route('beranda'));
+    form.post(route('login'), {
+        onFinish: () => form.reset('password'),
+    });
 };
 </script>
 
 <template>
     <GuestLayout>
         <Head title="Masuk Akun - PlusFood" />
-
-        <!-- Transition Loading Screen ke Beranda -->
-        <LoadingScreen
-            v-if="isLoggingIn"
-            :duration="2000"
-            @finish="handleLoginFinish"
-        />
 
         <div class="grid grid-cols-1 md:grid-cols-12 min-h-[580px] overflow-hidden">
             
@@ -125,8 +110,13 @@ const handleLoginFinish = () => {
                     </p>
 
                     <!-- Flash / Session Status -->
-                    <div v-if="status" class="mt-3 text-xs font-bold text-emerald-600">
-                        {{ status }}
+                    <div v-if="status" class="mt-4 flex items-center gap-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 p-3.5 text-xs font-semibold text-emerald-800 shadow-sm animate-fade-in">
+                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <span class="leading-relaxed">{{ status }}</span>
                     </div>
 
                     <!-- Form -->
@@ -208,9 +198,14 @@ const handleLoginFinish = () => {
                         <!-- Submit Button -->
                         <div class="pt-2">
                             <PrimaryButton :disabled="form.processing">
-                                <span>Masuk</span>
-                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <span v-if="form.processing">Memverifikasi Akun...</span>
+                                <span v-else>Masuk</span>
+                                <svg v-if="!form.processing" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <svg v-else class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                                 </svg>
                             </PrimaryButton>
                         </div>

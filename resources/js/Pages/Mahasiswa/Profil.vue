@@ -1,37 +1,53 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { campusZones } from '@/Utils/mockFoods';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
+
+const props = defineProps({
+    user: {
+        type: Object,
+        default: () => null,
+    },
+    preference: {
+        type: Object,
+        default: () => null,
+    },
+});
 
 const auth = useAuth();
 
-// State Data Diri (disinkronkan dengan currentUser atau default mock)
+// State Data Diri (disinkronkan dengan database user atau auth fallback)
 const isEditing = ref(false);
 const saveToast = ref(false);
+const saveToastMessage = ref('Data profil berhasil diperbarui!');
 
-const profileForm = ref({
-    name: 'Raka Pratama',
-    nim: '23051204117',
-    whatsapp: '0812 3456 7890',
-    email: 'rka.mahasiswa@unesa.ac.id',
-    address: 'Jl. Ketintang Madya VI No. 21',
-    major: 'S1 Teknik Informatika · 2023',
+const activeUser = computed(() => props.user || auth.user.value || {});
+
+const profileForm = useForm({
+    name: activeUser.value.name || 'Raka Pratama',
+    nim: activeUser.value.nim || '23051204117',
+    phone: activeUser.value.phone || activeUser.value.whatsapp || '081234567890',
+    whatsapp: activeUser.value.phone || activeUser.value.whatsapp || '081234567890',
+    email: activeUser.value.email || 'raka@mhs.unesa.ac.id',
+    address: activeUser.value.address || 'Jl. Ketintang Madya VI No. 21',
+    major: activeUser.value.major || 'S1 Teknik Informatika · 2023',
+    campus: activeUser.value.campus || 'Universitas Negeri Surabaya',
 });
 
-// Lokasi Kampus & Radius Acuan (Sinkron dengan model mockFoods / Beranda / Katalog)
+// Lokasi Kampus & Radius Acuan (Sinkron dengan model database user_preferences & mockFoods)
 const availableCampuses = computed(() => campusZones.filter(c => !c.isComingSoon && c.id !== 'all'));
-const selectedCampus = ref('unesa-ketintang');
-const selectedRadius = ref('2 km');
+const selectedCampus = ref(props.preference?.campus_zone || 'unesa-ketintang');
+const selectedRadius = ref(props.preference?.radius || '2 km');
 const radiuses = ['500 m', '1 km', '2 km', '3 km', '5 km'];
 
 // Preferensi Diet & Pembayaran
 const dietaryTags = ref([
-    { id: 'halal', label: 'Halal', selected: true },
-    { id: 'vegetarian', label: 'Vegetarian', selected: false },
-    { id: 'tidak_pedas', label: 'Tidak pedas', selected: true },
-    { id: 'tanpa_kacang', label: 'Tanpa kacang', selected: false },
+    { id: 'halal', label: 'Halal', selected: props.preference?.prefer_halal ?? true },
+    { id: 'vegetarian', label: 'Vegetarian', selected: props.preference?.prefer_vegetarian ?? false },
+    { id: 'tidak_pedas', label: 'Tidak pedas', selected: props.preference?.prefer_not_spicy ?? true },
+    { id: 'tanpa_kacang', label: 'Tanpa kacang', selected: props.preference?.prefer_nut_free ?? false },
     { id: 'tanpa_seafood', label: 'Tanpa seafood', selected: false },
 ]);
 
@@ -42,7 +58,7 @@ const toggleDietary = (tag) => {
 
 const selectedPayment = ref('QRIS'); // 'QRIS' | 'Tunai'
 
-// Warung Favorit Sesuai Mockup
+// Warung Favorit
 const favoriteStores = [
     {
         name: 'Warung Bu Sari',
@@ -62,21 +78,22 @@ const favoriteStores = [
 ];
 
 // Keamanan Akun & Modal Ganti Password
-const lastPasswordChange = ref('2 bulan lalu');
+const lastPasswordChange = ref('Baru saja disinkronkan');
 const showPasswordModal = ref(false);
 const showOldPassword = ref(false);
 const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
 const passwordError = ref('');
 const passwordSuccessToast = ref(false);
-const passwordForm = ref({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+
+const passwordForm = useForm({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
 });
 
 const openPasswordModal = () => {
-    passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' };
+    passwordForm.reset();
     passwordError.value = '';
     showOldPassword.value = false;
     showNewPassword.value = false;
@@ -86,80 +103,96 @@ const openPasswordModal = () => {
 
 const handlePasswordSubmit = () => {
     passwordError.value = '';
-    if (!passwordForm.value.oldPassword) {
-        passwordError.value = 'Mohon masukkan password lama Anda.';
-        return;
-    }
-    if (passwordForm.value.newPassword.length < 8) {
-        passwordError.value = 'Password baru minimal harus 8 karakter.';
-        return;
-    }
-    if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-        passwordError.value = 'Konfirmasi password baru tidak cocok!';
-        return;
-    }
-
-    lastPasswordChange.value = 'Baru saja diubah';
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('plusfood_password_changed', 'Baru saja diubah');
-    }
-    showPasswordModal.value = false;
-    passwordSuccessToast.value = true;
-    setTimeout(() => {
-        passwordSuccessToast.value = false;
-    }, 3500);
+    passwordForm.put(route('profil.password'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showPasswordModal.value = false;
+            passwordForm.reset();
+            passwordSuccessToast.value = true;
+            lastPasswordChange.value = 'Baru saja diubah';
+            setTimeout(() => {
+                passwordSuccessToast.value = false;
+            }, 3500);
+        },
+        onError: (errs) => {
+            passwordError.value = errs.current_password || errs.password || errs.password_confirmation || 'Gagal mengubah password. Cek kembali password lama Anda.';
+        },
+    });
 };
 
-// Simpan Data Diri ke localStorage
+// Simpan Data Diri ke Backend MySQL
 const saveProfile = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('plusfood_profile_data', JSON.stringify(profileForm.value));
-        if (auth.user?.value) {
-            auth.user.value.name = profileForm.value.name;
-            auth.user.value.email = profileForm.value.email;
-        }
-    }
-    isEditing.value = false;
-    saveToast.value = true;
-    setTimeout(() => {
-        saveToast.value = false;
-    }, 3000);
+    profileForm.phone = profileForm.phone || profileForm.whatsapp;
+    profileForm.put(route('profil.update'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isEditing.value = false;
+            saveToastMessage.value = 'Data profil berhasil diperbarui ke database!';
+            saveToast.value = true;
+            setTimeout(() => {
+                saveToast.value = false;
+            }, 3000);
+        },
+        onError: () => {
+            saveToastMessage.value = 'Gagal menyimpan profil. Mohon periksa inputan.';
+            saveToast.value = true;
+            setTimeout(() => {
+                saveToast.value = false;
+            }, 3000);
+        },
+    });
 };
 
+// Simpan Preferensi ke Backend MySQL (tabel user_preferences)
 const savePreferences = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('plusfood_preferences', JSON.stringify({
-            campus: selectedCampus.value,
-            radius: selectedRadius.value,
-            dietary: dietaryTags.value,
-            payment: selectedPayment.value,
-        }));
-    }
+    router.post(route('profil.preferences'), {
+        campus_zone: selectedCampus.value,
+        radius: selectedRadius.value,
+        prefer_halal: dietaryTags.value.find(t => t.id === 'halal')?.selected ?? true,
+        prefer_vegetarian: dietaryTags.value.find(t => t.id === 'vegetarian')?.selected ?? false,
+        prefer_not_spicy: dietaryTags.value.find(t => t.id === 'tidak_pedas')?.selected ?? true,
+        prefer_nut_free: dietaryTags.value.find(t => t.id === 'tanpa_kacang')?.selected ?? false,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            saveToastMessage.value = 'Preferensi makanan berhasil disimpan!';
+            saveToast.value = true;
+            setTimeout(() => {
+                saveToast.value = false;
+            }, 3000);
+        },
+    });
 };
 
-onMounted(() => {
-    if (typeof window !== 'undefined') {
-        const savedData = localStorage.getItem('plusfood_profile_data');
-        if (savedData) {
-            try {
-                profileForm.value = { ...profileForm.value, ...JSON.parse(savedData) };
-            } catch (e) {}
-        }
-        const savedPref = localStorage.getItem('plusfood_preferences');
-        if (savedPref) {
-            try {
-                const p = JSON.parse(savedPref);
-                if (p.campus) selectedCampus.value = p.campus;
-                if (p.radius) selectedRadius.value = p.radius;
-                if (p.dietary) dietaryTags.value = p.dietary;
-                if (p.payment) selectedPayment.value = p.payment;
-            } catch (e) {}
-        }
-        const savedPw = localStorage.getItem('plusfood_password_changed');
-        if (savedPw) {
-            lastPasswordChange.value = savedPw;
-        }
+// Metrik Dampak & Level Gamifikasi dari Data User Database
+const userStats = computed(() => {
+    const u = activeUser.value;
+    const portions = u.portions_rescued ?? 5;
+    const money = u.money_saved_rp ?? 85000;
+    const co2 = u.co2_saved_grams ?? 3400;
+    const level = u.rescuer_level ?? 2;
+    const points = portions * 68;
+    const nextLevelPoints = level * 250;
+    const pointsRemaining = Math.max(0, nextLevelPoints - points);
+    const progressPercent = Math.min(100, Math.round((points / nextLevelPoints) * 100));
+
+    let formattedMoney = 'Rp' + Math.round(money / 1000) + 'rb';
+    if (money >= 1000000) {
+        formattedMoney = 'Rp' + (money / 1000000).toFixed(1) + 'jt';
     }
+
+    const formattedCo2 = (co2 / 1000).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' kg';
+
+    return {
+        level,
+        portions,
+        moneySaved: formattedMoney,
+        co2Saved: formattedCo2,
+        points,
+        nextLevelPoints,
+        pointsRemaining,
+        progressPercent: progressPercent || 68,
+    };
 });
 </script>
 
@@ -167,7 +200,7 @@ onMounted(() => {
     <MahasiswaLayout>
         <Head title="Profil Mahasiswa - PlusFood" />
 
-        <div class="space-y-6 max-w-[1280px] mx-auto animate-fade-in pb-12">
+        <div class="space-y-6 w-full animate-fade-in pb-12">
             
             <!-- Toast Feedback Penyimpanan -->
             <div
@@ -179,7 +212,7 @@ onMounted(() => {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
-                <span class="text-xs font-bold">Data profil berhasil diperbarui!</span>
+                <span class="text-xs font-bold">{{ saveToastMessage }}</span>
             </div>
 
             <!-- Toast Ganti Password -->
@@ -249,18 +282,18 @@ onMounted(() => {
                                         <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A9.49 9.49 0 0017 8z"/>
                                         <path d="M21 3c-5.52 0-10 4.48-10 10 0 .73.08 1.44.24 2.12C12.79 13.62 15 11 17 8c2-3 4-5 4-5z"/>
                                     </svg>
-                                    <span>Green Rescuer · Level 3</span>
+                                    <span>Green Rescuer · Level {{ userStats.level }}</span>
                                 </span>
                             </div>
 
                             <!-- Progress Level Bar -->
                             <div class="mt-5 space-y-1.5 text-left">
                                 <div class="flex items-center justify-between text-xs font-bold">
-                                    <span class="text-stone-700">340 / 500 poin</span>
-                                    <span style="color: #7A0C2E;">160 lagi ke Level 4</span>
+                                    <span class="text-stone-700">{{ userStats.points }} / {{ userStats.nextLevelPoints }} poin</span>
+                                    <span style="color: #7A0C2E;">{{ userStats.pointsRemaining }} lagi ke Level {{ userStats.level + 1 }}</span>
                                 </div>
                                 <div class="w-full h-2 rounded-full bg-[#EAE0D5] overflow-hidden">
-                                    <div class="h-full rounded-full transition-all duration-500" style="width: 68%; background-color: #7A0C2E;"></div>
+                                    <div class="h-full rounded-full transition-all duration-500" :style="{ width: userStats.progressPercent + '%', backgroundColor: '#7A0C2E' }"></div>
                                 </div>
                             </div>
                         </div>
@@ -276,7 +309,7 @@ onMounted(() => {
                                         <path stroke-linecap="round" d="M12 4v3m-4-2v2m8-2v2" />
                                     </svg>
                                 </div>
-                                <p class="text-lg font-black text-[#2D1B1E] mt-0.5">18</p>
+                                <p class="text-lg font-black text-[#2D1B1E] mt-0.5">{{ userStats.portions }}</p>
                                 <p class="text-[11px] font-medium text-stone-400">porsi</p>
                             </div>
 
@@ -287,7 +320,7 @@ onMounted(() => {
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                 </div>
-                                <p class="text-lg font-black text-[#2D1B1E] mt-0.5">Rp214rb</p>
+                                <p class="text-lg font-black text-[#2D1B1E] mt-0.5">{{ userStats.moneySaved }}</p>
                                 <p class="text-[11px] font-medium text-stone-400">dihemat</p>
                             </div>
 
@@ -298,7 +331,7 @@ onMounted(() => {
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <p class="text-lg font-black text-[#2D1B1E] mt-0.5">7,6 kg</p>
+                                <p class="text-lg font-black text-[#2D1B1E] mt-0.5">{{ userStats.co2Saved }}</p>
                                 <p class="text-[11px] font-medium text-stone-400">CO2e</p>
                             </div>
                         </div>
@@ -399,13 +432,15 @@ onMounted(() => {
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold text-stone-600 mb-1.5">
-                                    NIM
+                                <label class="block text-xs font-bold text-stone-600 mb-1.5 flex items-center justify-between">
+                                    <span>NIM</span>
+                                    <span class="text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-md">Opsional</span>
                                 </label>
                                 <input
                                     v-model="profileForm.nim"
                                     :disabled="!isEditing"
                                     type="text"
+                                    placeholder="Opsional (boleh dikosongkan)"
                                     class="w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition"
                                     :class="isEditing ? 'border-[#7A0C2E] bg-white ring-1 ring-[#7A0C2E]/20 focus:outline-none' : 'border-slate-200 bg-white text-slate-800 shadow-2xs cursor-default'"
                                 />
@@ -704,7 +739,7 @@ onMounted(() => {
                             </label>
                             <div class="relative">
                                 <input
-                                    v-model="passwordForm.oldPassword"
+                                    v-model="passwordForm.current_password"
                                     :type="showOldPassword ? 'text' : 'password'"
                                     required
                                     placeholder="••••••••"
@@ -734,7 +769,7 @@ onMounted(() => {
                             </label>
                             <div class="relative">
                                 <input
-                                    v-model="passwordForm.newPassword"
+                                    v-model="passwordForm.password"
                                     :type="showNewPassword ? 'text' : 'password'"
                                     required
                                     placeholder="Minimal 8 karakter"
@@ -764,7 +799,7 @@ onMounted(() => {
                             </label>
                             <div class="relative">
                                 <input
-                                    v-model="passwordForm.confirmPassword"
+                                    v-model="passwordForm.password_confirmation"
                                     :type="showConfirmPassword ? 'text' : 'password'"
                                     required
                                     placeholder="Ulangi password baru"

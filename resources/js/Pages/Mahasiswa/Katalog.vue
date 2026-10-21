@@ -5,11 +5,26 @@ import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
 import { sampleFoods, campusZones } from '@/Utils/mockFoods';
 import { ref, computed, onMounted } from 'vue';
 
-const maxPrice = ref(25000);
-const selectedCategory = ref('Semua');
-const selectedCampus = ref('all');
+const props = defineProps({
+    foods: {
+        type: Array,
+        default: () => [],
+    },
+    filters: {
+        type: Object,
+        default: () => ({}),
+    },
+});
+
+const foodsList = computed(() => {
+    return (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
+});
+
+const maxPrice = ref(props.filters?.max_price || 25000);
+const selectedCategory = ref(props.filters?.category || 'Semua');
+const selectedCampus = ref(props.filters?.campus || 'all');
 const selectedDistance = ref('2 km');
-const searchQuery = ref('');
+const searchQuery = ref(props.filters?.q || '');
 const isLoading = ref(true);
 const fetchError = ref(null);
 
@@ -91,29 +106,67 @@ const resetFilters = () => {
     filterSealed.value = false;
 };
 
-// Filtered Foods
+// Filtered Foods - Seluruh Filter Aktif & Responsif
 const filteredFoods = computed(() => {
-    return sampleFoods.filter(item => {
-        // Filter search keyword
+    return foodsList.value.filter(item => {
+        // 1. Filter Pencarian Teks (Nama, Menu, Warung, Kategori, Deskripsi)
         if (searchQuery.value && searchQuery.value.trim() !== '') {
             const q = searchQuery.value.trim().toLowerCase();
-            const matchName = item.name.toLowerCase().includes(q) || (item.shortName && item.shortName.toLowerCase().includes(q));
-            const matchMerchant = item.merchant.toLowerCase().includes(q);
-            const matchCategory = item.category.toLowerCase().includes(q);
-            if (!matchName && !matchMerchant && !matchCategory) return false;
+            const name = (item.name || '').toLowerCase();
+            const shortName = (item.shortName || '').toLowerCase();
+            const merchantStr = typeof item.merchant === 'string' ? item.merchant : (item.merchant?.name || item.merchantName || '');
+            const matchMerchant = merchantStr.toLowerCase().includes(q);
+            const category = (item.category || '').toLowerCase();
+            const desc = (item.description || '').toLowerCase();
+            if (!name.includes(q) && !shortName.includes(q) && !matchMerchant && !category.includes(q) && !desc.includes(q)) {
+                return false;
+            }
         }
-        // Filter price
-        if (item.priceDiscount > maxPrice.value) return false;
-        // Filter category
+
+        // 2. Filter Rentang Harga (Rp5.000 – Rp25.000)
+        const price = Number(item.priceDiscount ?? item.price_discount ?? 0);
+        if (price > Number(maxPrice.value)) return false;
+
+        // 3. Filter Kategori Menu
         if (selectedCategory.value !== 'Semua' && item.category !== selectedCategory.value) return false;
-        // Filter campus zone
-        if (selectedCampus.value !== 'all' && item.campusZone !== selectedCampus.value) return false;
-        // Checkboxes filters
-        if (filterRating.value && item.rating < 4.8) return false;
-        // Dietary & Pantangan Alergi
-        if (filterHalal.value && !(item.dietaryTags?.includes('Halal') || item.tags?.some(t => t.includes('Halal')))) return false;
-        if (filterVegetarian.value && !(item.dietaryTags?.includes('Vegetarian') || item.category === 'Roti' || item.category === 'Camilan')) return false;
-        if (filterTidakPedas.value && (item.dietaryTags?.includes('Pedas') && !item.dietaryTags?.includes('Tidak Pedas'))) return false;
+
+        // 4. Filter Zona Kampus
+        const itemZone = item.campusZone ?? item.campus_zone ?? item.merchant?.campus_zone;
+        if (selectedCampus.value !== 'all' && itemZone !== selectedCampus.value) return false;
+
+        // 5. Filter Radius Jarak (500 m, 1 km, 2 km, 3 km)
+        if (selectedDistance.value) {
+            const maxRadiusKm = selectedDistance.value === '500 m' ? 0.5 :
+                                selectedDistance.value === '1 km' ? 1.0 :
+                                selectedDistance.value === '2 km' ? 2.0 :
+                                selectedDistance.value === '3 km' ? 3.0 : 5.0;
+            const distKm = typeof item.distanceKm === 'number' ? item.distanceKm :
+                           parseFloat(String(item.distance || '1.2').replace(',', '.')) || 1.2;
+            if (distKm > maxRadiusKm) return false;
+        }
+
+        // 6. Filter Standar Mutu & Keamanan
+        const rating = Number(item.rating ?? item.merchantRating ?? item.merchant?.rating ?? 4.8);
+        if (filterRating.value && rating < 4.8) return false;
+
+        const isVerified = item.isVerified ?? item.is_verified ?? item.merchant?.is_verified ?? true;
+        if (filterVerified.value && !isVerified) return false;
+
+        const isCookedToday = item.isCookedToday ?? item.is_cooked_today ?? true;
+        if (filterCookedToday.value && !isCookedToday) return false;
+
+        const isSealed = item.isSealed ?? item.is_sealed ?? true;
+        if (filterSealed.value && !isSealed) return false;
+
+        // 7. Filter Pantangan & Preferensi Diet
+        const rawDietTags = item.dietaryTags ?? item.dietary_tags ?? [];
+        const rawTags = item.tags ?? [];
+        const tags = [...rawDietTags, ...rawTags].map(t => String(t).toLowerCase());
+
+        if (filterHalal.value && !tags.some(t => t.includes('halal'))) return false;
+        if (filterVegetarian.value && !(tags.some(t => t.includes('vegetarian')) || item.category === 'Roti' || item.category === 'Camilan')) return false;
+        if (filterTidakPedas.value && (tags.includes('pedas') && !tags.some(t => t.includes('tidak pedas')))) return false;
+
         return true;
     });
 });
@@ -751,19 +804,19 @@ onMounted(() => {
                     </div>
 
                     <!-- 1. LOADING SKELETON STATE (Modul 8 UX State) -->
-                    <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div v-for="n in 6" :key="n" class="rounded-[24px] bg-white p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
-                            <div class="h-44 w-full rounded-2xl bg-stone-200"></div>
+                    <div v-if="isLoading" class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
+                        <div v-for="n in 6" :key="n" class="rounded-2xl sm:rounded-[24px] bg-white p-2.5 sm:p-4 border border-[#EAE0D5] space-y-3.5 animate-pulse shadow-2xs">
+                            <div class="h-28 sm:h-44 w-full rounded-xl sm:rounded-2xl bg-stone-200"></div>
                             <div class="space-y-2">
-                                <div class="h-4 w-3/4 rounded-lg bg-stone-200"></div>
-                                <div class="h-3 w-1/2 rounded-lg bg-stone-100"></div>
+                                <div class="h-3.5 sm:h-4 w-3/4 rounded-lg bg-stone-200"></div>
+                                <div class="h-2.5 sm:h-3 w-1/2 rounded-lg bg-stone-100"></div>
                             </div>
-                            <div class="flex justify-between items-center pt-3 border-t border-stone-100">
+                            <div class="flex justify-between items-center pt-2 sm:pt-3 border-t border-stone-100">
                                 <div class="space-y-1">
-                                    <div class="h-3 w-14 rounded bg-stone-100"></div>
-                                    <div class="h-5 w-24 rounded-lg bg-stone-200"></div>
+                                    <div class="h-2.5 sm:h-3 w-10 sm:w-14 rounded bg-stone-100"></div>
+                                    <div class="h-4 sm:h-5 w-16 sm:w-24 rounded-lg bg-stone-200"></div>
                                 </div>
-                                <div class="h-8 w-24 rounded-xl bg-stone-200"></div>
+                                <div class="h-6 sm:h-8 w-14 sm:w-24 rounded-xl bg-stone-200"></div>
                             </div>
                         </div>
                     </div>
@@ -797,7 +850,7 @@ onMounted(() => {
                     </div>
 
                     <!-- 4. GRID DATA DINAMIS -->
-                    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div v-else class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                         <FoodCard
                             v-for="item in filteredFoods"
                             :key="item.id"

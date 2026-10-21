@@ -98,10 +98,15 @@ const props = defineProps({
         type: String,
         default: 'nasi-ayam-bakar',
     },
+    food: {
+        type: Object,
+        default: null,
+    },
 });
 
-// Ambil makanan berdasarkan slug, default ke item pertama jika tidak ketemu
+// Ambil makanan dari database via props.food, atau fallback ke mockFoods
 const food = computed(() => {
+    if (props.food) return props.food;
     return sampleFoods.find(f => f.slug === props.slug) || sampleFoods[0];
 });
 
@@ -437,17 +442,17 @@ const subsidySaved = computed(() => {
                     <div class="pt-4 border-t border-[#F5EFE6] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="flex items-center gap-3.5">
                             <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-maroon text-white font-black text-sm">
-                                {{ food.merchantInitial }}
+                                {{ food.merchant?.initial || food.merchantInitial || 'PF' }}
                             </div>
                             <div>
                                 <h4 class="text-sm font-black text-[#2D1B1E] flex items-center gap-2">
-                                    {{ food.merchant }}
+                                    {{ food.merchant?.name || food.merchantName || food.merchant }}
                                     <span class="rounded-md bg-[#F5EFE6] px-2 py-0.5 text-[10px] font-bold text-brand-maroon">
-                                        Mitra Kampus Surabaya
+                                        {{ food.merchant?.campus_name || food.merchantZoneLabel || 'Mitra Kampus Surabaya' }}
                                     </span>
                                 </h4>
                                 <p class="text-xs text-[#8C7A72]">
-                                    Bergabung sejak {{ food.merchantActiveSince }} · {{ food.merchantRescuedCount }} porsi diselamatkan
+                                    Bergabung sejak {{ food.merchantActiveSince || '2023' }} · {{ food.merchantRescuedCount || '1.000+' }} porsi diselamatkan
                                 </p>
                             </div>
                         </div>
@@ -460,38 +465,38 @@ const subsidySaved = computed(() => {
                 </div>
 
                 <!-- SISI KANAN: FORM RINGKASAN RESERVASI PERSIS GAMBAR 3 (Span 4) -->
-                <div class="lg:col-span-4 space-y-4">
+                <div class="lg:col-span-4 space-y-3 sm:space-y-4">
                     
                     <!-- Kartu Reservasi Utama -->
-                    <div class="rounded-[28px] bg-white p-6 sm:p-7 border border-[#EAE0D5] shadow-lg space-y-6">
+                    <div class="rounded-2xl sm:rounded-[28px] bg-white p-4 sm:p-7 border border-[#EAE0D5] shadow-md sm:shadow-lg space-y-3.5 sm:space-y-6">
                         
-                        <div class="flex items-center justify-between pb-3 border-b border-[#F5EFE6]">
-                            <h2 class="text-base font-extrabold text-[#2D1B1E]">Ringkasan Reservasi</h2>
-                            <span class="rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white">
+                        <div class="flex items-center justify-between pb-2 sm:pb-3 border-b border-[#F5EFE6]">
+                            <h2 class="text-sm sm:text-base font-extrabold text-[#2D1B1E]">Ringkasan Reservasi</h2>
+                            <span class="rounded-md sm:rounded-lg bg-rose-600 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-white">
                                 1 Tiket / Pesanan
                             </span>
                         </div>
 
                         <!-- Stepper Pemilih Jumlah Porsi Single-Item -->
                         <div>
-                            <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center justify-between mb-1 sm:mb-2">
                                 <label class="text-xs font-bold text-[#2D1B1E]">Jumlah Porsi</label>
-                                <span class="text-[11px] text-[#8C7A72]">Maks. {{ food.stock }} porsi</span>
+                                <span class="text-[10px] sm:text-[11px] text-[#8C7A72]">Maks. {{ food.stock }} porsi</span>
                             </div>
                             
-                            <div class="flex items-center justify-between rounded-2xl bg-[#FAF7F2] p-2.5 border-2 border-[#D5C7BD] shadow-xs">
+                            <div class="flex items-center justify-between rounded-xl sm:rounded-2xl bg-[#FAF7F2] p-1.5 sm:p-2.5 border border-[#D5C7BD] shadow-xs">
                                 <button
                                     @click="decrement"
                                     :disabled="quantity <= 1"
-                                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-white font-black text-gray-700 shadow-sm border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
+                                    class="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
                                 >
                                     -
                                 </button>
-                                <span class="text-lg font-black text-[#2D1B1E]">{{ quantity }}</span>
+                                <span class="text-sm sm:text-lg font-black text-[#2D1B1E]">{{ quantity }}</span>
                                 <button
                                     @click="increment"
                                     :disabled="quantity >= food.stock"
-                                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-white font-black text-gray-700 shadow-sm border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
+                                    class="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
                                 >
                                     +
                                 </button>
@@ -499,17 +504,17 @@ const subsidySaved = computed(() => {
                         </div>
 
                         <!-- Green Emission Impact Badge -->
-                        <div class="rounded-2xl bg-emerald-50/80 p-3.5 text-center border-2 border-emerald-300 shadow-xs">
-                            <p class="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
-                                <svg class="h-4 w-4 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <div class="rounded-xl sm:rounded-2xl bg-emerald-50/80 p-2 sm:p-3 text-center border border-emerald-300 shadow-xs">
+                            <p class="text-[11px] sm:text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+                                <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                 </svg>
-                                <span>Anda menghemat emisi karbon setara {{ (0.85 * quantity).toFixed(1) }} kg CO2e!</span>
+                                <span>Hemat emisi karbon ~{{ (0.85 * quantity).toFixed(1) }} kg CO2e</span>
                             </p>
                         </div>
 
                         <!-- Kalkulasi Rincian Pembayaran -->
-                        <div class="space-y-2.5 text-xs text-[#6E5A54] border-t border-[#F5EFE6] pt-4">
+                        <div class="space-y-1.5 sm:space-y-2.5 text-[11px] sm:text-xs text-[#6E5A54] border-t border-[#F5EFE6] pt-2.5 sm:pt-4">
                             <div class="flex justify-between">
                                 <span>Harga Normal Porsi (x{{ quantity }})</span>
                                 <span class="font-bold text-[#2D1B1E]">Rp{{ originalTotal.toLocaleString('id-ID') }}</span>
@@ -525,15 +530,15 @@ const subsidySaved = computed(() => {
                         </div>
 
                         <!-- Subtotal Pembayaran -->
-                        <div class="border-t border-[#F5EFE6] pt-4">
-                            <div class="flex items-baseline justify-between mb-3">
+                        <div class="border-t border-[#F5EFE6] pt-2.5 sm:pt-4">
+                            <div class="flex items-baseline justify-between mb-2 sm:mb-3">
                                 <div>
-                                    <span class="text-[11px] font-bold text-[#8C7A72] block">TOTAL PEMBAYARAN</span>
-                                    <p class="text-2xl font-black text-brand-maroon">
+                                    <span class="text-[10px] sm:text-[11px] font-bold text-[#8C7A72] block">TOTAL PEMBAYARAN</span>
+                                    <p class="text-xl sm:text-2xl font-black text-brand-maroon">
                                         Rp{{ subtotal.toLocaleString('id-ID') }}
                                     </p>
                                 </div>
-                                <span class="rounded-lg bg-[#FAF7F2] border border-[#EAE0D5] px-2.5 py-1 text-[11px] font-bold text-[#6E5A54]">
+                                <span class="rounded-md sm:rounded-lg bg-[#FAF7F2] border border-[#EAE0D5] px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-[#6E5A54]">
                                     QRIS / Tunai
                                 </span>
                             </div>
@@ -541,16 +546,16 @@ const subsidySaved = computed(() => {
                             <!-- Tombol CTA Reservasi Sekarang -->
                             <Link
                                 :href="route('checkout', { slug: food.slug, qty: quantity })"
-                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-md sm:shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
                             >
                                 <span>Reservasi Sekarang</span>
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
                             </Link>
 
-                            <p class="mt-3 text-center text-[11px] text-[#8C7A72] flex items-center justify-center gap-1.5 font-medium">
-                                <svg class="h-3.5 w-3.5 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <p class="mt-2 text-center text-[10px] sm:text-[11px] text-[#8C7A72] flex items-center justify-center gap-1 font-medium">
+                                <svg class="h-3 w-3 sm:h-3.5 sm:w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
                                 <span>Konfirmasi instan via Barcode Kampus</span>
@@ -560,16 +565,16 @@ const subsidySaved = computed(() => {
                     </div>
 
                     <!-- Kartu Info Aturan Food Rescue Unesa -->
-                    <div class="rounded-2xl bg-amber-50/70 p-4 border-2 border-amber-300 text-xs text-amber-900 space-y-1 shadow-xs">
-                        <h4 class="font-bold flex items-center gap-1.5 text-amber-900">
-                            <svg class="h-4 w-4 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <div class="rounded-xl sm:rounded-2xl bg-amber-50/70 p-2.5 sm:p-4 border border-amber-300 text-xs text-amber-900 space-y-0.5 sm:space-y-1 shadow-xs">
+                        <h4 class="font-bold flex items-center gap-1.5 text-xs text-amber-900">
+                            <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01" />
                             </svg>
                             <span>Aturan Food Rescue Kampus Surabaya</span>
                         </h4>
-                        <p class="text-[11px] text-amber-800 leading-relaxed">
-                            Tunjukkan kode pemesanan kepada staf Warung Bu Sari saat mengambil makanan pukul {{ food.pickupTime }}.
+                        <p class="text-[10px] sm:text-[11px] text-amber-800 leading-relaxed">
+                            Tunjukkan kode pemesanan kepada staf {{ food.merchant?.name || food.merchantName || food.merchant }} saat mengambil makanan pukul {{ food.pickupTime }}.
                         </p>
                     </div>
 
@@ -578,46 +583,6 @@ const subsidySaved = computed(() => {
             </div>
 
         </div>
-
-        <!-- ================= STICKY BOTTOM ACTION BAR (MOBILE-FIRST SESUAI SPEC) ================= -->
-        <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE0D5] p-3.5 shadow-2xl lg:hidden flex items-center justify-between gap-3">
-            <!-- Stepper Kuantitas Ringkas -->
-            <div class="flex items-center gap-2 rounded-xl bg-[#FAF7F2] p-1.5 border border-[#EAE0D5]">
-                <button
-                    @click="decrement"
-                    :disabled="quantity <= 1"
-                    class="h-7 w-7 rounded-lg bg-white font-black text-gray-700 shadow-2xs border border-[#EAE0D5] disabled:opacity-40"
-                >
-                    -
-                </button>
-                <span class="text-xs font-black text-[#2D1B1E] min-w-[14px] text-center">{{ quantity }}</span>
-                <button
-                    @click="increment"
-                    :disabled="quantity >= food.stock"
-                    class="h-7 w-7 rounded-lg bg-white font-black text-gray-700 shadow-2xs border border-[#EAE0D5] disabled:opacity-40"
-                >
-                    +
-                </button>
-            </div>
-
-            <!-- Total Dinamis -->
-            <div class="min-w-0">
-                <span class="text-[9px] font-bold text-[#8C7A72] block leading-none">TOTAL BAYAR</span>
-                <p class="text-base font-black text-brand-maroon truncate leading-tight">
-                    Rp{{ subtotal.toLocaleString('id-ID') }}
-                </p>
-            </div>
-
-            <!-- Tombol CTA -->
-            <Link
-                :href="route('checkout', { slug: food.slug, qty: quantity })"
-                class="flex-1 max-w-[170px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
-            >
-                <span>Reservasi</span>
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-            </Link>
-        </div>
     </MahasiswaLayout>
 </template>
+

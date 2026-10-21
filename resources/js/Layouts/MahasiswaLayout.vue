@@ -20,7 +20,7 @@ const auth = useAuth();
         
         <!-- ================= NAVBAR ATAS MAHASISWA ================= -->
         <header class="sticky top-0 z-40 border-b border-[#EAE0D5] bg-white/95 backdrop-blur-md">
-            <div class="mx-auto flex max-w-[1380px] items-center justify-between px-4 py-3 sm:px-8">
+            <div class="w-full flex items-center justify-between px-4 sm:px-6 md:px-8 lg:px-12 py-3.5">
                 
                 <!-- Logo & Brand -->
                 <div class="flex items-center gap-8">
@@ -132,7 +132,7 @@ const auth = useAuth();
         </header>
 
         <!-- ================= MAIN CONTENT SLOT ================= -->
-        <main class="mx-auto max-w-[1380px] p-4 sm:p-8 pb-24 md:pb-8 animate-page-enter">
+        <main class="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 pb-24 md:pb-12 animate-page-enter">
             <slot />
         </main>
 

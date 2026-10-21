@@ -1,121 +1,68 @@
 <?php
 
+use App\Http\Controllers\Mahasiswa\BerandaController;
+use App\Http\Controllers\Mahasiswa\CheckoutController;
+use App\Http\Controllers\Mahasiswa\KatalogController;
+use App\Http\Controllers\Mahasiswa\MakananController;
+use App\Http\Controllers\Mahasiswa\RiwayatController;
+use App\Http\Controllers\Mitra\DashboardController as MitraDashboardController;
+use App\Http\Controllers\Mitra\KelolaMenuController as MitraKelolaMenuController;
+use App\Http\Controllers\Mitra\MitraAuthController;
+use App\Http\Controllers\Mitra\MitraProfileController;
+use App\Http\Controllers\Mitra\MitraSplashController;
+use App\Http\Controllers\Mitra\PesananController as MitraPesananController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes (PlusFood Frontend Prototype)
+| Web Routes (PlusFood Structured Controller Architecture)
 |--------------------------------------------------------------------------
-| Seluruh rute langsung merender komponen Vue via Inertia secara statis/mock.
-| Tidak memerlukan backend database authentication atau API controller.
+| Rute web dikelompokkan rapi berdasarkan domain fitur:
+| 1. Landing & Splash Screen (WelcomeController)
+| 2. Profil Mahasiswa (ProfileController)
+| 3. POV Mahasiswa / Konsumen (Mahasiswa\* Controllers)
+| 4. POV Mitra UMKM / Merchant (Mitra\* Controllers)
+| 5. Autentikasi Mahasiswa (routes/auth.php)
 */
 
-// 1. Landing / Welcome Screen (Pintu Masuk Utama PlusFood)
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
+// 1. Landing & Intro Screen
+Route::get('/', [WelcomeController::class, 'index'])->name('home');
+Route::get('/welcome', [WelcomeController::class, 'welcome'])->name('welcome');
+Route::get('/loading', [WelcomeController::class, 'loading'])->name('loading');
 
-Route::get('/welcome', function () {
-    return Inertia::render('Welcome');
-})->name('welcome');
-
-// 2. Autentikasi (Frontend Mock)
-Route::get('/login', function () {
-    return Inertia::render('Auth/Login');
-})->name('login');
-
-Route::get('/register', function () {
-    return Inertia::render('Auth/Register');
-})->name('register');
-
-Route::get('/forgot-password', function () {
-    return Inertia::render('Auth/ForgotPassword');
-})->name('password.request');
-
-Route::post('/forgot-password', function () {
-    return redirect()->route('login')->with('status', 'Tautan pemulihan password tiruan telah dikirim!');
-})->name('password.email');
-
-Route::get('/logout', function () {
-    return redirect()->route('login');
-})->name('logout');
-
-Route::post('/logout', function () {
-    return redirect()->route('login');
+// 2. Profil Mahasiswa & Edit Profil (Tersambung ke Database MySQL & Preferences)
+Route::middleware('auth')->group(function () {
+    Route::get('/profil', [ProfileController::class, 'show'])->name('profil');
+    Route::put('/profil', [ProfileController::class, 'update'])->name('profil.update');
+    Route::post('/profil/preferences', [ProfileController::class, 'updatePreferences'])->name('profil.preferences');
+    Route::put('/profil/password', [ProfileController::class, 'updatePassword'])->name('profil.password');
 });
 
-// 3. POV Mahasiswa (Konsumen)
-Route::get('/beranda', function () {
-    return Inertia::render('Mahasiswa/Beranda');
-})->name('beranda');
+// 3. POV Mahasiswa (Food Rescue Konsumen)
+Route::get('/beranda', [BerandaController::class, 'index'])->name('beranda');
+Route::get('/katalog', [KatalogController::class, 'index'])->name('katalog');
+Route::get('/makanan/{slug}', [MakananController::class, 'show'])->name('makanan.detail');
+Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
+Route::get('/tiket/{id?}', [RiwayatController::class, 'tiket'])->name('tiket');
 
-Route::get('/katalog', function () {
-    return Inertia::render('Mahasiswa/Katalog');
-})->name('katalog');
-
-Route::get('/makanan/{slug}', function ($slug = 'nasi-ayam-bakar') {
-    return Inertia::render('Mahasiswa/DetailProduk', [
-        'slug' => $slug,
-    ]);
-})->name('makanan.detail');
-
-Route::get('/checkout', function () {
-    return Inertia::render('Mahasiswa/Checkout');
-})->name('checkout');
-
-Route::get('/riwayat', function () {
-    return Inertia::render('Mahasiswa/Riwayat');
-})->name('riwayat');
-
-Route::get('/profil', function () {
-    return Inertia::render('Mahasiswa/Profil');
-})->name('profil');
-
-Route::get('/tiket/{id?}', function ($id = 'PF-88219') {
-    return Inertia::render('Mahasiswa/Riwayat', [
-        'initialTicketId' => $id,
-    ]);
-})->name('tiket');
-
-Route::get('/loading', function () {
-    return Inertia::render('SplashScreen');
-})->name('loading');
-
-// 4. POV Mitra UMKM (Merchant)
-Route::get('/mitra', function () {
-    return Inertia::render('Mitra/SplashScreen');
-})->name('mitra.splash');
-
-Route::get('/mitra/splash', function () {
-    return Inertia::render('Mitra/SplashScreen');
+// 4. POV Mitra UMKM (Merchant / Warung & Resto)
+Route::prefix('mitra')->name('mitra.')->group(function () {
+    Route::get('/', [MitraSplashController::class, 'index'])->name('splash');
+    Route::get('/splash', [MitraSplashController::class, 'splash']);
+    Route::get('/register', [MitraAuthController::class, 'createRegister'])->name('register');
+    Route::get('/login', [MitraAuthController::class, 'createLogin'])->name('login');
+    Route::get('/dashboard', [MitraDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/kelola-menu', [MitraKelolaMenuController::class, 'index'])->name('kelola-menu');
+    Route::get('/pesanan', [MitraPesananController::class, 'index'])->name('pesanan');
+    Route::get('/profil', [MitraProfileController::class, 'index'])->name('profil');
 });
-
-Route::get('/mitra/register', function () {
-    return Inertia::render('Mitra/Register');
-})->name('mitra.register');
-
-Route::get('/mitra/login', function () {
-    return Inertia::render('Mitra/Login');
-})->name('mitra.login');
-
-Route::get('/mitra/dashboard', function () {
-    return Inertia::render('Mitra/Dashboard');
-})->name('mitra.dashboard');
-
-Route::get('/mitra/kelola-menu', function () {
-    return Inertia::render('Mitra/KelolaMenu');
-})->name('mitra.kelola-menu');
-
-Route::get('/mitra/pesanan', function () {
-    return Inertia::render('Mitra/Pesanan');
-})->name('mitra.pesanan');
-
-Route::get('/mitra/profil', function () {
-    return Inertia::render('Mitra/Profil');
-})->name('mitra.profil');
 
 // 5. Fallback Dashboard
 Route::get('/dashboard', function () {
     return redirect()->route('beranda');
 })->name('dashboard');
+
+require __DIR__.'/auth.php';

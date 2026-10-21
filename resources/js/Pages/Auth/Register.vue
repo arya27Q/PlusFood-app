@@ -3,19 +3,18 @@ import { ref, onMounted } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/UI/InputError.vue';
 import PrimaryButton from '@/Components/UI/PrimaryButton.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { useAuth } from '@/Composables/useAuth';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const isVisible = ref(false);
 const showPassword = ref(false);
-const auth = useAuth();
 
-const form = ref({
-    name: 'Raka Pratama',
-    email: 'raka@mhs.unesa.ac.id',
-    password: 'password123',
-    password_confirmation: 'password123',
-    errors: {},
+const form = useForm({
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+    phone: '',
+    nim: '',
 });
 
 onMounted(() => {
@@ -25,9 +24,11 @@ onMounted(() => {
 });
 
 const submit = () => {
-    auth.register({
-        name: form.value.name,
-        email: form.value.email,
+    if (!form.password_confirmation) {
+        form.password_confirmation = form.password;
+    }
+    form.post(route('register'), {
+        onFinish: () => form.reset('password', 'password_confirmation'),
     });
 };
 </script>

@@ -27,19 +27,35 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('loading', absolute: false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create();
 
-        $this->post('/login', [
+        $response = $this->post('/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
 
         $this->assertGuest();
+        $response->assertSessionHasErrors([
+            'password' => 'Password salah. Silakan coba lagi.',
+        ]);
+    }
+
+    public function test_users_can_not_authenticate_with_unregistered_email(): void
+    {
+        $response = $this->post('/login', [
+            'email' => 'unregistered@example.com',
+            'password' => 'password123',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors([
+            'email' => 'Email belum terdaftar. Silakan daftar akun baru terlebih dahulu.',
+        ]);
     }
 
     public function test_users_can_logout(): void
@@ -49,6 +65,6 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->post('/logout');
 
         $this->assertGuest();
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('login', absolute: false));
     }
 }
