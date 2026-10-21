@@ -37,7 +37,8 @@ class KatalogMakananTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Mahasiswa/Katalog')
-            ->has('foods')
+            ->has('foods', 9)
+            ->where('foods.0.dietaryTags.0', 'Halal')
             ->has('filters')
         );
     }

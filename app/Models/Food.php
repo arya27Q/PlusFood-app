@@ -257,12 +257,19 @@ class Food extends Model
 
     public function getDietaryTagsAttribute(): array
     {
-        return $this->dietary_tags ?? [];
+        $raw = $this->attributes['dietary_tags'] ?? null;
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if (is_string($raw)) {
+            return json_decode($raw, true) ?: [];
+        }
+        return [];
     }
 
     public function getTagsAttribute(): array
     {
-        return $this->dietary_tags ?? [];
+        return $this->dietaryTags;
     }
 
     public function getRatingAttribute(): float
