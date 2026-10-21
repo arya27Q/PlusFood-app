@@ -240,6 +240,10 @@ const confirmReservation = () => {
             const newId = page.props?.flash?.order_id || 'PF-' + Math.floor(10000 + Math.random() * 90000);
             generatedOrderId.value = newId;
 
+            const cleanMerchantName = typeof food.value?.merchant === 'object' && food.value?.merchant?.name
+                ? food.value.merchant.name
+                : (food.value?.merchantName || (typeof food.value?.merchant === 'string' ? food.value.merchant : 'Mitra PlusFood'));
+
             // Sinkronisasi data ke LocalStorage untuk fallback offline & real-time update
             addOrder({
                 id: newId,
@@ -249,7 +253,12 @@ const confirmReservation = () => {
                 email: userEmail.value,
                 address: userAddress.value,
                 note: userNote.value.trim(),
-                food: food.value,
+                food: {
+                    ...food.value,
+                    merchant: cleanMerchantName,
+                    merchantName: cleanMerchantName,
+                    shortName: food.value?.shortName || food.value?.name,
+                },
                 quantity: quantity.value,
                 ecoPackaging: ecoPackaging.value,
                 ecoPackagingLabel: ecoPackaging.value === 'bawa_sendiri' ? 'Bawa Wadah Sendiri' : ecoPackaging.value === 'kotak_kertas' ? 'Kotak Kertas' : 'Thinwall',

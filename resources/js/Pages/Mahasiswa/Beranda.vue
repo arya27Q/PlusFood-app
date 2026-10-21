@@ -70,6 +70,14 @@ const discardDraft = () => {
     draftCheckout.value = null;
 };
 
+const getMerchantName = (food) => {
+    if (!food) return 'Mitra Kampus';
+    if (typeof food.merchant === 'string') return food.merchant;
+    if (typeof food.merchant === 'object' && food.merchant?.name) return food.merchant.name;
+    if (food.merchantName && typeof food.merchantName === 'string') return food.merchantName;
+    return 'Mitra Kampus';
+};
+
 const openTicketModal = (order) => {
     activeTicketOrder.value = order;
     if (typeof window !== 'undefined') {
@@ -308,7 +316,7 @@ onMounted(() => {
                                         <svg class="w-3.5 h-3.5 text-stone-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                         </svg>
-                                        <span class="truncate">{{ order.food?.merchantName || order.food?.merchant || 'Mitra Kampus' }}</span>
+                                        <span class="truncate">{{ getMerchantName(order.food) }}</span>
                                     </p>
                                     <p class="text-xs text-stone-500 mt-1">
                                         {{ order.quantity }} porsi · <span class="font-extrabold text-brand-maroon">Rp{{ Number(order.total || 0).toLocaleString('id-ID') }}</span>

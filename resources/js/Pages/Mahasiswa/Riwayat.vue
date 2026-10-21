@@ -91,6 +91,14 @@ const discardDraft = () => {
     draftCheckout.value = null;
 };
 
+const getMerchantName = (food) => {
+    if (!food) return 'Mitra PlusFood';
+    if (typeof food.merchant === 'string') return food.merchant;
+    if (typeof food.merchant === 'object' && food.merchant?.name) return food.merchant.name;
+    if (food.merchantName && typeof food.merchantName === 'string') return food.merchantName;
+    return 'Mitra PlusFood';
+};
+
 onMounted(() => {
     reloadOrders();
     loadDraftCheckout();
@@ -379,14 +387,14 @@ const filteredOrders = computed(() => {
                             </div>
 
                             <h3 class="text-base font-extrabold text-[#2D1B1E] mt-1.5">
-                                {{ order.food?.shortName }} (x{{ order.quantity }})
+                                {{ order.food?.shortName || order.food?.name }} (x{{ order.quantity }})
                             </h3>
                             <p class="text-xs text-[#8C7A72] mt-0.5 flex flex-wrap items-center gap-1.5">
                                 <span class="flex items-center gap-1 font-semibold text-[#6E5A54]">
                                     <svg class="h-3.5 w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     </svg>
-                                    {{ order.food?.merchant }}
+                                    {{ getMerchantName(order.food) }}
                                 </span>
                                 <span>•</span>
                                 <span class="flex items-center gap-1">
