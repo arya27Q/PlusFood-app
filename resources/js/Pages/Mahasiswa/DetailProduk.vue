@@ -471,8 +471,11 @@ const subsidySaved = computed(() => {
                     <div class="rounded-2xl sm:rounded-[28px] bg-white p-4 sm:p-7 border border-[#EAE0D5] shadow-md sm:shadow-lg space-y-3.5 sm:space-y-6">
                         
                         <div class="flex items-center justify-between pb-2 sm:pb-3 border-b border-[#F5EFE6]">
-                            <h2 class="text-sm sm:text-base font-extrabold text-[#2D1B1E]">Ringkasan Reservasi</h2>
-                            <span class="rounded-md sm:rounded-lg bg-rose-600 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-white">
+                            <div>
+                                <h2 class="text-sm sm:text-base font-extrabold text-[#2D1B1E]">Ringkasan Reservasi</h2>
+                                <p class="text-[11px] text-[#8C7A72] mt-0.5">1 tiket untuk 1 menu (bisa pilih banyak porsi)</p>
+                            </div>
+                            <span class="rounded-md sm:rounded-lg bg-rose-600 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-white shrink-0">
                                 1 Tiket / Pesanan
                             </span>
                         </div>

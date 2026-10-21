@@ -438,9 +438,14 @@ const confirmReservation = () => {
                 <div class="rounded-[20px] bg-white border border-[#EAE0D5] shadow-sm p-5 space-y-5 lg:sticky lg:top-6">
                     <!-- Ringkasan -->
                     <div>
-                        <div class="flex items-center gap-2 pb-3 border-b border-[#F5EFE6]">
-                            <svg class="h-3.5 w-3.5 text-[#8C7A72]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                            <span class="text-xs font-bold text-[#2D1B1E]">Ringkasan Pesanan</span>
+                        <div class="flex items-center justify-between pb-3 border-b border-[#F5EFE6]">
+                            <div class="flex items-center gap-2">
+                                <svg class="h-3.5 w-3.5 text-[#8C7A72]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                <span class="text-xs font-bold text-[#2D1B1E]">Ringkasan Pesanan</span>
+                            </div>
+                            <span class="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                                1 Tiket / Menu
+                            </span>
                         </div>
                         <div class="flex items-start gap-3 mt-3">
                             <img :src="food.image" :alt="food.name" class="h-14 w-16 rounded-xl object-cover bg-[#FAF7F2] border border-[#EAE0D5] shrink-0" />
@@ -505,6 +510,17 @@ const confirmReservation = () => {
                         </div>
                         <p class="font-extrabold text-brand-maroon text-xs">{{ food.pickupTime || '19.30 – 20.30 WIB' }}</p>
                         <p class="text-[10px] text-[#8C7A72]">{{ food.merchantName || food.merchant?.name || food.merchant }} · {{ food.address || 'Ketintang Surabaya' }}</p>
+                    </div>
+
+                    <!-- Single-Item Rescue Rationale -->
+                    <div class="rounded-xl bg-amber-50/70 border border-amber-200 p-3 text-[11px] text-amber-950 leading-relaxed flex items-start gap-2 shadow-2xs">
+                        <svg class="w-4 h-4 text-amber-700 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" stroke-width="2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01" />
+                        </svg>
+                        <p>
+                            <strong>Sistem 1 Tiket / Menu:</strong> Setiap reservasi terikat pada 1 menu gerai agar QR tiket, rute Google Maps, dan jadwal penjemputan fisik langsung tidak tertukar.
+                        </p>
                     </div>
                 </div>
 
