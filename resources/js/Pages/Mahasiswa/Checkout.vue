@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import { sampleFoods, addOrder } from '@/Utils/mockFoods';
 import { ref, computed, onMounted } from 'vue';
@@ -7,20 +7,40 @@ import { useAuth } from '@/Composables/useAuth';
 
 const auth = useAuth();
 
-const food = ref(sampleFoods[0]);
-const quantity = ref(1);
+const props = defineProps({
+    food: {
+        type: Object,
+        default: null,
+    },
+    initialQuantity: {
+        type: Number,
+        default: 1,
+    },
+    initialPackaging: {
+        type: String,
+        default: 'bawa_sendiri',
+    },
+    customer: {
+        type: Object,
+        default: () => ({}),
+    },
+});
+
+const food = ref(props.food || sampleFoods[0]);
+const quantity = ref(props.initialQuantity || 1);
 
 // State: 'idle' | 'loading' | 'success'
 const orderState = ref('idle');
 const generatedOrderId = ref('');
 const loadingProgress = ref(0);
+const isSubmitting = ref(false);
 
 // Form
-const userName = ref(auth.user.value?.name || 'Raka Pratama');
-const userAddress = ref('Jl. Ketintang Baru No. 14, Gayungan');
-const userWhatsapp = ref(auth.user.value?.whatsapp || '081234567890');
-const userEmail = ref(auth.user.value?.email || 'raka.pratama@mhs.unesa.ac.id');
-const userNim = ref(auth.user.value?.nim || '23051204088');
+const userName = ref(props.customer?.name || auth.user.value?.name || 'Raka Pratama');
+const userAddress = ref(props.customer?.address || auth.user.value?.address || 'Jl. Ketintang Baru No. 14, Gayungan, Surabaya');
+const userWhatsapp = ref(props.customer?.phone || auth.user.value?.phone || '081234567890');
+const userEmail = ref(props.customer?.email || auth.user.value?.email || 'raka.pratama@mhs.unesa.ac.id');
+const userNim = ref(props.customer?.nim || auth.user.value?.nim || '23051204088');
 const userNote = ref('');
 
 // Touched tracking for inline field errors (Modul 8 Target 2)
@@ -69,7 +89,7 @@ const isFormValid = computed(() => {
 const showSuccessToast = ref(false);
 
 // Packaging
-const ecoPackaging = ref('bawa_sendiri');
+const ecoPackaging = ref(props.initialPackaging || 'bawa_sendiri');
 
 // Payment
 const paymentMethod = ref('kasir');
@@ -84,7 +104,7 @@ const selectedArrival = ref('tengah');
 const remindBefore = ref(true);
 
 onMounted(() => {
-    if (typeof window !== 'undefined') {
+    if (!props.food && typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const slug = params.get('slug');
         const qty = parseInt(params.get('qty'), 10);
@@ -98,7 +118,13 @@ onMounted(() => {
     }
 });
 
-const subtotal = computed(() => food.value.priceDiscount * quantity.value);
+const unitPrice = computed(() => {
+    return food.value?.priceDiscount ?? food.value?.price_discount ?? 12000;
+});
+const originalPrice = computed(() => {
+    return food.value?.priceOriginal ?? food.value?.price_original ?? food.value?.price ?? 25000;
+});
+const subtotal = computed(() => unitPrice.value * quantity.value);
 const packagingFee = computed(() => {
     if (ecoPackaging.value === 'kotak_kertas') return 1000;
     if (ecoPackaging.value === 'thinwall') return 2000;
@@ -106,8 +132,8 @@ const packagingFee = computed(() => {
 });
 const serviceFee = 1000;
 const totalPayment = computed(() => subtotal.value + packagingFee.value + serviceFee);
-const savedAmount = computed(() => (food.value.price - food.value.priceDiscount) * quantity.value);
-const weightSaved = computed(() => quantity.value * 400);
+const savedAmount = computed(() => (originalPrice.value - unitPrice.value) * quantity.value);
+const weightSaved = computed(() => quantity.value * (food.value?.weight_grams || 400));
 
 const paymentOptions = [
     { id: 'qris', label: 'QRIS', sublabel: 'Sandbox Instant', color: 'bg-blue-600', initial: 'QR' },
@@ -116,7 +142,7 @@ const paymentOptions = [
     { id: 'kasir', label: 'Bayar di Kasir', sublabel: 'Tunai saat ambil', color: 'bg-brand-maroon', initial: 'Rp' },
 ];
 
-const fmt = (n) => n.toLocaleString('id-ID');
+const fmt = (n) => (n || 0).toLocaleString('id-ID');
 
 let progressTimer = null;
 const confirmReservation = () => {
@@ -129,20 +155,44 @@ const confirmReservation = () => {
     // Tandai semua field sebagai disentuh
     touched.value = { name: true, address: true, whatsapp: true, email: true };
 
-    if (!isFormValid.value) return;
+    if (!isFormValid.value || isSubmitting.value) return;
 
+    isSubmitting.value = true;
     orderState.value = 'loading';
-    loadingProgress.value = 0;
+    loadingProgress.value = 10;
+
     let elapsed = 0;
-    const duration = 2200;
+    const duration = 1800;
     const tick = 40;
     progressTimer = setInterval(() => {
         elapsed += tick;
-        loadingProgress.value = Math.min(100, Math.round(100 * (1 - Math.pow(1 - elapsed / duration, 2))));
-        if (elapsed >= duration) {
+        loadingProgress.value = Math.min(94, Math.round(100 * (1 - Math.pow(1 - elapsed / duration, 2))));
+    }, tick);
+
+    // Kirim request ke backend Laravel Database
+    router.post(route('checkout.store'), {
+        food_id: food.value.id || 1,
+        quantity: quantity.value,
+        eco_packaging: ecoPackaging.value,
+        customer_name: userName.value,
+        customer_phone: userWhatsapp.value,
+        customer_email: userEmail.value,
+        customer_address: userAddress.value,
+        customer_nim: userNim.value,
+        notes: userNote.value.trim(),
+        payment_method: paymentMethod.value,
+        arrival_estimate: selectedArrival.value,
+        remind_before: remindBefore.value,
+    }, {
+        onSuccess: (page) => {
             clearInterval(progressTimer);
-            const newId = 'PF-' + Math.floor(10000 + Math.random() * 90000);
+            loadingProgress.value = 100;
+            isSubmitting.value = false;
+
+            const newId = page.props?.flash?.order_id || 'PF-' + Math.floor(10000 + Math.random() * 90000);
             generatedOrderId.value = newId;
+
+            // Sinkronisasi data ke LocalStorage untuk fallback offline & real-time update
             addOrder({
                 id: newId,
                 customerName: userName.value,
@@ -158,9 +208,9 @@ const confirmReservation = () => {
                 subtotal: subtotal.value,
                 packagingFee: packagingFee.value,
                 total: totalPayment.value,
-                pickupTime: food.value.pickupTime || '19.30 – 20.30 WIB',
-                pickupDeadline: food.value.pickupDeadlineInfo || 'Hari ini tutup 21.00 WIB',
-                date: 'Hari ini, 13 Okt 2026',
+                pickupTime: food.value.pickupTime || food.value.pickup_time_display || '19.30 – 20.30 WIB',
+                pickupDeadline: food.value.pickupDeadlineInfo || food.value.pickup_deadline_info || 'Hari ini tutup 21.00 WIB',
+                date: 'Hari ini',
                 paymentMethod: paymentMethod.value,
                 paymentGateway: paymentMethod.value === 'kasir' ? 'cash_on_pickup' : 'sandbox_simulator',
                 paymentReference: 'SBX-' + paymentMethod.value.toUpperCase() + '-' + newId,
@@ -168,16 +218,22 @@ const confirmReservation = () => {
                 paidAt: paymentMethod.value === 'kasir' ? null : new Date().toISOString(),
                 status: 'menunggu',
                 statusLabel: 'Menunggu Pickup',
-                qrCode: newId + '-' + (food.value.merchantInitial || 'PF'),
+                qrCode: newId + '-' + (food.value.merchantInitial || food.value.merchant?.initial || 'PF'),
                 mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
                 hasReview: false,
             });
-            // Tampilkan toast notifikasi halus
+
             showSuccessToast.value = true;
             setTimeout(() => { orderState.value = 'success'; }, 300);
             setTimeout(() => { showSuccessToast.value = false; }, 4000);
+        },
+        onError: (errors) => {
+            clearInterval(progressTimer);
+            orderState.value = 'idle';
+            isSubmitting.value = false;
+            alert(Object.values(errors)[0] || 'Terjadi kendala saat memproses pesanan.');
         }
-    }, tick);
+    });
 };
 </script>
 
@@ -222,11 +278,14 @@ const confirmReservation = () => {
                     <p class="text-[11px] text-[#8C7A72] mt-0.5">berhasil dihemat</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3 mt-8 w-full max-w-xs">
-                <Link :href="route('riwayat')" class="flex-1 rounded-xl bg-brand-maroon py-3 text-sm font-bold text-white text-center shadow-md hover:bg-brand-maroon-hover transition active:scale-95">
-                    Beri Ulasan →
+            <div class="flex flex-col sm:flex-row items-center gap-3 mt-8 w-full max-w-sm">
+                <Link :href="route('tiket', { id: generatedOrderId })" class="w-full flex-1 rounded-xl bg-brand-maroon py-3 text-sm font-bold text-white text-center shadow-md hover:bg-brand-maroon-hover transition active:scale-95 flex items-center justify-center gap-2">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                    <span>Buka E-Tiket (QR)</span>
                 </Link>
-                <Link :href="route('beranda')" class="flex-1 rounded-xl border-2 border-brand-maroon py-3 text-sm font-bold text-brand-maroon text-center hover:bg-[#FAF7F2] transition">
+                <Link :href="route('beranda')" class="w-full flex-1 rounded-xl border-2 border-brand-maroon py-3 text-sm font-bold text-brand-maroon text-center hover:bg-[#FAF7F2] transition">
                     Ke Beranda
                 </Link>
             </div>

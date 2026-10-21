@@ -545,7 +545,7 @@ const subsidySaved = computed(() => {
 
                             <!-- Tombol CTA Reservasi Sekarang -->
                             <Link
-                                :href="route('checkout', { slug: food.slug, qty: quantity })"
+                                :href="route('checkout', { slug: food.slug, qty: quantity, packaging: ecoContainer })"
                                 class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-md sm:shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
                             >
                                 <span>Reservasi Sekarang</span>

@@ -10,6 +10,10 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    dbOrders: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const activeTab = ref('menunggu'); // 'menunggu', 'selesai', 'dibatalkan', 'semua'
@@ -33,13 +37,70 @@ const quickReviewTags = [
     'Harga Bersahabat'
 ];
 
+const mapDbOrder = (db) => {
+    const firstItem = db.items && db.items.length > 0 ? db.items[0] : null;
+    const foodItem = firstItem?.food || {};
+    return {
+        id: db.order_number,
+        customerName: db.customer_name,
+        nim: db.customer_nim,
+        whatsapp: db.customer_phone,
+        email: db.customer_email,
+        address: db.customer_address,
+        note: db.notes || '',
+        food: {
+            id: foodItem.id || firstItem?.food_id,
+            name: firstItem?.food_name || foodItem.name || 'Makanan Surplus',
+            merchant: db.merchant?.name || 'Mitra Kampus',
+            image: foodItem.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+            priceOriginal: foodItem.price_original || 25000,
+            priceDiscount: firstItem?.price || 12000,
+            price: foodItem.price_original || 25000,
+            pickupTime: db.pickup_time,
+            pickupDeadlineInfo: db.pickup_deadline,
+        },
+        quantity: firstItem?.quantity || 1,
+        ecoPackaging: firstItem?.eco_packaging || 'bawa_sendiri',
+        ecoPackagingLabel: firstItem?.eco_packaging === 'bawa_sendiri' ? 'Bawa Wadah Sendiri' : firstItem?.eco_packaging === 'kotak_kertas' ? 'Kotak Kertas' : 'Thinwall',
+        subtotal: db.total_items_price,
+        packagingFee: db.total_packaging_fee,
+        total: db.total_price,
+        pickupTime: db.pickup_time,
+        pickupDeadline: db.pickup_deadline,
+        date: db.created_at ? new Date(db.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini',
+        paymentMethod: db.payment?.payment_method || 'qris',
+        paymentGateway: db.payment?.payment_gateway || 'sandbox_simulator',
+        paymentReference: db.payment?.payment_reference || ('SBX-QRIS-' + db.order_number),
+        paymentStatus: db.payment?.status || (db.status === 'menunggu' ? 'lunas' : 'menunggu_bayar'),
+        paidAt: db.payment?.paid_at,
+        status: db.status,
+        statusLabel: db.status === 'menunggu' ? 'Menunggu Pickup' : db.status === 'siap_ambil' ? 'Siap Diambil' : db.status === 'selesai' ? 'Selesai' : 'Dibatalkan',
+        qrCode: db.qr_token || (db.order_number + '-PF'),
+        manualCode: db.order_number,
+        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
+        hasReview: db.has_review || false,
+    };
+};
+
 const reloadOrders = () => {
-    orders.value = getSavedOrders();
+    const local = getSavedOrders();
+    const dbMapped = (props.dbOrders || []).map(mapDbOrder);
+
+    // Gabungkan list pesanan database MySQL dan LocalStorage
+    const combined = [...dbMapped];
+    local.forEach(loc => {
+        if (!combined.some(c => c.id === loc.id)) {
+            combined.push(loc);
+        }
+    });
+
+    orders.value = combined;
+
     // Auto-buka tiket jika ada parameter URL atau prop initialTicketId
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const ticketId = props.initialTicketId || (urlParams ? urlParams.get('tiket') : null);
     if (ticketId) {
-        const found = orders.value.find(o => o.id === ticketId || o.qrCode === ticketId);
+        const found = orders.value.find(o => o.id === ticketId || o.qrCode === ticketId || o.manualCode === ticketId);
         if (found) {
             activeTicketOrder.value = found;
         } else if (orders.value.length > 0) {
