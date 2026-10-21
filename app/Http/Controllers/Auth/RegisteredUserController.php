@@ -38,6 +38,13 @@ class RegisteredUserController extends Controller
             'phone' => 'nullable|string|max:20',
             'campus' => 'nullable|string|max:255',
             'nim' => 'nullable|string|max:50',
+        ], [
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Akun email ini sudah terdaftar. Silakan gunakan email lain atau masuk ke akun Anda.',
+            'password.required' => 'Kata sandi wajib diisi.',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
         ]);
 
         $user = User::create([

@@ -67,6 +67,14 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        if ($user->role === 'mitra') {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Maaf, akun ini terdaftar sebagai Mitra UMKM. Silakan masuk melalui portal Mitra.',
+            ]);
+        }
+
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
