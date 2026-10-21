@@ -592,17 +592,19 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- ================= MODAL LOCATION & RADIUS SELECTOR ================= -->
-            <div
-                v-if="showLocationModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-page-enter"
-            >
-                <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5">
-                    <!-- Close button -->
-                    <button
-                        @click="showLocationModal = false"
-                        class="absolute top-5 right-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#FAF7F2] text-gray-400 hover:text-gray-700 transition"
-                    >
+            <!-- ================= MODAL LOCATION & RADIUS SELECTOR (FULL SCREEN) ================= -->
+            <Teleport to="body">
+                <div
+                    v-if="showLocationModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+                    style="top: 0; left: 0; width: 100vw; height: 100vh;"
+                >
+                    <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5">
+                        <!-- Close button -->
+                        <button
+                            @click="showLocationModal = false"
+                            class="absolute top-5 right-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#FAF7F2] text-gray-400 hover:text-gray-700 transition"
+                        >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -667,7 +669,7 @@ onMounted(() => {
                         </button>
                     </div>
                 </div>
-            </div>
+            </Teleport>
 
         </div>
     </MahasiswaLayout>

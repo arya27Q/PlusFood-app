@@ -863,8 +863,13 @@ onMounted(() => {
 
         </div>
 
-        <!-- ================= MODAL REGISTRASI MITRA PELOPOR / WAITLIST ================= -->
-        <div v-if="showPartnerModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <!-- ================= MODAL REGISTRASI MITRA PELOPOR / WAITLIST (FULL SCREEN) ================= -->
+        <Teleport to="body">
+            <div
+                v-if="showPartnerModal"
+                class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+                style="top: 0; left: 0; width: 100vw; height: 100vh;"
+            >
             <div class="relative w-full max-w-lg rounded-[28px] bg-white p-6 sm:p-8 shadow-2xl border border-[#EAE0D5] space-y-5 animate-in fade-in zoom-in-95 duration-200">
                 <!-- Close Button -->
                 <button
@@ -1007,5 +1012,6 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+        </Teleport>
     </MahasiswaLayout>
 </template>

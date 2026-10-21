@@ -420,41 +420,44 @@ const handleConfirmCancel = () => {
             </div>
         </div>
 
-        <!-- ================= MODAL KONFIRMASI PEMBATALAN ================= -->
-        <div
-            v-if="showCancelConfirm"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
-        >
-            <div class="w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl border border-[#E8DFD8] text-center space-y-4">
-                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-700">
-                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </div>
+        <!-- ================= MODAL KONFIRMASI PEMBATALAN (FULL-SCREEN BACKDROP) ================= -->
+        <Teleport to="body">
+            <div
+                v-if="showCancelConfirm"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+                style="top: 0; left: 0; width: 100vw; height: 100vh;"
+            >
+                <div class="w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl border border-[#E8DFD8] text-center space-y-4">
+                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-700">
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
 
-                <div>
-                    <h3 class="text-lg font-black text-[#2D1B1E]">Batalkan Pesanan Ini?</h3>
-                    <p class="text-xs text-stone-500 mt-1">
-                        Porsi makanan surplus ini akan dikembalikan ke listing aktif agar dapat diselamatkan mahasiswa lain.
-                    </p>
-                </div>
+                    <div>
+                        <h3 class="text-lg font-black text-[#2D1B1E]">Batalkan Pesanan Ini?</h3>
+                        <p class="text-xs text-stone-500 mt-1">
+                            Porsi makanan surplus ini akan dikembalikan ke listing aktif agar dapat diselamatkan mahasiswa lain.
+                        </p>
+                    </div>
 
-                <div class="flex items-center gap-3 pt-2">
-                    <button
-                        @click="showCancelConfirm = false"
-                        class="flex-1 rounded-xl border border-stone-200 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-50 transition"
-                    >
-                        Kembali
-                    </button>
-                    <button
-                        @click="handleConfirmCancel"
-                        class="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white hover:bg-rose-700 transition"
-                    >
-                        Ya, Batalkan
-                    </button>
+                    <div class="flex items-center gap-3 pt-2">
+                        <button
+                            @click="showCancelConfirm = false"
+                            class="flex-1 rounded-xl border border-stone-200 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-50 transition"
+                        >
+                            Kembali
+                        </button>
+                        <button
+                            @click="handleConfirmCancel"
+                            class="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white hover:bg-rose-700 transition"
+                        >
+                            Ya, Batalkan
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
     </div>
 </template>

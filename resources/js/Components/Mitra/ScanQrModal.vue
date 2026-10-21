@@ -59,7 +59,11 @@ const simulateSampleScan = () => {
 </script>
 
 <template>
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-page-enter">
+    <Teleport to="body">
+        <div
+            class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+            style="top: 0; left: 0; width: 100vw; height: 100vh;"
+        >
         <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5 max-h-[92vh] overflow-y-auto">
             
             <!-- Close Button -->
@@ -231,4 +235,5 @@ const simulateSampleScan = () => {
 
         </div>
     </div>
+    </Teleport>
 </template>

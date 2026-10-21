@@ -573,12 +573,14 @@ const exportCsv = () => {
 
         </div>
 
-        <!-- Quick Order Detail Modal -->
-        <div
-            v-if="selectedOrderModal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4"
-            @click.self="selectedOrderModal = null"
-        >
+        <!-- Quick Order Detail Modal (FULL SCREEN) -->
+        <Teleport to="body">
+            <div
+                v-if="selectedOrderModal"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4 animate-fade-in"
+                style="top: 0; left: 0; width: 100vw; height: 100vh;"
+                @click.self="selectedOrderModal = null"
+            >
             <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2.5">
@@ -663,6 +665,7 @@ const exportCsv = () => {
                 </div>
             </div>
         </div>
+        </Teleport>
 
         <ScanQrModal
             v-if="showScanModal"
