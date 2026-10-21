@@ -64,13 +64,44 @@ const reloadOrders = () => {
     }
 };
 
+const draftCheckout = ref(null);
+const loadDraftCheckout = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        const raw = localStorage.getItem('plusfood_draft_checkout');
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (Date.now() - (data.timestamp || 0) < 2 * 60 * 60 * 1000) {
+                draftCheckout.value = data;
+            } else {
+                draftCheckout.value = null;
+            }
+        } else {
+            draftCheckout.value = null;
+        }
+    } catch (e) {
+        draftCheckout.value = null;
+    }
+};
+
+const discardDraft = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('plusfood_draft_checkout');
+    }
+    draftCheckout.value = null;
+};
+
 onMounted(() => {
     reloadOrders();
+    loadDraftCheckout();
     // Sinkronisasi Real-Time Dua Arah Bawaan Browser (Tanpa Websocket Vendor)
     if (typeof window !== 'undefined') {
         window.addEventListener('storage', (e) => {
             if (e.key === 'plusfood_orders') {
                 reloadOrders();
+            }
+            if (e.key === 'plusfood_draft_checkout') {
+                loadDraftCheckout();
             }
         });
     }
@@ -213,6 +244,49 @@ const filteredOrders = computed(() => {
                     >
                         Semua
                     </button>
+                </div>
+            </div>
+
+            <!-- ================= BANNER DRAFT CHECKOUT TERTUNDA ================= -->
+            <div
+                v-if="draftCheckout"
+                class="rounded-[22px] bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-4 shadow-sm animate-fade-in flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            >
+                <div class="flex items-center gap-3.5 min-w-0">
+                    <img
+                        :src="draftCheckout.foodImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'"
+                        :alt="draftCheckout.foodName"
+                        class="h-12 w-12 rounded-xl object-cover bg-amber-100 border border-amber-200 shrink-0"
+                    />
+                    <div class="min-w-0">
+                        <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md">
+                            <svg class="w-3 h-3 text-amber-800" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/></svg>
+                            Pesanan Belum Selesai Dibayar
+                        </span>
+                        <h4 class="text-sm font-black text-[#2D1B1E] truncate mt-0.5">
+                            {{ draftCheckout.foodName }}
+                        </h4>
+                        <p class="text-xs text-[#6E5A54] truncate">
+                            {{ draftCheckout.merchantName }} · {{ draftCheckout.quantity }} porsi · Total: <strong class="text-brand-maroon">Rp{{ Number(draftCheckout.totalPayment || 0).toLocaleString('id-ID') }}</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <button
+                        type="button"
+                        @click="discardDraft"
+                        class="rounded-xl px-3 py-1.5 text-xs font-bold text-stone-500 hover:text-rose-600 transition"
+                    >
+                        Batalkan
+                    </button>
+                    <Link
+                        :href="route('checkout', { slug: draftCheckout.slug, qty: draftCheckout.quantity, packaging: draftCheckout.packaging })"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-brand-maroon px-4 py-2 text-xs font-black text-white hover:bg-brand-maroon-hover shadow-md shadow-brand-maroon/20 transition active:scale-95"
+                    >
+                        <span>Lanjutkan Pembayaran</span>
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </Link>
                 </div>
             </div>
 
