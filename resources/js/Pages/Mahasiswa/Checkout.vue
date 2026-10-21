@@ -91,8 +91,8 @@ const showSuccessToast = ref(false);
 // Packaging
 const ecoPackaging = ref(props.initialPackaging || 'bawa_sendiri');
 
-// Payment
-const paymentMethod = ref('kasir');
+// Payment (100% Cashless Sandbox Simulator untuk proteksi mitra dari order fiktif)
+const paymentMethod = ref('qris');
 
 // Pickup time & arrival
 const arrivalEstimates = [
@@ -185,10 +185,9 @@ watch([quantity, ecoPackaging, paymentMethod, food], () => {
 });
 
 const paymentOptions = [
-    { id: 'qris', label: 'QRIS', sublabel: 'Sandbox Instant', color: 'bg-blue-600', initial: 'QR' },
-    { id: 'gopay', label: 'GoPay', sublabel: 'Sandbox E-Wallet', color: 'bg-emerald-500', initial: 'GP' },
-    { id: 'dana', label: 'DANA', sublabel: 'Sandbox E-Wallet', color: 'bg-blue-500', initial: 'DA' },
-    { id: 'kasir', label: 'Bayar di Kasir', sublabel: 'Tunai saat ambil', color: 'bg-brand-maroon', initial: 'Rp' },
+    { id: 'qris', label: 'QRIS Dinamis', sublabel: 'BCA, Mandiri, BRI, Semua Bank', color: 'bg-indigo-600', initial: 'QR' },
+    { id: 'gopay', label: 'GoPay Sandbox', sublabel: 'Instan 1-Klik Simulasi', color: 'bg-sky-500', initial: 'GP' },
+    { id: 'dana', label: 'DANA Sandbox', sublabel: 'Dompet Digital Kampus', color: 'bg-blue-600', initial: 'DA' },
 ];
 
 const fmt = (n) => (n || 0).toLocaleString('id-ID');
@@ -261,10 +260,10 @@ const confirmReservation = () => {
                 pickupDeadline: food.value.pickupDeadlineInfo || food.value.pickup_deadline_info || 'Hari ini tutup 21.00 WIB',
                 date: 'Hari ini',
                 paymentMethod: paymentMethod.value,
-                paymentGateway: paymentMethod.value === 'kasir' ? 'cash_on_pickup' : 'sandbox_simulator',
+                paymentGateway: 'sandbox_simulator',
                 paymentReference: 'SBX-' + paymentMethod.value.toUpperCase() + '-' + newId,
-                paymentStatus: paymentMethod.value === 'kasir' ? 'menunggu_bayar' : 'lunas',
-                paidAt: paymentMethod.value === 'kasir' ? null : new Date().toISOString(),
+                paymentStatus: 'lunas',
+                paidAt: new Date().toISOString(),
                 status: 'menunggu',
                 statusLabel: 'Menunggu Pickup',
                 qrCode: newId + '-' + (food.value.merchantInitial || food.value.merchant?.initial || 'PF'),
@@ -477,29 +476,33 @@ const confirmReservation = () => {
                         </div>
                     </div>
 
-                    <!-- Metode Pembayaran (Sandbox Simulator Tanpa Vendor Token) -->
+                    <!-- Metode Pembayaran Non-Tunai (Sandbox Simulator) -->
                     <div class="border-t border-[#F5EFE6] pt-4">
                         <div class="flex items-center justify-between mb-2">
-                            <p class="text-[11px] font-bold text-[#8C7A72]">Metode Pembayaran</p>
-                            <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[9px] font-extrabold text-amber-800 border border-amber-200">
-                                Sandbox Simulator
+                            <p class="text-[11px] font-bold text-[#8C7A72]">Metode Pembayaran Digital</p>
+                            <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-[9px] font-black text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>
+                                <span>100% Non-Tunai</span>
                             </span>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <label
                                 v-for="opt in paymentOptions"
                                 :key="opt.id"
-                                class="flex items-center gap-2 rounded-xl border-2 p-2.5 cursor-pointer transition"
-                                :class="paymentMethod === opt.id ? 'border-brand-maroon bg-rose-50/50 shadow-xs' : 'border-slate-200 bg-white shadow-2xs hover:border-slate-300'"
+                                class="flex items-center gap-2.5 rounded-xl border-2 p-2.5 cursor-pointer transition"
+                                :class="paymentMethod === opt.id ? 'border-brand-maroon bg-rose-50/50 shadow-xs' : 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50/60'"
                             >
                                 <input type="radio" :value="opt.id" v-model="paymentMethod" class="sr-only" />
-                                <div class="h-7 w-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black shrink-0" :class="opt.color">{{ opt.initial }}</div>
-                                <div>
-                                    <p class="text-[10px] font-bold text-[#2D1B1E] leading-none">{{ opt.label }}</p>
-                                    <p class="text-[9px] text-[#8C7A72] mt-0.5">{{ opt.sublabel }}</p>
+                                <div class="h-7 w-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black shrink-0 shadow-xs" :class="opt.color">{{ opt.initial }}</div>
+                                <div class="min-w-0">
+                                    <p class="text-[10px] font-bold text-[#2D1B1E] leading-none truncate">{{ opt.label }}</p>
+                                    <p class="text-[9px] text-[#8C7A72] mt-0.5 truncate">{{ opt.sublabel }}</p>
                                 </div>
                             </label>
                         </div>
+                        <p class="text-[10px] text-slate-500 mt-2 flex items-center gap-1">
+                            <span>🛡️ <strong>Bebas Order Fiktif:</strong> Pembayaran non-tunai lunas di awal mengamankan porsi surplus agar tidak basi jika pembeli tidak hadir.</span>
+                        </p>
                     </div>
 
                     <!-- Pickup reminder -->
