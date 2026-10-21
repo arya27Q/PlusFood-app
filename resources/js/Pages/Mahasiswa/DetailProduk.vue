@@ -202,10 +202,10 @@ const subsidySaved = computed(() => {
                 <div class="absolute inset-x-0 bottom-0 flex items-center justify-between p-4 sm:p-6 z-10 text-[11px] font-bold text-white">
                     <div class="flex items-center gap-2">
                         <span class="rounded-lg bg-black/60 px-3 py-1.5 backdrop-blur-sm">
-                            Batch Masak: {{ food.batchCooked }}
+                            Batch Masak: {{ food.batchCooked || 'Sore Ini (Fresh)' }}
                         </span>
                         <span class="rounded-lg bg-black/60 px-3 py-1.5 backdrop-blur-sm hidden sm:inline-block">
-                            {{ food.warmerGrade }}
+                            {{ food.warmerGrade || 'Food Warmer Grade A' }}
                         </span>
                     </div>
 
@@ -235,14 +235,14 @@ const subsidySaved = computed(() => {
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
-                                    {{ food.merchant }}
+                                    {{ food.merchantName || food.merchant?.name || food.merchant }}
                                 </span>
                                 <span>•</span>
                                 <span class="flex items-center gap-1 text-amber-500 font-bold">
                                     <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" viewBox="0 0 20 20">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
-                                    {{ food.rating }} ({{ food.reviewsCount }} ulasan)
+                                    {{ food.rating }} ({{ food.reviewsCount || food.merchant?.reviews_count || 148 }} ulasan)
                                 </span>
                                 <span>•</span>
                                 <span class="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 border border-rose-200">
@@ -434,7 +434,7 @@ const subsidySaved = computed(() => {
                             </div>
                         </div>
                         <p class="text-xs text-amber-900 leading-relaxed font-medium">
-                            Menu ini disiapkan segar oleh gerai <strong>{{ food.merchant }}</strong> menggunakan dapur operasional bersama. Walaupun standar higienitas dipatuhi, kemungkinan kontak silang (*cross-contact*) dengan alergen seperti <strong>{{ food.allergens?.join(', ') || 'kacang, telur, kedelai, atau gluten' }}</strong> tetap ada. Jika memiliki alergi berat, cantumkan instruksi di catatan checkout atau hubungi penjual saat tiba di lokasi.
+                            Menu ini disiapkan segar oleh gerai <strong>{{ food.merchantName || food.merchant?.name || food.merchant }}</strong> menggunakan dapur operasional bersama. Walaupun standar higienitas dipatuhi, kemungkinan kontak silang (*cross-contact*) dengan alergen seperti <strong>{{ food.allergens?.join(', ') || 'kacang, telur, kedelai, atau gluten' }}</strong> tetap ada. Jika memiliki alergi berat, cantumkan instruksi di catatan checkout atau hubungi penjual saat tiba di lokasi.
                         </p>
                     </div>
 

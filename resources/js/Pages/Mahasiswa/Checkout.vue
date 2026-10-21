@@ -256,7 +256,7 @@ const confirmReservation = () => {
             <p class="text-xs font-bold text-[#8C7A72] uppercase tracking-widest mb-1">Reservasi Berhasil · {{ generatedOrderId }}</p>
             <h1 class="text-3xl font-black text-brand-maroon mb-3">Pickup Berhasil!</h1>
             <p class="text-sm text-[#6E5A54] max-w-xs leading-relaxed">
-                QR terverifikasi oleh <strong>{{ food.merchant }}</strong>. Selamat menikmati {{ food.name }}-mu, {{ userName.split(' ')[0] }}!
+                QR terverifikasi oleh <strong>{{ food.merchantName || food.merchant?.name || food.merchant }}</strong>. Selamat menikmati {{ food.name }}-mu, {{ userName.split(' ')[0] }}!
             </p>
             <div class="grid grid-cols-2 gap-4 mt-8 w-full max-w-xs">
                 <div class="rounded-2xl border border-[#EAE0D5] bg-white p-4 text-center shadow-sm flex flex-col items-center">
@@ -394,7 +394,7 @@ const confirmReservation = () => {
                             <img :src="food.image" :alt="food.name" class="h-14 w-16 rounded-xl object-cover bg-[#FAF7F2] border border-[#EAE0D5] shrink-0" />
                             <div class="flex-1 min-w-0">
                                 <p class="text-xs font-bold text-[#2D1B1E] line-clamp-2">{{ food.name }}</p>
-                                <p class="text-[11px] text-[#8C7A72] mt-0.5">{{ food.merchant }} · {{ quantity }} porsi</p>
+                                <p class="text-[11px] text-[#8C7A72] mt-0.5">{{ food.merchantName || food.merchant?.name || food.merchant }} · {{ quantity }} porsi</p>
                                 <span class="inline-block mt-1 rounded bg-rose-100 text-rose-700 text-[9px] font-extrabold px-1.5 py-0.5">Diskon {{ food.discountPercent }}%</span>
                             </div>
                         </div>
@@ -452,7 +452,7 @@ const confirmReservation = () => {
                             <span>Jadwal Ambil Gerai:</span>
                         </div>
                         <p class="font-extrabold text-brand-maroon text-xs">{{ food.pickupTime || '19.30 – 20.30 WIB' }}</p>
-                        <p class="text-[10px] text-[#8C7A72]">{{ food.merchant }} · {{ food.address || 'Ketintang Surabaya' }}</p>
+                        <p class="text-[10px] text-[#8C7A72]">{{ food.merchantName || food.merchant?.name || food.merchant }} · {{ food.address || 'Ketintang Surabaya' }}</p>
                     </div>
                 </div>
 
@@ -586,7 +586,7 @@ const confirmReservation = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
-                                    <span>Ambil di <strong>{{ food.merchant }}</strong> ({{ food.address }}). Tunjukkan tiket QR ke kasir saat tiba.</span>
+                                    <span>Ambil di <strong>{{ food.merchantName || food.merchant?.name || food.merchant }}</strong> ({{ food.address }}). Tunjukkan tiket QR ke kasir saat tiba.</span>
                                 </p>
                             </div>
 

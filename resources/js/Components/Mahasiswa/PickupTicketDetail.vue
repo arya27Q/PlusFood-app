@@ -35,13 +35,21 @@ const copyCode = () => {
     }
 };
 
+const merchantName = computed(() => {
+    const m = props.order.food?.merchantName || props.order.food?.merchant || props.order.merchant?.name;
+    if (typeof m === 'object' && m !== null) {
+        return m.name || 'Warung Mitra Kampus';
+    }
+    return m || 'Warung Mitra Kampus';
+});
+
 // Google Maps URL
 const googleMapsUrl = computed(() => {
     if (props.order.mapsUrl && props.order.mapsUrl.startsWith('http')) {
         return props.order.mapsUrl;
     }
-    const store = props.order.food?.merchant || 'Warung Bu Sari';
-    const addr = props.order.food?.address || 'Jl. Ketintang Baru 12 Surabaya';
+    const store = merchantName.value;
+    const addr = props.order.food?.address || props.order.merchant?.address || 'Jl. Ketintang Baru 12 Surabaya';
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store + ' ' + addr)}`;
 });
 
@@ -324,7 +332,7 @@ const handleConfirmCancel = () => {
                                 <svg class="w-3.5 h-3.5 text-[#8A7570]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                 </svg>
-                                <span>{{ order.food?.merchant || 'Warung Bu Sari' }}</span>
+                                <span>{{ merchantName }}</span>
                             </p>
 
                             <p class="text-xs text-stone-500 flex items-center gap-1.5 mt-1 leading-relaxed">
@@ -381,7 +389,7 @@ const handleConfirmCancel = () => {
                                 2
                             </span>
                             <p class="font-medium">
-                                Tunjukkan ke kasir {{ order.food?.merchant || 'Warung Bu Sari' }}
+                                Tunjukkan ke kasir {{ merchantName }}
                             </p>
                         </div>
 
