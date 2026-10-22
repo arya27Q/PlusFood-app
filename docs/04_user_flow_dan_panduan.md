@@ -110,8 +110,9 @@ flowchart TD
   - *Bawa Wadah Sendiri (Gratis / Rp0)* — Mendukung pengurangan sampah plastik sekali pakai.
   - *Kotak Kertas Kraft (+Rp1.000)*
   - *Kotak Thinwall Reusable (+Rp2.000)*
-* **Metode Pembayaran Sandbox Simulator:**
-  - Mahasiswa memilih kanal pembayaran: **QRIS Dinamis**, **GoPay**, **DANA**, atau **Bayar Tunai di Kasir**.
+* **Metode Pembayaran Sandbox Simulator (100% Non-Tunai / Zero-Cash Policy):**
+  - Mahasiswa memilih kanal pembayaran digital: **QRIS Dinamis**, **GoPay Sandbox**, atau **DANA Sandbox**.
+  - **Proteksi Mitra Anti-Ghosting:** Opsi bayar tunai di tempat sengaja ditiadakan (*100% Cashless*) untuk melindungi mitra UMKM dari risiko order fiktif / pembatalan sepihak saat jam tutup toko hampir berakhir.
   - Menggunakan simulasi lokal *zero-vendor* berlabel referensi otomatis `SBX-QRIS-PF84920`.
 
 #### 5. Penerbitan Tiket QR Digital & Penjemputan (*Self-Pickup*)

@@ -45,6 +45,7 @@ Route::get('/beranda', [BerandaController::class, 'index'])->name('beranda');
 Route::get('/katalog', [KatalogController::class, 'index'])->name('katalog');
 Route::get('/makanan/{slug}', [MakananController::class, 'show'])->name('makanan.detail');
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
 Route::get('/tiket/{id?}', [RiwayatController::class, 'tiket'])->name('tiket');
 

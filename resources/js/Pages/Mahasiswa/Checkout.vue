@@ -1,26 +1,46 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import { sampleFoods, addOrder } from '@/Utils/mockFoods';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuth } from '@/Composables/useAuth';
 
 const auth = useAuth();
 
-const food = ref(sampleFoods[0]);
-const quantity = ref(1);
+const props = defineProps({
+    food: {
+        type: Object,
+        default: null,
+    },
+    initialQuantity: {
+        type: Number,
+        default: 1,
+    },
+    initialPackaging: {
+        type: String,
+        default: 'bawa_sendiri',
+    },
+    customer: {
+        type: Object,
+        default: () => ({}),
+    },
+});
+
+const food = ref(props.food || sampleFoods[0]);
+const quantity = ref(props.initialQuantity || 1);
 
 // State: 'idle' | 'loading' | 'success'
 const orderState = ref('idle');
 const generatedOrderId = ref('');
 const loadingProgress = ref(0);
+const isSubmitting = ref(false);
 
 // Form
-const userName = ref(auth.user.value?.name || 'Raka Pratama');
-const userAddress = ref('Jl. Ketintang Baru No. 14, Gayungan');
-const userWhatsapp = ref(auth.user.value?.whatsapp || '081234567890');
-const userEmail = ref(auth.user.value?.email || 'raka.pratama@mhs.unesa.ac.id');
-const userNim = ref(auth.user.value?.nim || '23051204088');
+const userName = ref(props.customer?.name || auth.user.value?.name || 'Raka Pratama');
+const userAddress = ref(props.customer?.address || auth.user.value?.address || 'Jl. Ketintang Baru No. 14, Gayungan, Surabaya');
+const userWhatsapp = ref(props.customer?.phone || auth.user.value?.phone || '081234567890');
+const userEmail = ref(props.customer?.email || auth.user.value?.email || 'raka.pratama@mhs.unesa.ac.id');
+const userNim = ref(props.customer?.nim || auth.user.value?.nim || '23051204088');
 const userNote = ref('');
 
 // Touched tracking for inline field errors (Modul 8 Target 2)
@@ -69,10 +89,10 @@ const isFormValid = computed(() => {
 const showSuccessToast = ref(false);
 
 // Packaging
-const ecoPackaging = ref('bawa_sendiri');
+const ecoPackaging = ref(props.initialPackaging || 'bawa_sendiri');
 
-// Payment
-const paymentMethod = ref('kasir');
+// Payment (100% Cashless Sandbox Simulator untuk proteksi mitra dari order fiktif)
+const paymentMethod = ref('qris');
 
 // Pickup time & arrival
 const arrivalEstimates = [
@@ -83,6 +103,52 @@ const arrivalEstimates = [
 const selectedArrival = ref('tengah');
 const remindBefore = ref(true);
 
+const unitPrice = computed(() => {
+    return food.value?.priceDiscount ?? food.value?.price_discount ?? 12000;
+});
+const originalPrice = computed(() => {
+    return food.value?.priceOriginal ?? food.value?.price_original ?? food.value?.price ?? 25000;
+});
+const subtotal = computed(() => unitPrice.value * quantity.value);
+const packagingFee = computed(() => {
+    if (ecoPackaging.value === 'kotak_kertas') return 1000;
+    if (ecoPackaging.value === 'thinwall') return 2000;
+    return 0;
+});
+const serviceFee = 1000;
+const totalPayment = computed(() => subtotal.value + packagingFee.value + serviceFee);
+const savedAmount = computed(() => (originalPrice.value - unitPrice.value) * quantity.value);
+const weightSaved = computed(() => quantity.value * (food.value?.weight_grams || 400));
+
+// Simpan & Kelola Draft Checkout (Mencegah pesanan hilang jika kepencet Home)
+const saveCheckoutDraft = () => {
+    if (typeof window === 'undefined' || !food.value) return;
+    try {
+        const draft = {
+            slug: food.value.slug,
+            foodId: food.value.id,
+            foodName: food.value.name,
+            foodImage: food.value.image,
+            merchantName: food.value.merchantName || food.value.merchant?.name || food.value.merchant || 'Mitra Kampus',
+            quantity: quantity.value,
+            packaging: ecoPackaging.value,
+            paymentMethod: paymentMethod.value,
+            totalPayment: totalPayment.value,
+            pickupTime: food.value.pickupTime || food.value.pickup_time_display || '19.30 – 20.30 WIB',
+            address: food.value.address || 'Surabaya',
+            timestamp: Date.now(),
+        };
+        localStorage.setItem('plusfood_draft_checkout', JSON.stringify(draft));
+    } catch (e) {}
+};
+
+const clearCheckoutDraft = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem('plusfood_draft_checkout');
+    } catch (e) {}
+};
+
 onMounted(() => {
     if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
@@ -91,32 +157,40 @@ onMounted(() => {
         if (slug) {
             const found = sampleFoods.find(f => f.slug === slug);
             if (found) food.value = found;
+        } else {
+            // Pulihkan dari draft lokal jika membuka checkout kembali
+            const rawDraft = localStorage.getItem('plusfood_draft_checkout');
+            if (rawDraft) {
+                try {
+                    const draft = JSON.parse(rawDraft);
+                    if (draft.slug) {
+                        const found = sampleFoods.find(f => f.slug === draft.slug);
+                        if (found) food.value = found;
+                    }
+                    if (draft.quantity) quantity.value = Math.min(draft.quantity, food.value?.stock || 10);
+                    if (draft.packaging) ecoPackaging.value = draft.packaging;
+                    if (draft.paymentMethod) paymentMethod.value = draft.paymentMethod;
+                } catch (e) {}
+            }
         }
-        if (qty && !isNaN(qty) && qty > 0) {
+        if (qty && !isNaN(qty) && qty > 0 && food.value) {
             quantity.value = Math.min(qty, food.value.stock);
         }
     }
+    saveCheckoutDraft();
 });
 
-const subtotal = computed(() => food.value.priceDiscount * quantity.value);
-const packagingFee = computed(() => {
-    if (ecoPackaging.value === 'kotak_kertas') return 1000;
-    if (ecoPackaging.value === 'thinwall') return 2000;
-    return 0;
+watch([quantity, ecoPackaging, paymentMethod, food], () => {
+    saveCheckoutDraft();
 });
-const serviceFee = 1000;
-const totalPayment = computed(() => subtotal.value + packagingFee.value + serviceFee);
-const savedAmount = computed(() => (food.value.price - food.value.priceDiscount) * quantity.value);
-const weightSaved = computed(() => quantity.value * 400);
 
 const paymentOptions = [
-    { id: 'qris', label: 'QRIS', sublabel: 'Sandbox Instant', color: 'bg-blue-600', initial: 'QR' },
-    { id: 'gopay', label: 'GoPay', sublabel: 'Sandbox E-Wallet', color: 'bg-emerald-500', initial: 'GP' },
-    { id: 'dana', label: 'DANA', sublabel: 'Sandbox E-Wallet', color: 'bg-blue-500', initial: 'DA' },
-    { id: 'kasir', label: 'Bayar di Kasir', sublabel: 'Tunai saat ambil', color: 'bg-brand-maroon', initial: 'Rp' },
+    { id: 'qris', label: 'QRIS Dinamis', sublabel: 'BCA, Mandiri, BRI, Semua Bank', color: 'bg-indigo-600', initial: 'QR' },
+    { id: 'gopay', label: 'GoPay Sandbox', sublabel: 'Instan 1-Klik Simulasi', color: 'bg-sky-500', initial: 'GP' },
+    { id: 'dana', label: 'DANA Sandbox', sublabel: 'Dompet Digital Kampus', color: 'bg-blue-600', initial: 'DA' },
 ];
 
-const fmt = (n) => n.toLocaleString('id-ID');
+const fmt = (n) => (n || 0).toLocaleString('id-ID');
 
 let progressTimer = null;
 const confirmReservation = () => {
@@ -129,20 +203,48 @@ const confirmReservation = () => {
     // Tandai semua field sebagai disentuh
     touched.value = { name: true, address: true, whatsapp: true, email: true };
 
-    if (!isFormValid.value) return;
+    if (!isFormValid.value || isSubmitting.value) return;
 
+    isSubmitting.value = true;
     orderState.value = 'loading';
-    loadingProgress.value = 0;
+    loadingProgress.value = 10;
+
     let elapsed = 0;
-    const duration = 2200;
+    const duration = 1800;
     const tick = 40;
     progressTimer = setInterval(() => {
         elapsed += tick;
-        loadingProgress.value = Math.min(100, Math.round(100 * (1 - Math.pow(1 - elapsed / duration, 2))));
-        if (elapsed >= duration) {
+        loadingProgress.value = Math.min(94, Math.round(100 * (1 - Math.pow(1 - elapsed / duration, 2))));
+    }, tick);
+
+    // Kirim request ke backend Laravel Database
+    router.post(route('checkout.store'), {
+        food_id: food.value.id || 1,
+        quantity: quantity.value,
+        eco_packaging: ecoPackaging.value,
+        customer_name: userName.value,
+        customer_phone: userWhatsapp.value,
+        customer_email: userEmail.value,
+        customer_address: userAddress.value,
+        customer_nim: userNim.value,
+        notes: userNote.value.trim(),
+        payment_method: paymentMethod.value,
+        arrival_estimate: selectedArrival.value,
+        remind_before: remindBefore.value,
+    }, {
+        onSuccess: (page) => {
             clearInterval(progressTimer);
-            const newId = 'PF-' + Math.floor(10000 + Math.random() * 90000);
+            loadingProgress.value = 100;
+            isSubmitting.value = false;
+
+            const newId = page.props?.flash?.order_id || 'PF-' + Math.floor(10000 + Math.random() * 90000);
             generatedOrderId.value = newId;
+
+            const cleanMerchantName = typeof food.value?.merchant === 'object' && food.value?.merchant?.name
+                ? food.value.merchant.name
+                : (food.value?.merchantName || (typeof food.value?.merchant === 'string' ? food.value.merchant : 'Mitra PlusFood'));
+
+            // Sinkronisasi data ke LocalStorage untuk fallback offline & real-time update
             addOrder({
                 id: newId,
                 customerName: userName.value,
@@ -151,33 +253,47 @@ const confirmReservation = () => {
                 email: userEmail.value,
                 address: userAddress.value,
                 note: userNote.value.trim(),
-                food: food.value,
+                food: {
+                    ...food.value,
+                    merchant: cleanMerchantName,
+                    merchantName: cleanMerchantName,
+                    shortName: food.value?.shortName || food.value?.name,
+                },
                 quantity: quantity.value,
                 ecoPackaging: ecoPackaging.value,
                 ecoPackagingLabel: ecoPackaging.value === 'bawa_sendiri' ? 'Bawa Wadah Sendiri' : ecoPackaging.value === 'kotak_kertas' ? 'Kotak Kertas' : 'Thinwall',
                 subtotal: subtotal.value,
                 packagingFee: packagingFee.value,
                 total: totalPayment.value,
-                pickupTime: food.value.pickupTime || '19.30 – 20.30 WIB',
-                pickupDeadline: food.value.pickupDeadlineInfo || 'Hari ini tutup 21.00 WIB',
-                date: 'Hari ini, 13 Okt 2026',
+                pickupTime: food.value.pickupTime || food.value.pickup_time_display || '19.30 – 20.30 WIB',
+                pickupDeadline: food.value.pickupDeadlineInfo || food.value.pickup_deadline_info || 'Hari ini tutup 21.00 WIB',
+                date: 'Hari ini',
                 paymentMethod: paymentMethod.value,
-                paymentGateway: paymentMethod.value === 'kasir' ? 'cash_on_pickup' : 'sandbox_simulator',
+                paymentGateway: 'sandbox_simulator',
                 paymentReference: 'SBX-' + paymentMethod.value.toUpperCase() + '-' + newId,
-                paymentStatus: paymentMethod.value === 'kasir' ? 'menunggu_bayar' : 'lunas',
-                paidAt: paymentMethod.value === 'kasir' ? null : new Date().toISOString(),
+                paymentStatus: 'lunas',
+                paidAt: new Date().toISOString(),
                 status: 'menunggu',
                 statusLabel: 'Menunggu Pickup',
-                qrCode: newId + '-' + (food.value.merchantInitial || 'PF'),
+                qrCode: newId + '-' + (food.value.merchantInitial || food.value.merchant?.initial || 'PF'),
                 mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
                 hasReview: false,
             });
-            // Tampilkan toast notifikasi halus
+
+            // Hapus draft checkout karena pesanan sudah resmi masuk
+            clearCheckoutDraft();
+
             showSuccessToast.value = true;
             setTimeout(() => { orderState.value = 'success'; }, 300);
             setTimeout(() => { showSuccessToast.value = false; }, 4000);
+        },
+        onError: (errors) => {
+            clearInterval(progressTimer);
+            orderState.value = 'idle';
+            isSubmitting.value = false;
+            alert(Object.values(errors)[0] || 'Terjadi kendala saat memproses pesanan.');
         }
-    }, tick);
+    });
 };
 </script>
 
@@ -200,7 +316,7 @@ const confirmReservation = () => {
             <p class="text-xs font-bold text-[#8C7A72] uppercase tracking-widest mb-1">Reservasi Berhasil · {{ generatedOrderId }}</p>
             <h1 class="text-3xl font-black text-brand-maroon mb-3">Pickup Berhasil!</h1>
             <p class="text-sm text-[#6E5A54] max-w-xs leading-relaxed">
-                QR terverifikasi oleh <strong>{{ food.merchant }}</strong>. Selamat menikmati {{ food.name }}-mu, {{ userName.split(' ')[0] }}!
+                QR terverifikasi oleh <strong>{{ food.merchantName || food.merchant?.name || food.merchant }}</strong>. Selamat menikmati {{ food.name }}-mu, {{ userName.split(' ')[0] }}!
             </p>
             <div class="grid grid-cols-2 gap-4 mt-8 w-full max-w-xs">
                 <div class="rounded-2xl border border-[#EAE0D5] bg-white p-4 text-center shadow-sm flex flex-col items-center">
@@ -222,11 +338,14 @@ const confirmReservation = () => {
                     <p class="text-[11px] text-[#8C7A72] mt-0.5">berhasil dihemat</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3 mt-8 w-full max-w-xs">
-                <Link :href="route('riwayat')" class="flex-1 rounded-xl bg-brand-maroon py-3 text-sm font-bold text-white text-center shadow-md hover:bg-brand-maroon-hover transition active:scale-95">
-                    Beri Ulasan →
+            <div class="flex flex-col sm:flex-row items-center gap-3 mt-8 w-full max-w-sm">
+                <Link :href="route('tiket', { id: generatedOrderId })" class="w-full flex-1 rounded-xl bg-brand-maroon py-3 text-sm font-bold text-white text-center shadow-md hover:bg-brand-maroon-hover transition active:scale-95 flex items-center justify-center gap-2">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                    <span>Buka E-Tiket (QR)</span>
                 </Link>
-                <Link :href="route('beranda')" class="flex-1 rounded-xl border-2 border-brand-maroon py-3 text-sm font-bold text-brand-maroon text-center hover:bg-[#FAF7F2] transition">
+                <Link :href="route('beranda')" class="w-full flex-1 rounded-xl border-2 border-brand-maroon py-3 text-sm font-bold text-brand-maroon text-center hover:bg-[#FAF7F2] transition">
                     Ke Beranda
                 </Link>
             </div>
@@ -327,15 +446,20 @@ const confirmReservation = () => {
                 <div class="rounded-[20px] bg-white border border-[#EAE0D5] shadow-sm p-5 space-y-5 lg:sticky lg:top-6">
                     <!-- Ringkasan -->
                     <div>
-                        <div class="flex items-center gap-2 pb-3 border-b border-[#F5EFE6]">
-                            <svg class="h-3.5 w-3.5 text-[#8C7A72]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                            <span class="text-xs font-bold text-[#2D1B1E]">Ringkasan Pesanan</span>
+                        <div class="flex items-center justify-between pb-3 border-b border-[#F5EFE6]">
+                            <div class="flex items-center gap-2">
+                                <svg class="h-3.5 w-3.5 text-[#8C7A72]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                <span class="text-xs font-bold text-[#2D1B1E]">Ringkasan Pesanan</span>
+                            </div>
+                            <span class="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                                1 Tiket / Menu
+                            </span>
                         </div>
                         <div class="flex items-start gap-3 mt-3">
                             <img :src="food.image" :alt="food.name" class="h-14 w-16 rounded-xl object-cover bg-[#FAF7F2] border border-[#EAE0D5] shrink-0" />
                             <div class="flex-1 min-w-0">
                                 <p class="text-xs font-bold text-[#2D1B1E] line-clamp-2">{{ food.name }}</p>
-                                <p class="text-[11px] text-[#8C7A72] mt-0.5">{{ food.merchant }} · {{ quantity }} porsi</p>
+                                <p class="text-[11px] text-[#8C7A72] mt-0.5">{{ food.merchantName || food.merchant?.name || food.merchant }} · {{ quantity }} porsi</p>
                                 <span class="inline-block mt-1 rounded bg-rose-100 text-rose-700 text-[9px] font-extrabold px-1.5 py-0.5">Diskon {{ food.discountPercent }}%</span>
                             </div>
                         </div>
@@ -361,29 +485,33 @@ const confirmReservation = () => {
                         </div>
                     </div>
 
-                    <!-- Metode Pembayaran (Sandbox Simulator Tanpa Vendor Token) -->
+                    <!-- Metode Pembayaran Non-Tunai (Sandbox Simulator) -->
                     <div class="border-t border-[#F5EFE6] pt-4">
                         <div class="flex items-center justify-between mb-2">
-                            <p class="text-[11px] font-bold text-[#8C7A72]">Metode Pembayaran</p>
-                            <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[9px] font-extrabold text-amber-800 border border-amber-200">
-                                Sandbox Simulator
+                            <p class="text-[11px] font-bold text-[#8C7A72]">Metode Pembayaran Digital</p>
+                            <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-[9px] font-black text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>
+                                <span>100% Non-Tunai</span>
                             </span>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <label
                                 v-for="opt in paymentOptions"
                                 :key="opt.id"
-                                class="flex items-center gap-2 rounded-xl border-2 p-2.5 cursor-pointer transition"
-                                :class="paymentMethod === opt.id ? 'border-brand-maroon bg-rose-50/50 shadow-xs' : 'border-slate-200 bg-white shadow-2xs hover:border-slate-300'"
+                                class="flex items-center gap-2.5 rounded-xl border-2 p-2.5 cursor-pointer transition"
+                                :class="paymentMethod === opt.id ? 'border-brand-maroon bg-rose-50/50 shadow-xs' : 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50/60'"
                             >
                                 <input type="radio" :value="opt.id" v-model="paymentMethod" class="sr-only" />
-                                <div class="h-7 w-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black shrink-0" :class="opt.color">{{ opt.initial }}</div>
-                                <div>
-                                    <p class="text-[10px] font-bold text-[#2D1B1E] leading-none">{{ opt.label }}</p>
-                                    <p class="text-[9px] text-[#8C7A72] mt-0.5">{{ opt.sublabel }}</p>
+                                <div class="h-7 w-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black shrink-0 shadow-xs" :class="opt.color">{{ opt.initial }}</div>
+                                <div class="min-w-0">
+                                    <p class="text-[10px] font-bold text-[#2D1B1E] leading-none truncate">{{ opt.label }}</p>
+                                    <p class="text-[9px] text-[#8C7A72] mt-0.5 truncate">{{ opt.sublabel }}</p>
                                 </div>
                             </label>
                         </div>
+                        <p class="text-[10px] text-slate-500 mt-2 flex items-center gap-1">
+                            <span>🛡️ <strong>Bebas Order Fiktif:</strong> Pembayaran non-tunai lunas di awal mengamankan porsi surplus agar tidak basi jika pembeli tidak hadir.</span>
+                        </p>
                     </div>
 
                     <!-- Pickup reminder -->
@@ -393,7 +521,18 @@ const confirmReservation = () => {
                             <span>Jadwal Ambil Gerai:</span>
                         </div>
                         <p class="font-extrabold text-brand-maroon text-xs">{{ food.pickupTime || '19.30 – 20.30 WIB' }}</p>
-                        <p class="text-[10px] text-[#8C7A72]">{{ food.merchant }} · {{ food.address || 'Ketintang Surabaya' }}</p>
+                        <p class="text-[10px] text-[#8C7A72]">{{ food.merchantName || food.merchant?.name || food.merchant }} · {{ food.address || 'Ketintang Surabaya' }}</p>
+                    </div>
+
+                    <!-- Single-Item Rescue Rationale -->
+                    <div class="rounded-xl bg-amber-50/70 border border-amber-200 p-3 text-[11px] text-amber-950 leading-relaxed flex items-start gap-2 shadow-2xs">
+                        <svg class="w-4 h-4 text-amber-700 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" stroke-width="2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01" />
+                        </svg>
+                        <p>
+                            <strong>Sistem 1 Tiket / Menu:</strong> Setiap reservasi terikat pada 1 menu gerai agar QR tiket, rute Google Maps, dan jadwal penjemputan fisik langsung tidak tertukar.
+                        </p>
                     </div>
                 </div>
 
@@ -527,7 +666,7 @@ const confirmReservation = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
-                                    <span>Ambil di <strong>{{ food.merchant }}</strong> ({{ food.address }}). Tunjukkan tiket QR ke kasir saat tiba.</span>
+                                    <span>Ambil di <strong>{{ food.merchantName || food.merchant?.name || food.merchant }}</strong> ({{ food.address }}). Tunjukkan tiket QR ke kasir saat tiba.</span>
                                 </p>
                             </div>
 

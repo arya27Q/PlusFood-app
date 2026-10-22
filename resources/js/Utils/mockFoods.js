@@ -399,156 +399,16 @@ export const sampleFoods = [
     }
 ];
 
-// Inisialisasi Mock Pesanan (Shared antara Mahasiswa dan Mitra UMKM)
-export const initialOrders = [
-    {
-        id: 'PF-88219',
-        customerName: 'Raka Pratama',
-        nim: '23051204088',
-        whatsapp: '081234567890',
-        email: 'raka.pratama@mhs.unesa.ac.id',
-        food: sampleFoods[0],
-        quantity: 1,
-        ecoPackaging: 'bawa_sendiri',
-        ecoPackagingLabel: 'Wadah Sendiri (+10 Poin)',
-        subtotal: 12000,
-        packagingFee: 0,
-        total: 12000,
-        pickupTime: '19.30 – 20.30 WIB',
-        pickupDeadline: '20.30 WIB',
-        date: 'Hari ini, 16 Okt 2026',
-        status: 'menunggu',
-        statusLabel: 'Menunggu Pickup',
-        qrCode: 'PF-UNESA-88219-BS',
-        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-        customerNote: 'Bawa kotak tupperware biru, tolong sambal bumbu rujak dipisah ya bu.',
-        avatarBg: 'bg-rose-100 text-rose-600 border-rose-200'
-    },
-    {
-        id: 'PF-87904',
-        customerName: 'Ahmad Faiz',
-        nim: '23051204015',
-        whatsapp: '081298765432',
-        email: 'faiz.ahmad@mhs.its.ac.id',
-        food: sampleFoods[2],
-        quantity: 2,
-        ecoPackaging: 'kotak_kertas',
-        ecoPackagingLabel: 'Kotak Kertas (+Rp2.000)',
-        subtotal: 22000,
-        packagingFee: 2000,
-        total: 24000,
-        pickupTime: '19.00 – 20.30 WIB',
-        pickupDeadline: '20.30 WIB',
-        date: 'Hari ini, 16 Okt 2026',
-        status: 'selesai',
-        statusLabel: 'Selesai Diambil',
-        qrCode: 'PF-UNESA-87904-CH',
-        mapsUrl: 'https://maps.google.com/?q=-7.2915,112.7875',
-        customerNote: 'Kuah soto panas tolong koya udang dibungkus plastik terpisah.',
-        isReviewed: false,
-        avatarBg: 'bg-purple-100 text-purple-600 border-purple-200'
-    },
-    {
-        id: 'PF-87425',
-        customerName: 'Siti Nurhaliza',
-        nim: '23051204062',
-        whatsapp: '081377889900',
-        email: 'siti.nurhaliza@mhs.unesa.ac.id',
-        food: sampleFoods[1],
-        quantity: 1,
-        ecoPackaging: 'bawa_sendiri',
-        ecoPackagingLabel: 'Wadah Sendiri (+10 Poin)',
-        subtotal: 13000,
-        packagingFee: 0,
-        total: 13000,
-        pickupTime: '19.45 – 20.45 WIB',
-        pickupDeadline: '20.45 WIB',
-        date: 'Hari ini, 16 Okt 2026',
-        status: 'menunggu',
-        statusLabel: 'Menunggu Pickup',
-        qrCode: 'PF-UNESA-87425-SN',
-        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-        customerNote: 'Alergi udang & seafood, tolong sambal jangan kena terasi ya bu Sari.',
-        avatarBg: 'bg-blue-100 text-blue-600 border-blue-200'
-    },
-    {
-        id: 'PF-86938',
-        customerName: 'Teguh Kurniawan',
-        nim: '23051204099',
-        whatsapp: '081255667788',
-        email: 'teguh.k@mhs.unesa.ac.id',
-        food: sampleFoods[0],
-        quantity: 2,
-        ecoPackaging: 'bawa_sendiri',
-        ecoPackagingLabel: 'Wadah Sendiri (+10 Poin)',
-        subtotal: 24000,
-        packagingFee: 0,
-        total: 24000,
-        pickupTime: '20.00 – 21.00 WIB',
-        pickupDeadline: '21.00 WIB',
-        date: 'Hari ini, 16 Okt 2026',
-        status: 'menunggu',
-        statusLabel: 'Menunggu Pickup',
-        qrCode: 'PF-UNESA-86938-TK',
-        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-        customerNote: 'Bawa rantang susun 2 untuk porsi berdua bareng teman kos.',
-        avatarBg: 'bg-cyan-100 text-cyan-600 border-cyan-200'
-    },
-    {
-        id: 'PF-86412',
-        customerName: 'Dina Anindya',
-        nim: '23051204021',
-        whatsapp: '081987654321',
-        email: 'dina.anindya@mhs.unesa.ac.id',
-        food: sampleFoods[1],
-        quantity: 1,
-        ecoPackaging: 'bawa_sendiri',
-        ecoPackagingLabel: 'Wadah Sendiri',
-        subtotal: 13000,
-        packagingFee: 0,
-        total: 13000,
-        pickupTime: '18.30 – 20.00 WIB',
-        pickupDeadline: '20.00 WIB',
-        date: '15 Okt 2026',
-        status: 'selesai',
-        statusLabel: 'Selesai Diambil',
-        qrCode: 'PF-UNESA-86412-MA',
-        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-        customerNote: 'Sudah bawa misting stainless steel, makanan hangat.',
-        avatarBg: 'bg-amber-100 text-amber-600 border-amber-200'
-    },
-    {
-        id: 'PF-85882',
-        customerName: 'Muhammad Rizky',
-        nim: '23051204033',
-        whatsapp: '081233445566',
-        email: 'm.rizky@mhs.unesa.ac.id',
-        food: sampleFoods[2],
-        quantity: 1,
-        ecoPackaging: 'kotak_kertas',
-        ecoPackagingLabel: 'Kotak Kertas',
-        subtotal: 11000,
-        packagingFee: 2000,
-        total: 13000,
-        pickupTime: '18.00 – 19.30 WIB',
-        pickupDeadline: '19.30 WIB',
-        date: '14 Okt 2026',
-        status: 'dibatalkan',
-        statusLabel: 'Dibatalkan (Kadaluarsa)',
-        qrCode: 'PF-UNESA-85882-MR',
-        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-        customerNote: 'Maaf bu tadi ada jadwal praktikum mendadak.',
-        avatarBg: 'bg-emerald-100 text-emerald-600 border-emerald-200'
-    }
-];
+// Inisialisasi Mock Pesanan (Dikosongkan untuk testing alur bersih)
+export const initialOrders = [];
 
 export function getSavedOrders() {
-    if (typeof window === 'undefined') return initialOrders;
+    if (typeof window === 'undefined') return [];
     try {
         const data = localStorage.getItem('plusfood_orders');
-        return data ? JSON.parse(data) : initialOrders;
+        return data ? JSON.parse(data) : [];
     } catch (e) {
-        return initialOrders;
+        return [];
     }
 }
 
@@ -596,6 +456,56 @@ export function addOrderReview(orderId, reviewData) {
         return { success: true, pointsEarned: 15 };
     }
     return { success: false };
+}
+
+// Mapper untuk mengubah data relasi Order Eloquent Laravel ke objek Pesanan Frontend
+export function mapDbOrder(db) {
+    if (!db) return null;
+    const firstItem = db.items && db.items.length > 0 ? db.items[0] : null;
+    const foodItem = firstItem?.food || {};
+    const merchantName = db.merchant?.name || (typeof foodItem.merchant === 'string' ? foodItem.merchant : foodItem.merchant?.name) || 'Mitra Kampus';
+    return {
+        id: db.order_number,
+        customerName: db.customer_name,
+        nim: db.customer_nim,
+        whatsapp: db.customer_phone,
+        email: db.customer_email,
+        address: db.customer_address,
+        note: db.notes || '',
+        food: {
+            id: foodItem.id || firstItem?.food_id,
+            name: firstItem?.food_name || foodItem.name || 'Makanan Surplus',
+            merchant: merchantName,
+            merchantName: merchantName,
+            image: foodItem.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+            priceOriginal: foodItem.price_original || 25000,
+            priceDiscount: firstItem?.price || 12000,
+            price: foodItem.price_original || 25000,
+            pickupTime: db.pickup_time,
+            pickupDeadlineInfo: db.pickup_deadline,
+            address: foodItem.address || db.merchant?.address || 'Surabaya',
+        },
+        quantity: firstItem?.quantity || 1,
+        ecoPackaging: firstItem?.eco_packaging || 'bawa_sendiri',
+        ecoPackagingLabel: firstItem?.eco_packaging === 'bawa_sendiri' ? 'Bawa Wadah Sendiri' : firstItem?.eco_packaging === 'kotak_kertas' ? 'Kotak Kertas' : 'Thinwall',
+        subtotal: db.total_items_price,
+        packagingFee: db.total_packaging_fee,
+        total: db.total_price,
+        pickupTime: db.pickup_time,
+        pickupDeadline: db.pickup_deadline,
+        date: db.created_at ? new Date(db.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini',
+        paymentMethod: db.payment?.payment_method || 'qris',
+        paymentGateway: db.payment?.payment_gateway || 'sandbox_simulator',
+        paymentReference: db.payment?.payment_reference || ('SBX-QRIS-' + db.order_number),
+        paymentStatus: db.payment?.status || (db.status === 'menunggu' ? 'lunas' : 'menunggu_bayar'),
+        paidAt: db.payment?.paid_at,
+        status: db.status,
+        statusLabel: db.status === 'menunggu' ? 'Menunggu Pickup' : db.status === 'siap_ambil' ? 'Siap Diambil' : db.status === 'selesai' ? 'Selesai' : 'Dibatalkan',
+        qrCode: db.qr_token || (db.order_number + '-PF'),
+        manualCode: db.order_number,
+        mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
+        hasReview: db.has_review || false,
+    };
 }
 
 

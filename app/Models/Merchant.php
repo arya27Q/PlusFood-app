@@ -67,6 +67,14 @@ class Merchant extends Model
     }
 
     /**
+     * Relasi ke daftar pesanan yang masuk ke toko mitra ini.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
      * Inisial 2 huruf untuk avatar warung (e.g. "Warung Bu Sari" -> "BS").
      */
     public function getInitialAttribute(): string

@@ -2,13 +2,17 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import PickupTicketDetail from '@/Components/Mahasiswa/PickupTicketDetail.vue';
-import { getSavedOrders, addOrderReview, updateOrderStatus } from '@/Utils/mockFoods';
+import { getSavedOrders, addOrderReview, updateOrderStatus, mapDbOrder } from '@/Utils/mockFoods';
 import { ref, onMounted, computed } from 'vue';
 
 const props = defineProps({
     initialTicketId: {
         type: String,
         default: null,
+    },
+    dbOrders: {
+        type: Array,
+        default: () => [],
     },
 });
 
@@ -34,12 +38,24 @@ const quickReviewTags = [
 ];
 
 const reloadOrders = () => {
-    orders.value = getSavedOrders();
+    const local = getSavedOrders();
+    const dbMapped = (props.dbOrders || []).map(mapDbOrder);
+
+    // Gabungkan list pesanan database MySQL dan LocalStorage
+    const combined = [...dbMapped];
+    local.forEach(loc => {
+        if (!combined.some(c => c.id === loc.id)) {
+            combined.push(loc);
+        }
+    });
+
+    orders.value = combined;
+
     // Auto-buka tiket jika ada parameter URL atau prop initialTicketId
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const ticketId = props.initialTicketId || (urlParams ? urlParams.get('tiket') : null);
     if (ticketId) {
-        const found = orders.value.find(o => o.id === ticketId || o.qrCode === ticketId);
+        const found = orders.value.find(o => o.id === ticketId || o.qrCode === ticketId || o.manualCode === ticketId);
         if (found) {
             activeTicketOrder.value = found;
         } else if (orders.value.length > 0) {
@@ -48,13 +64,70 @@ const reloadOrders = () => {
     }
 };
 
+const draftCheckout = ref(null);
+const loadDraftCheckout = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        const raw = localStorage.getItem('plusfood_draft_checkout');
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (Date.now() - (data.timestamp || 0) < 2 * 60 * 60 * 1000) {
+                draftCheckout.value = data;
+            } else {
+                draftCheckout.value = null;
+            }
+        } else {
+            draftCheckout.value = null;
+        }
+    } catch (e) {
+        draftCheckout.value = null;
+    }
+};
+
+const discardDraft = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('plusfood_draft_checkout');
+    }
+    draftCheckout.value = null;
+};
+
+const getMerchantName = (food) => {
+    if (!food) return 'Mitra PlusFood';
+    if (typeof food.merchant === 'string') return food.merchant;
+    if (typeof food.merchant === 'object' && food.merchant?.name) return food.merchant.name;
+    if (food.merchantName && typeof food.merchantName === 'string') return food.merchantName;
+    return 'Mitra PlusFood';
+};
+
+const clearAllOrders = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('plusfood_orders');
+        localStorage.removeItem('plusfood_draft_checkout');
+        window.dispatchEvent(new Event('storage'));
+    }
+    orders.value = [];
+    activeTicketOrder.value = null;
+    draftCheckout.value = null;
+};
+
 onMounted(() => {
+    // Otomatis kosongkan riwayat pesanan lama untuk testing bersih sesuai permintaan user
+    if (typeof window !== 'undefined' && !localStorage.getItem('plusfood_reset_testing_orders_v1')) {
+        localStorage.removeItem('plusfood_orders');
+        localStorage.removeItem('plusfood_draft_checkout');
+        localStorage.setItem('plusfood_reset_testing_orders_v1', 'true');
+        window.dispatchEvent(new Event('storage'));
+    }
     reloadOrders();
+    loadDraftCheckout();
     // Sinkronisasi Real-Time Dua Arah Bawaan Browser (Tanpa Websocket Vendor)
     if (typeof window !== 'undefined') {
         window.addEventListener('storage', (e) => {
             if (e.key === 'plusfood_orders') {
                 reloadOrders();
+            }
+            if (e.key === 'plusfood_draft_checkout') {
+                loadDraftCheckout();
             }
         });
     }
@@ -197,6 +270,57 @@ const filteredOrders = computed(() => {
                     >
                         Semua
                     </button>
+                    <button
+                        type="button"
+                        @click="clearAllOrders"
+                        class="rounded-xl px-2.5 py-1.5 text-xs font-bold transition whitespace-nowrap text-rose-600 hover:bg-rose-50 border border-rose-200/80 cursor-pointer ml-1"
+                        title="Kosongkan seluruh riwayat pesanan untuk simulasi testing baru"
+                    >
+                        Kosongkan Riwayat
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= BANNER DRAFT CHECKOUT TERTUNDA ================= -->
+            <div
+                v-if="draftCheckout"
+                class="rounded-[22px] bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-4 shadow-sm animate-fade-in flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            >
+                <div class="flex items-center gap-3.5 min-w-0">
+                    <img
+                        :src="draftCheckout.foodImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'"
+                        :alt="draftCheckout.foodName"
+                        class="h-12 w-12 rounded-xl object-cover bg-amber-100 border border-amber-200 shrink-0"
+                    />
+                    <div class="min-w-0">
+                        <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md">
+                            <svg class="w-3 h-3 text-amber-800" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/></svg>
+                            Pesanan Belum Selesai Dibayar
+                        </span>
+                        <h4 class="text-sm font-black text-[#2D1B1E] truncate mt-0.5">
+                            {{ draftCheckout.foodName }}
+                        </h4>
+                        <p class="text-xs text-[#6E5A54] truncate">
+                            {{ draftCheckout.merchantName }} · {{ draftCheckout.quantity }} porsi · Total: <strong class="text-brand-maroon">Rp{{ Number(draftCheckout.totalPayment || 0).toLocaleString('id-ID') }}</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <button
+                        type="button"
+                        @click="discardDraft"
+                        class="rounded-xl px-3 py-1.5 text-xs font-bold text-stone-500 hover:text-rose-600 transition"
+                    >
+                        Batalkan
+                    </button>
+                    <Link
+                        :href="route('checkout', { slug: draftCheckout.slug, qty: draftCheckout.quantity, packaging: draftCheckout.packaging })"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-brand-maroon px-4 py-2 text-xs font-black text-white hover:bg-brand-maroon-hover shadow-md shadow-brand-maroon/20 transition active:scale-95"
+                    >
+                        <span>Lanjutkan Pembayaran</span>
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </Link>
                 </div>
             </div>
 
@@ -289,14 +413,14 @@ const filteredOrders = computed(() => {
                             </div>
 
                             <h3 class="text-base font-extrabold text-[#2D1B1E] mt-1.5">
-                                {{ order.food?.shortName }} (x{{ order.quantity }})
+                                {{ order.food?.shortName || order.food?.name }} (x{{ order.quantity }})
                             </h3>
                             <p class="text-xs text-[#8C7A72] mt-0.5 flex flex-wrap items-center gap-1.5">
                                 <span class="flex items-center gap-1 font-semibold text-[#6E5A54]">
                                     <svg class="h-3.5 w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     </svg>
-                                    {{ order.food?.merchant }}
+                                    {{ getMerchantName(order.food) }}
                                 </span>
                                 <span>•</span>
                                 <span class="flex items-center gap-1">
@@ -370,108 +494,111 @@ const filteredOrders = computed(() => {
                 </div>
             </div>
 
-            <!-- ================= MODAL ULASAN BERHADIAH (+15 GREEN POINTS) ================= -->
-            <div
-                v-if="showReviewModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-page-enter"
-            >
-                <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5">
-                    <button
-                        @click="showReviewModal = false"
-                        class="absolute top-5 right-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#FAF7F2] text-gray-400 hover:text-gray-700 transition"
-                    >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-
-                    <div>
-                        <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-black border border-emerald-300 mb-2">
-                            <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
-                            </svg>
-                            <span>+15 Green Points Reward</span>
-                        </div>
-                        <h3 class="text-xl font-black text-[#2D1B1E]">Ulas Makanan Diselamatkan</h3>
-                        <p class="text-xs text-[#8C7A72]">
-                            Bantu mitra <strong>{{ activeReviewOrder?.food?.merchant }}</strong> dan dapatkan poin gamifikasi!
-                        </p>
-                    </div>
-
-                    <!-- Bintang Rating -->
-                    <div class="space-y-1.5 text-center bg-[#FAF7F2] p-4 rounded-2xl border border-[#EAE0D5]">
-                        <span class="text-xs font-bold text-[#6E5A54] block">Nilai Pengalaman Anda</span>
-                        <div class="flex items-center justify-center gap-2 pt-1">
-                            <button
-                                v-for="star in 5"
-                                :key="star"
-                                type="button"
-                                @click="reviewRating = star"
-                                class="p-1 transition hover:scale-125"
-                            >
-                                <svg
-                                    class="h-8 w-8"
-                                    :class="star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 fill-none'"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                >
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                                </svg>
-                            </button>
-                        </div>
-                        <span class="text-xs font-bold text-amber-700">{{ reviewRating }} dari 5 Bintang</span>
-                    </div>
-
-                    <!-- Quick-Tags Selector Sesuai System Design Specs -->
-                    <div class="space-y-2">
-                        <label class="block text-xs font-bold text-[#2D1B1E]">Pilih Quick-Tags Penilaian:</label>
-                        <div class="flex flex-wrap gap-1.5">
-                            <button
-                                v-for="tag in quickReviewTags"
-                                :key="tag"
-                                type="button"
-                                @click="toggleReviewTag(tag)"
-                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition border inline-flex items-center gap-1.5"
-                                :class="selectedReviewTags.includes(tag) ? 'bg-brand-maroon text-white border-brand-maroon shadow-2xs' : 'bg-[#FAF7F2] text-[#6E5A54] border-[#EAE0D5] hover:bg-white'"
-                            >
-                                <svg v-if="selectedReviewTags.includes(tag)" class="w-3 h-3 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <svg v-else class="w-3 h-3 text-[#8C7A72] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                                <span>{{ tag }}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Catatan / Ulasan Mahasiswa -->
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-[#2D1B1E]">Ulasan Tambahan (Opsional)</label>
-                        <textarea
-                            v-model="reviewComment"
-                            rows="2"
-                            placeholder="Contoh: Makanannya enak dan masih hangat, penjualnya sangat ramah..."
-                            class="w-full rounded-xl border border-[#EAE0D5] bg-[#FAF7F2] p-3 text-xs font-medium text-[#2D1B1E] focus:border-brand-maroon focus:bg-white focus:outline-none"
-                        ></textarea>
-                    </div>
-
-                    <!-- Submit CTA -->
-                    <div class="pt-1">
+            <!-- ================= MODAL ULASAN BERHADIAH (+15 GREEN POINTS - FULL SCREEN) ================= -->
+            <Teleport to="body">
+                <div
+                    v-if="showReviewModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+                    style="top: 0; left: 0; width: 100vw; height: 100vh;"
+                >
+                    <div class="relative w-full max-w-md rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-[#EAE0D5] space-y-5">
                         <button
-                            type="button"
-                            @click="submitReview"
-                            class="w-full rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition flex items-center justify-center gap-2"
+                            @click="showReviewModal = false"
+                            class="absolute top-5 right-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#FAF7F2] text-gray-400 hover:text-gray-700 transition"
                         >
-                            <span>Kirim Ulasan & Klaim +15 Poin</span>
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
+
+                        <div>
+                            <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-black border border-emerald-300 mb-2">
+                                <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
+                                </svg>
+                                <span>+15 Green Points Reward</span>
+                            </div>
+                            <h3 class="text-xl font-black text-[#2D1B1E]">Ulas Makanan Diselamatkan</h3>
+                            <p class="text-xs text-[#8C7A72]">
+                                Bantu mitra <strong>{{ activeReviewOrder?.food?.merchant }}</strong> dan dapatkan poin gamifikasi!
+                            </p>
+                        </div>
+
+                        <!-- Bintang Rating -->
+                        <div class="space-y-1.5 text-center bg-[#FAF7F2] p-4 rounded-2xl border border-[#EAE0D5]">
+                            <span class="text-xs font-bold text-[#6E5A54] block">Nilai Pengalaman Anda</span>
+                            <div class="flex items-center justify-center gap-2 pt-1">
+                                <button
+                                    v-for="star in 5"
+                                    :key="star"
+                                    type="button"
+                                    @click="reviewRating = star"
+                                    class="p-1 transition hover:scale-125"
+                                >
+                                    <svg
+                                        class="h-8 w-8"
+                                        :class="star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 fill-none'"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <span class="text-xs font-bold text-amber-700">{{ reviewRating }} dari 5 Bintang</span>
+                        </div>
+
+                        <!-- Quick-Tags Selector Sesuai System Design Specs -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-[#2D1B1E]">Pilih Quick-Tags Penilaian:</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button
+                                    v-for="tag in quickReviewTags"
+                                    :key="tag"
+                                    type="button"
+                                    @click="toggleReviewTag(tag)"
+                                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition border inline-flex items-center gap-1.5"
+                                    :class="selectedReviewTags.includes(tag) ? 'bg-brand-maroon text-white border-brand-maroon shadow-2xs' : 'bg-[#FAF7F2] text-[#6E5A54] border-[#EAE0D5] hover:bg-white'"
+                                >
+                                    <svg v-if="selectedReviewTags.includes(tag)" class="w-3 h-3 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <svg v-else class="w-3 h-3 text-[#8C7A72] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>{{ tag }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Catatan / Ulasan Mahasiswa -->
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-[#2D1B1E]">Ulasan Tambahan (Opsional)</label>
+                            <textarea
+                                v-model="reviewComment"
+                                rows="2"
+                                placeholder="Contoh: Makanannya enak dan masih hangat, penjualnya sangat ramah..."
+                                class="w-full rounded-xl border border-[#EAE0D5] bg-[#FAF7F2] p-3 text-xs font-medium text-[#2D1B1E] focus:border-brand-maroon focus:bg-white focus:outline-none"
+                            ></textarea>
+                        </div>
+
+                        <!-- Submit CTA -->
+                        <div class="pt-1">
+                            <button
+                                type="button"
+                                @click="submitReview"
+                                class="w-full rounded-xl bg-brand-maroon py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition flex items-center justify-center gap-2"
+                            >
+                                <span>Kirim Ulasan & Klaim +15 Poin</span>
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Teleport>
 
             <!-- ================= REWARD TOAST POPUP ================= -->
             <div

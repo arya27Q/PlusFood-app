@@ -73,6 +73,9 @@ class Food extends Model
         'dietaryTags',
         'tags',
         'rating',
+        'reviewsCount',
+        'batchCooked',
+        'warmerGrade',
         'isCookedToday',
         'isSealed',
         'isVerified',
@@ -275,6 +278,21 @@ class Food extends Model
     public function getRatingAttribute(): float
     {
         return (float) ($this->merchant?->rating ?? 4.8);
+    }
+
+    public function getReviewsCountAttribute(): int
+    {
+        return (int) ($this->merchant?->reviews_count ?? 148);
+    }
+
+    public function getBatchCookedAttribute(): string
+    {
+        return 'Sore Ini (Fresh)';
+    }
+
+    public function getWarmerGradeAttribute(): string
+    {
+        return 'Food Warmer Grade A';
     }
 
     public function getIsCookedTodayAttribute(): bool

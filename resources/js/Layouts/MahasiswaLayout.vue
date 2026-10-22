@@ -4,6 +4,8 @@ import ApplicationLogo from '@/Components/UI/ApplicationLogo.vue';
 import Dropdown from '@/Components/UI/Dropdown.vue';
 import DropdownLink from '@/Components/UI/DropdownLink.vue';
 import { useAuth } from '@/Composables/useAuth';
+import { getSavedOrders } from '@/Utils/mockFoods';
+import { ref, onMounted, computed } from 'vue';
 
 defineProps({
     title: {
@@ -13,6 +15,61 @@ defineProps({
 });
 
 const auth = useAuth();
+
+// Pelacakan status pesanan aktif di seluruh halaman (agar tidak hilang saat navigasi)
+const activeOrders = ref([]);
+const loadActiveOrders = () => {
+    const orders = getSavedOrders();
+    activeOrders.value = (orders || []).filter(o => o.status === 'menunggu' || o.status === 'siap_ambil');
+};
+
+const activeOrdersCount = computed(() => activeOrders.value.length);
+const latestActiveOrder = computed(() => activeOrders.value[0] || null);
+
+// Pelacakan draft checkout tertunda (jika user kepencet Katalog/Profil/dll saat mau bayar)
+const draftCheckout = ref(null);
+const loadDraftCheckout = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        const raw = localStorage.getItem('plusfood_draft_checkout');
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (Date.now() - (data.timestamp || 0) < 2 * 60 * 60 * 1000) {
+                draftCheckout.value = data;
+            } else {
+                draftCheckout.value = null;
+            }
+        } else {
+            draftCheckout.value = null;
+        }
+    } catch (e) {
+        draftCheckout.value = null;
+    }
+};
+
+const discardDraft = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('plusfood_draft_checkout');
+    }
+    draftCheckout.value = null;
+};
+
+onMounted(() => {
+    loadActiveOrders();
+    loadDraftCheckout();
+    if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'plusfood_orders') {
+                loadActiveOrders();
+            }
+            if (e.key === 'plusfood_draft_checkout') {
+                loadDraftCheckout();
+            }
+        });
+    }
+});
 </script>
 
 <template>
@@ -46,10 +103,17 @@ const auth = useAuth();
                         </Link>
                         <Link
                             :href="route('riwayat')"
-                            class="rounded-xl px-4 py-2 text-sm font-bold transition-all"
+                            class="rounded-xl px-4 py-2 text-sm font-bold transition-all flex items-center gap-1.5"
                             :class="route().current('riwayat') ? 'bg-[#F5EFE6] text-brand-maroon font-extrabold' : 'text-[#6E5A54] hover:text-brand-maroon hover:bg-[#FAF7F2]'"
                         >
-                            Riwayat
+                            <span>Riwayat</span>
+                            <span
+                                v-if="activeOrdersCount > 0"
+                                class="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-rose-600 text-[10px] font-black text-white shadow-xs"
+                                title="Ada pesanan yang sedang berlangsung"
+                            >
+                                {{ activeOrdersCount }}
+                            </span>
                         </Link>
                         <Link
                             :href="route('profil')"
@@ -136,6 +200,91 @@ const auth = useAuth();
             <slot />
         </main>
 
+        <!-- ================= FLOATING NOTIFICATION PILL (PESANAN AKTIF ATAU DRAFT TERTUNDA) ================= -->
+        <transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="transform translate-y-8 opacity-0 scale-95"
+            enter-to-class="transform translate-y-0 opacity-100 scale-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="transform translate-y-0 opacity-100 scale-100"
+            leave-to-class="transform translate-y-8 opacity-0 scale-95"
+        >
+            <!-- Skenario 1: Pesanan Resmi Aktif Berlangsung -->
+            <div
+                v-if="latestActiveOrder && !route().current('riwayat') && !route().current('checkout')"
+                class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 max-w-[calc(100vw-2rem)] sm:max-w-md shadow-2xl"
+            >
+                <Link
+                    :href="route('tiket', { id: latestActiveOrder.id })"
+                    class="group flex items-center gap-3.5 rounded-2xl bg-stone-900/95 text-white p-3.5 border border-stone-700/80 backdrop-blur-md transition hover:bg-stone-900 hover:scale-[1.02] active:scale-95 shadow-xl shadow-stone-950/20"
+                >
+                    <span class="relative flex h-3 w-3 shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+
+                    <div class="min-w-0 flex-1 text-left">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                                {{ latestActiveOrder.statusLabel || 'Menunggu Pickup' }}
+                            </span>
+                            <span class="text-[10px] text-stone-400">· ID: {{ latestActiveOrder.id }}</span>
+                        </div>
+                        <p class="text-xs font-bold text-white truncate mt-0.5">
+                            {{ latestActiveOrder.food?.name }}
+                        </p>
+                    </div>
+
+                    <span class="shrink-0 rounded-xl bg-brand-maroon px-3 py-1.5 text-xs font-black text-white shadow-xs group-hover:bg-brand-maroon-hover transition flex items-center gap-1">
+                        <span>Tiket QR</span>
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                </Link>
+            </div>
+
+            <!-- Skenario 2: Draft Checkout Tertunda (Kepencet Menu Lain saat Mau Bayar) -->
+            <div
+                v-else-if="draftCheckout && !route().current('checkout')"
+                class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 max-w-[calc(100vw-2rem)] sm:max-w-md shadow-2xl"
+            >
+                <div class="group flex items-center gap-3 rounded-2xl bg-[#2D1B1E]/95 text-white p-3.5 border border-amber-500/70 backdrop-blur-md shadow-xl shadow-stone-950/30">
+                    <span class="relative flex h-3 w-3 shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
+
+                    <div class="min-w-0 flex-1 text-left">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                                Checkout Tertunda
+                            </span>
+                            <span class="text-[10px] text-amber-200/80">· {{ draftCheckout.quantity }} porsi</span>
+                        </div>
+                        <p class="text-xs font-bold text-white truncate mt-0.5">
+                            {{ draftCheckout.foodName }}
+                        </p>
+                    </div>
+
+                    <Link
+                        :href="route('checkout', { slug: draftCheckout.slug, qty: draftCheckout.quantity, packaging: draftCheckout.packaging })"
+                        class="shrink-0 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 px-3 py-1.5 text-xs font-black shadow-xs transition flex items-center gap-1"
+                    >
+                        <span>Lanjutkan</span>
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </Link>
+
+                    <button
+                        type="button"
+                        @click="discardDraft"
+                        class="text-amber-200/50 hover:text-white p-1 text-xs transition cursor-pointer"
+                        title="Hapus draft pesanan"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </transition>
+
         <!-- ================= BOTTOM NAVIGATION BAR (MOBILE-FIRST) ================= -->
         <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE0D5] py-2 px-2 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             <Link
@@ -174,7 +323,10 @@ const auth = useAuth();
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                     </svg>
                     <!-- Ping dot for active ticket -->
-                    <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
+                    <span v-if="activeOrdersCount > 0" class="absolute top-0 right-0 flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 ring-2 ring-white"></span>
+                    </span>
                 </div>
                 <span class="text-[10px] leading-tight">Riwayat</span>
             </Link>
