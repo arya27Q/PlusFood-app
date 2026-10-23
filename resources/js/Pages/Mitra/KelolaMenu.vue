@@ -1,8 +1,19 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
-import { sampleFoods, campusZones, saveCustomFood, getCustomFoods, deleteCustomFood } from '@/Utils/mockFoods';
-import { ref, computed, onMounted } from 'vue';
+import { campusZones } from '@/Utils/mockFoods';
+import { ref, computed, watch, onMounted } from 'vue';
+
+const props = defineProps({
+    foods: {
+        type: Array,
+        default: () => [],
+    },
+    merchant: {
+        type: Object,
+        default: () => ({}),
+    },
+});
 
 // Zona kampus aktif di Surabaya (sinkron dengan filter mahasiswa)
 const availableCampusZones = computed(() => campusZones.filter(z => !z.isComingSoon));
@@ -27,73 +38,21 @@ const getTagBadgeClass = (tag) => {
     return 'bg-slate-700 text-white border-slate-800';
 };
 
-// Listing lokal yang aktif untuk gerai Warung Bu Sari
-const activeListings = ref([
-    {
-        id: 101,
-        slug: 'nasi-ayam-bakar-bumbu-rujak-spesial-101',
-        name: 'Nasi Ayam Bakar Bumbu Rujak Spesial',
-        category: 'Nasi',
-        campusZoneId: 'unesa-ketintang',
-        campusZone: 'unesa-ketintang',
-        campusZoneName: 'UNESA Ketintang',
-        canteenLocation: 'Kantin Vokasi Lt. 1 Stand 04',
-        priceOriginal: 25000,
-        priceDiscount: 12000,
-        stock: 3,
-        pickupSession: 'malam',
-        pickupStart: '19.30',
-        pickupEnd: '20.30',
-        pickupTime: '19.30 – 20.30 WIB',
-        status: 'aktif',
-        tags: ['Halal', 'Bebas Kacang'],
-        spiciness: 'Pedas Sedang',
-        supportEcoPackaging: true,
-        image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=500&q=80'
-    },
-    {
-        id: 102,
-        slug: 'sop-ayam-sayur-segar-warung-102',
-        name: 'Sop Ayam & Sayur Segar Warung',
-        category: 'Soto',
-        campusZoneId: 'unesa-ketintang',
-        campusZone: 'unesa-ketintang',
-        campusZoneName: 'UNESA Ketintang',
-        canteenLocation: 'Kantin Vokasi Lt. 1 Stand 04',
-        priceOriginal: 18000,
-        priceDiscount: 9000,
-        stock: 2,
-        pickupSession: 'sore',
-        pickupStart: '19.00',
-        pickupEnd: '20.30',
-        pickupTime: '19.00 – 20.30 WIB',
-        status: 'aktif',
-        tags: ['Halal', 'Bebas Kacang', 'Bebas Gluten'],
-        spiciness: 'Tidak Pedas',
-        supportEcoPackaging: true,
-        image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=500&q=80'
-    }
-]);
+// Listing aktif yang terhubung langsung dengan database MySQL foods
+const activeListings = ref([...props.foods]);
 
-// Helper slug generator
-const slugify = (text) => {
-    return (text || '')
-        .toString()
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '') || 'menu-surplus';
-};
+watch(() => props.foods, (newVal) => {
+    if (newVal) {
+        activeListings.value = [...newVal];
+    }
+}, { deep: true, immediate: true });
 
 // Form Model Input Kilat yang Selaras dengan Filter Katalog Mahasiswa
 const form = ref({
     name: '',
     category: 'Nasi',
-    campusZoneId: 'unesa-ketintang',
-    canteenLocation: 'Kantin Vokasi Lt. 1 Stand 04',
+    campusZoneId: props.merchant?.campus_zone || 'unesa-ketintang',
+    canteenLocation: props.merchant?.canteen_location || 'Kantin Vokasi Lt. 1 Stand 04',
     priceOriginal: 22000,
     priceDiscount: 11000,
     estimatedCost: 8000,
@@ -242,118 +201,89 @@ const getMitraStoreInfo = () => {
     return { merchantName, merchantAddress };
 };
 
+const isSubmitting = ref(false);
+
 const submitListing = () => {
-    if (!isFormValid.value) return;
+    if (!isFormValid.value || isSubmitting.value) return;
 
-    const newId = Date.now();
-    const newSlug = `${slugify(form.value.name)}-${String(newId).slice(-4)}`;
-    const selectedZone = availableCampusZones.value.find(z => z.id === form.value.campusZoneId);
-    const { merchantName, merchantAddress } = getMitraStoreInfo();
-
-    const newFoodItem = {
-        id: newId,
-        slug: newSlug,
+    isSubmitting.value = true;
+    const foodPayload = {
         name: form.value.name.trim(),
-        shortName: form.value.name.trim().length > 25 ? form.value.name.trim().slice(0, 22) + '...' : form.value.name.trim(),
         category: form.value.category,
+        campus_zone_id: form.value.campusZoneId,
         campusZoneId: form.value.campusZoneId,
-        campusZone: form.value.campusZoneId,
-        campusZoneName: selectedZone?.name || 'UNESA Ketintang',
-        merchantZoneLabel: selectedZone ? selectedZone.name : 'Ketintang (Dekat UNESA)',
+        canteen_location: form.value.canteenLocation.trim(),
         canteenLocation: form.value.canteenLocation.trim(),
-        priceOriginal: Number(form.value.priceOriginal),
-        priceDiscount: Number(form.value.priceDiscount),
-        discountPercent: discountPercent.value,
+        price_original: Number(form.value.priceOriginal),
+        price_discount: Number(form.value.priceDiscount),
+        estimated_cost: Number(form.value.estimatedCost),
         stock: Number(form.value.stock),
-        pickupSession: form.value.pickupSession,
+        pickup_session: form.value.pickupSession,
+        pickup_time_start: form.value.pickupStart,
+        pickup_time_end: form.value.pickupEnd,
         pickupStart: form.value.pickupStart,
         pickupEnd: form.value.pickupEnd,
-        pickupTime: `${form.value.pickupStart} – ${form.value.pickupEnd} WIB`,
-        pickupDeadlineInfo: `Hari ini · tutup ${form.value.pickupEnd} WIB`,
-        merchant: merchantName,
-        merchantInitial: merchantName.slice(0, 2).toUpperCase(),
-        merchantActiveSince: 'Maret 2023',
-        merchantRescuedCount: '1.420+',
-        rating: 4.9,
-        reviewsCount: 16,
-        distance: '0,5 km',
-        distanceMins: '3 mnt jalan kaki dari gerbang kampus',
-        address: merchantAddress,
-        batchCooked: 'Hari ini ' + form.value.pickupStart + ' WIB',
-        warmerGrade: 'Food Warmer Grade A',
-        co2Saved: '0,85 kg CO2e',
-        description: form.value.kitchenNote || 'Menu surplus lezat & higienis kualitas prima, disimpan di food warmer berstandar.',
-        packages: [
-            { icon: 'rice', title: '1 Porsi ' + form.value.name.trim() },
-            { icon: 'salad', title: 'Lalapan & Sambal Segar' },
-            { icon: 'eco', title: form.value.supportEcoPackaging ? 'Diskon Kemasan Bawa Wadah Sendiri' : 'Kemasan Higienis Standar' }
-        ],
-        status: 'aktif',
         tags: [...form.value.tags],
-        dietaryTags: [...form.value.tags],
         spiciness: form.value.spiciness,
+        support_eco_packaging: Boolean(form.value.supportEcoPackaging),
         supportEcoPackaging: Boolean(form.value.supportEcoPackaging),
-        image: form.value.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80',
-        minutesLeft: 45
+        description: form.value.kitchenNote,
+        kitchenNote: form.value.kitchenNote,
+        image: form.value.image
     };
 
-    // 1. Simpan ke plusfood_custom_foods agar tersinkronisasi ke katalog Mahasiswa
-    saveCustomFood(newFoodItem);
-
-    // 2. Tambahkan ke listing aktif lokal Mitra
-    activeListings.value.unshift(newFoodItem);
-
-    // 3. Tampilkan toast sukses "Menu Surplus Berhasil Dipublikasikan ke Mahasiswa!"
-    publishedFoodName.value = newFoodItem.name;
-    isPublished.value = true;
-    setTimeout(() => {
-        isPublished.value = false;
-        form.value.name = '';
-    }, 4000);
+    router.post(route('mitra.kelola-menu.store'), foodPayload, {
+        preserveScroll: true,
+        onSuccess: () => {
+            publishedFoodName.value = foodPayload.name;
+            isPublished.value = true;
+            form.value.name = '';
+            isSubmitting.value = false;
+            setTimeout(() => {
+                isPublished.value = false;
+            }, 4000);
+        },
+        onError: (err) => {
+            console.error('Gagal mempublikasikan menu surplus:', err);
+            isSubmitting.value = false;
+        },
+        onFinish: () => {
+            isSubmitting.value = false;
+        }
+    });
 };
 
 const toggleStatus = (item) => {
-    item.status = item.status === 'aktif' ? 'habis' : 'aktif';
-    syncCustomFood(item);
+    const nextStatus = item.status === 'aktif' ? 'habis' : 'aktif';
+    item.status = nextStatus;
+    router.patch(route('mitra.kelola-menu.toggle', item.id), {}, {
+        preserveScroll: true
+    });
 };
 
 const adjustStock = (item, delta) => {
     const next = item.stock + delta;
     if (next >= 0) {
         item.stock = next;
-        if (next === 0) item.status = 'habis';
-        else item.status = 'aktif';
-        syncCustomFood(item);
+        item.status = next === 0 ? 'habis' : 'aktif';
+        router.patch(route('mitra.kelola-menu.stock', item.id), {
+            stock: next
+        }, {
+            preserveScroll: true
+        });
     }
-};
-
-const syncCustomFood = (item) => {
-    try {
-        const custom = getCustomFoods();
-        const found = custom.find(c => String(c.id) === String(item.id));
-        if (found) {
-            found.stock = item.stock;
-            found.status = item.status;
-            localStorage.setItem('plusfood_custom_foods', JSON.stringify(custom));
-        }
-    } catch (e) {}
 };
 
 const removeListing = (item) => {
     if (confirm(`Hapus menu "${item.name}" dari katalog?`)) {
-        activeListings.value = activeListings.value.filter(l => l.id !== item.id);
-        deleteCustomFood(item.id);
+        router.delete(route('mitra.kelola-menu.destroy', item.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                activeListings.value = activeListings.value.filter(l => l.id !== item.id);
+            }
+        });
     }
 };
-
-onMounted(() => {
-    const custom = getCustomFoods();
-    if (custom && custom.length > 0) {
-        const existingIds = new Set(activeListings.value.map(l => String(l.id)));
-        const newCustomItems = custom.filter(c => !existingIds.has(String(c.id)));
-        activeListings.value = [...newCustomItems, ...activeListings.value];
-    }
-});
 </script>
 
 <template>

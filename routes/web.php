@@ -57,7 +57,12 @@ Route::prefix('mitra')->name('mitra.')->group(function () {
     Route::get('/login', [MitraAuthController::class, 'createLogin'])->name('login');
     Route::get('/dashboard', [MitraDashboardController::class, 'index'])->name('dashboard');
     Route::get('/kelola-menu', [MitraKelolaMenuController::class, 'index'])->name('kelola-menu');
+    Route::post('/kelola-menu', [MitraKelolaMenuController::class, 'store'])->name('kelola-menu.store');
+    Route::patch('/kelola-menu/{id}/stock', [MitraKelolaMenuController::class, 'updateStock'])->name('kelola-menu.stock');
+    Route::patch('/kelola-menu/{id}/toggle', [MitraKelolaMenuController::class, 'toggleStatus'])->name('kelola-menu.toggle');
+    Route::delete('/kelola-menu/{id}', [MitraKelolaMenuController::class, 'destroy'])->name('kelola-menu.destroy');
     Route::get('/pesanan', [MitraPesananController::class, 'index'])->name('pesanan');
+    Route::patch('/pesanan/{id}/status', [MitraPesananController::class, 'updateStatus'])->name('pesanan.status');
     Route::get('/profil', [MitraProfileController::class, 'index'])->name('profil');
 });
 

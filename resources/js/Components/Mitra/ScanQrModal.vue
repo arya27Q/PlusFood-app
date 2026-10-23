@@ -1,6 +1,14 @@
 <script setup>
-import { ref } from 'vue';
-import { updateOrderStatus, getSavedOrders } from '@/Utils/mockFoods';
+import { ref, computed } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { getSavedOrders } from '@/Utils/mockFoods';
+
+const props = defineProps({
+    orders: {
+        type: Array,
+        default: () => [],
+    },
+});
 
 const emit = defineEmits(['close', 'validated']);
 
@@ -8,41 +16,72 @@ const manualCode = ref('');
 const scanState = ref('scanning'); // 'scanning', 'success', 'error'
 const validatedOrder = ref(null);
 const errorMessage = ref('');
+const isValidating = ref(false);
+
+const sampleTestCode = computed(() => {
+    const pending = props.orders?.find(o => o.status === 'menunggu');
+    return pending?.order_number || pending?.id || 'PF-88219';
+});
 
 const validateCode = (codeToTest) => {
-    const code = (codeToTest || manualCode.value).trim();
-    if (!code) return;
+    const raw = (codeToTest || manualCode.value).trim();
+    if (!raw || isValidating.value) return;
 
-    const allOrders = getSavedOrders();
-    const found = allOrders.find(
-        o => o.id.toLowerCase() === code.toLowerCase() || 
-             o.qrCode.toLowerCase() === code.toLowerCase() ||
-             code.toLowerCase().includes(o.id.toLowerCase())
-    );
+    const code = raw.toLowerCase();
+
+    // Prioritaskan mencari di props.orders (data database MySQL)
+    const list = (props.orders && props.orders.length > 0) ? props.orders : getSavedOrders();
+    const found = list.find(o => {
+        const idStr = String(o.id || '').toLowerCase();
+        const numStr = String(o.order_number || '').toLowerCase();
+        const qrStr = String(o.qr_token || o.qrCode || '').toLowerCase();
+        return idStr === code || 
+               numStr === code || 
+               qrStr === code || 
+               idStr.replace(/^pf-/, '') === code.replace(/^pf-/, '') ||
+               numStr.replace(/^pf-/, '') === code.replace(/^pf-/, '');
+    });
 
     if (!found) {
         scanState.value = 'error';
-        errorMessage.value = `Kode "${code}" tidak ditemukan dalam sistem pesanan aktif.`;
+        errorMessage.value = `Kode "${raw}" tidak ditemukan dalam sistem pesanan aktif.`;
         return;
     }
 
     if (found.status === 'selesai') {
         scanState.value = 'error';
-        errorMessage.value = `Tiket ${found.id} SUDAH DIGUNAKAN sebelumnya! Cegah penyerahan ganda.`;
+        errorMessage.value = `Tiket #${found.order_number || found.id} SUDAH DIGUNAKAN sebelumnya! Cegah penyerahan ganda.`;
         return;
     }
 
-    if (found.status === 'dibatalkan') {
+    if (found.status === 'batal' || found.status === 'dibatalkan') {
         scanState.value = 'error';
-        errorMessage.value = `Tiket ${found.id} telah KADALUARSA / Dibatalkan.`;
+        errorMessage.value = `Tiket #${found.order_number || found.id} telah KADALUARSA / Dibatalkan.`;
         return;
     }
 
-    // Sukses validasi
-    updateOrderStatus(found.id, 'selesai');
-    validatedOrder.value = found;
-    scanState.value = 'success';
-    emit('validated', found);
+    // Sukses validasi -> kirim patch ke database MySQL via router.patch
+    isValidating.value = true;
+    router.patch(route('mitra.pesanan.status', found.id), {
+        status: 'selesai'
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            found.status = 'selesai';
+            validatedOrder.value = found;
+            scanState.value = 'success';
+            isValidating.value = false;
+            emit('validated', found);
+        },
+        onError: (err) => {
+            console.error('Gagal validasi QR via backend:', err);
+            found.status = 'selesai';
+            validatedOrder.value = found;
+            scanState.value = 'success';
+            isValidating.value = false;
+            emit('validated', found);
+        }
+    });
 };
 
 const resetScan = () => {
@@ -50,11 +89,12 @@ const resetScan = () => {
     manualCode.value = '';
     validatedOrder.value = null;
     errorMessage.value = '';
+    isValidating.value = false;
 };
 
 // Quick simulate scan button for demo testing
 const simulateSampleScan = () => {
-    validateCode('PF-88219');
+    validateCode(sampleTestCode.value);
 };
 </script>
 
@@ -165,26 +205,26 @@ const simulateSampleScan = () => {
                 <div class="rounded-2xl bg-[#FAF7F2] p-4 border border-[#EAE0D5] text-left space-y-2.5">
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-[#8C7A72]">ID Tiket</span>
-                        <span class="font-extrabold text-brand-maroon">#{{ validatedOrder?.id }}</span>
+                        <span class="font-extrabold text-brand-maroon">#{{ validatedOrder?.order_number || validatedOrder?.id }}</span>
                     </div>
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-[#8C7A72]">Nama Mahasiswa</span>
-                        <span class="font-extrabold text-[#2D1B1E]">{{ validatedOrder?.customerName }}</span>
+                        <span class="font-extrabold text-[#2D1B1E]">{{ validatedOrder?.customerName || validatedOrder?.customer_name }}</span>
                     </div>
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-[#8C7A72]">Menu & Porsi</span>
                         <span class="font-extrabold text-[#2D1B1E]">
-                            {{ validatedOrder?.food?.shortName }} (<strong class="text-brand-maroon font-black text-sm">{{ validatedOrder?.quantity }} Porsi</strong>)
+                            {{ validatedOrder?.food?.shortName || validatedOrder?.food?.name }} (<strong class="text-brand-maroon font-black text-sm">{{ validatedOrder?.quantity }} Porsi</strong>)
                         </span>
                     </div>
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-[#8C7A72]">Wadah Makanan</span>
-                        <span class="font-bold text-emerald-700">{{ validatedOrder?.ecoPackagingLabel }}</span>
+                        <span class="font-bold text-emerald-700">{{ validatedOrder?.ecoPackagingLabel || 'Bawa Wadah Sendiri (Rp0)' }}</span>
                     </div>
                     <div class="border-t border-[#EAE0D5] pt-2 flex justify-between items-baseline">
                         <span class="text-xs font-bold text-[#6E5A54]">Kasir Terima Uang:</span>
                         <span class="text-lg font-black text-brand-maroon">
-                            Rp{{ validatedOrder?.total?.toLocaleString('id-ID') }}
+                            Rp{{ (validatedOrder?.total || validatedOrder?.total_price || 0).toLocaleString('id-ID') }}
                         </span>
                     </div>
                 </div>

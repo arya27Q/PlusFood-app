@@ -1,13 +1,28 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
 import ScanQrModal from '@/Components/Mitra/ScanQrModal.vue';
 import IncomingOrderBanner from '@/Components/Mitra/IncomingOrderBanner.vue';
-import { getSavedOrders, updateOrderStatus, getSoundPreference, saveSoundPreference, playOrderChime } from '@/Utils/mockFoods';
-import { ref, onMounted, computed } from 'vue';
+import { getSoundPreference, saveSoundPreference, playOrderChime } from '@/Utils/mockFoods';
+import { ref, onMounted, computed, watch } from 'vue';
+
+const props = defineProps({
+    orders: {
+        type: Array,
+        default: () => [],
+    },
+    metrics: {
+        type: Object,
+        default: () => ({}),
+    },
+    merchant: {
+        type: Object,
+        default: () => ({}),
+    },
+});
 
 const showScanModal = ref(false);
-const orders = ref([]);
+const orders = ref([...props.orders]);
 const activeTab = ref('semua'); // 'semua', 'menunggu', 'selesai', 'dibatalkan'
 const searchQuery = ref('');
 const notification = ref('');
@@ -16,8 +31,21 @@ const incomingOrder = ref(null);
 const knownOrderIds = ref(new Set());
 let bannerTimeout = null;
 
+watch(() => props.orders, (newOrders) => {
+    if (newOrders && newOrders.length > 0) {
+        const newPending = newOrders.find(o => o.status === 'menunggu' && !knownOrderIds.value.has(String(o.id)));
+        if (newPending && knownOrderIds.value.size > 0) {
+            triggerIncomingNotification(newPending);
+        }
+        orders.value = [...newOrders];
+        knownOrderIds.value = new Set(newOrders.map(o => String(o.id)));
+    } else if (newOrders) {
+        orders.value = [];
+    }
+}, { deep: true, immediate: true });
+
 const reloadOrders = () => {
-    orders.value = getSavedOrders();
+    router.reload({ preserveScroll: true });
 };
 
 const toggleSound = () => {
@@ -34,10 +62,10 @@ const triggerIncomingNotification = (newOrder) => {
     }
     incomingOrder.value = {
         id: newOrder.id,
-        customerName: newOrder.customerName || 'Mahasiswa UNESA',
+        customerName: newOrder.customerName || newOrder.customer_name || 'Mahasiswa UNESA',
         foodName: newOrder.food?.shortName || newOrder.food?.name || 'Makanan Surplus',
-        total: newOrder.total || 0,
-        ecoPackaging: newOrder.ecoPackaging === 'bawa_sendiri',
+        total: newOrder.total || newOrder.total_price || 0,
+        ecoPackaging: (newOrder.ecoPackaging || newOrder.eco_packaging) === 'bawa_sendiri',
         date: 'Baru saja'
     };
 
@@ -45,16 +73,6 @@ const triggerIncomingNotification = (newOrder) => {
     bannerTimeout = setTimeout(() => {
         incomingOrder.value = null;
     }, 7000);
-};
-
-const handleOrderStorageEvent = () => {
-    const freshOrders = getSavedOrders();
-    const newPending = freshOrders.find(o => o.status === 'menunggu' && !knownOrderIds.value.has(String(o.id)));
-    if (newPending) {
-        triggerIncomingNotification(newPending);
-    }
-    knownOrderIds.value = new Set(freshOrders.map(o => String(o.id)));
-    orders.value = freshOrders;
 };
 
 // Simulasi pesanan masuk untuk demo di halaman pesanan
@@ -67,7 +85,9 @@ const simulateIncomingOrder = () => {
 
     const simOrder = {
         id: simId,
+        order_number: simId,
         customerName: randomStudent,
+        customer_name: randomStudent,
         nim: '230512' + Math.floor(10000 + Math.random() * 90000),
         whatsapp: '0812' + Math.floor(10000000 + Math.random() * 90000000),
         food: {
@@ -75,11 +95,13 @@ const simulateIncomingOrder = () => {
             shortName: randomFood.split(' ')[0] + ' ' + randomFood.split(' ')[1],
             priceDiscount: 12000,
             priceOriginal: 25000,
-            merchant: 'Warung Bu Sari'
+            merchant: props.merchant?.name || 'Warung Bu Sari'
         },
         quantity: 1,
         ecoPackaging: 'bawa_sendiri',
+        ecoPackagingLabel: 'Bawa Wadah Sendiri (Rp0)',
         total: 12000,
+        total_price: 12000,
         pickupTime: '19.30 – 20.30 WIB',
         pickupDeadline: 'Hari ini tutup 21.00 WIB',
         date: 'Hari ini',
@@ -91,30 +113,14 @@ const simulateIncomingOrder = () => {
         hasReview: false
     };
 
-    const updated = [simOrder, ...orders.value];
-    orders.value = updated;
+    orders.value = [simOrder, ...orders.value];
     knownOrderIds.value.add(String(simOrder.id));
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('plusfood_orders', JSON.stringify(updated));
-    }
     triggerIncomingNotification(simOrder);
 };
 
 onMounted(() => {
-    reloadOrders();
     knownOrderIds.value = new Set(orders.value.map(o => String(o.id)));
     isSoundEnabled.value = getSoundPreference();
-
-    if (typeof window !== 'undefined') {
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'plusfood_orders') {
-                handleOrderStorageEvent();
-            }
-            if (e.key === 'plusfood_sound_enabled') {
-                isSoundEnabled.value = getSoundPreference();
-            }
-        });
-    }
 });
 
 const sortDueAsc = ref(true);
@@ -126,33 +132,48 @@ const toggleSortDue = () => {
 
 const cancelManual = (id) => {
     if (confirm(`Batalkan pesanan #${id}? Status akan diubah menjadi dibatalkan.`)) {
-        updateOrderStatus(id, 'dibatalkan');
-        reloadOrders();
-        notification.value = `Pesanan #${id} telah dibatalkan.`;
-        setTimeout(() => notification.value = '', 3500);
+        router.patch(route('mitra.pesanan.status', id), {
+            status: 'batal'
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                const found = orders.value.find(o => String(o.id) === String(id) || o.order_number === id);
+                if (found) found.status = 'batal';
+                notification.value = `Pesanan #${id} telah dibatalkan.`;
+                setTimeout(() => notification.value = '', 3500);
+            }
+        });
     }
 };
 
 const validateManual = (id) => {
-    updateOrderStatus(id, 'selesai');
-    reloadOrders();
-    notification.value = `Pesanan #${id} berhasil divalidasi dan diserahkan ke mahasiswa!`;
-    setTimeout(() => notification.value = '', 3500);
+    router.patch(route('mitra.pesanan.status', id), {
+        status: 'selesai'
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            const found = orders.value.find(o => String(o.id) === String(id) || o.order_number === id);
+            if (found) found.status = 'selesai';
+            notification.value = `Pesanan #${id} berhasil divalidasi dan diserahkan ke mahasiswa!`;
+            setTimeout(() => notification.value = '', 3500);
+        }
+    });
 };
 
 const handleValidated = (order) => {
-    reloadOrders();
+    router.reload({ preserveScroll: true });
 };
 
 // Metrik Ringkasan Kasir
 const totalOrdersCount = computed(() => orders.value.length);
-const pendingCount = computed(() => orders.value.filter(o => o.status === 'menunggu').length);
+const pendingCount = computed(() => orders.value.filter(o => o.status === 'menunggu' || o.status === 'siap_ambil').length);
 const completedCount = computed(() => orders.value.filter(o => o.status === 'selesai').length);
-const ecoBawaSendiriCount = computed(() => orders.value.filter(o => o.ecoPackaging === 'bawa_sendiri').length);
+const ecoBawaSendiriCount = computed(() => orders.value.filter(o => (o.ecoPackaging || o.eco_packaging) === 'bawa_sendiri').length);
 const totalCashierRevenue = computed(() => {
-    return orders.value
+    const sum = orders.value
         .filter(o => o.status === 'selesai')
-        .reduce((acc, curr) => acc + (curr.total || 0), 216000);
+        .reduce((acc, curr) => acc + (curr.total || curr.total_price || 0), 0);
+    return sum > 0 ? sum : (props.merchant?.balance_rp || 216000);
 });
 
 const filteredOrders = computed(() => {
@@ -781,6 +802,7 @@ const exportCsv = () => {
 
         <ScanQrModal
             v-if="showScanModal"
+            :orders="orders"
             @close="showScanModal = false"
             @validated="handleValidated"
         />

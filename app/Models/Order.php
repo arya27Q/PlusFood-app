@@ -54,6 +54,28 @@ class Order extends Model
     ];
 
     /**
+     * Accessor yang otomatis diserialisasi ke JSON/Inertia props untuk Vue.
+     */
+    protected $appends = [
+        'customerName',
+        'nim',
+        'whatsapp',
+        'pickupTime',
+        'pickupDeadline',
+        'total',
+        'food',
+        'quantity',
+        'ecoPackaging',
+        'ecoPackagingLabel',
+        'customerNote',
+        'paymentMethod',
+        'paymentStatus',
+        'qrCode',
+        'statusLabel',
+        'date',
+    ];
+
+    /**
      * Relasi ke pemesan (Mahasiswa / User).
      */
     public function user(): BelongsTo
@@ -121,5 +143,99 @@ class Order extends Model
             'batal' => 'Dibatalkan',
             default => 'Diproses',
         };
+    }
+
+    public function getCustomerNameAttribute(): string
+    {
+        return $this->customer_name ?? ($this->user?->name ?? 'Mahasiswa');
+    }
+
+    public function getNimAttribute(): string
+    {
+        return $this->customer_nim ?? ($this->user?->nim ?? '23051204088');
+    }
+
+    public function getWhatsappAttribute(): string
+    {
+        return $this->customer_phone ?? ($this->user?->phone ?? '0812-3456-7890');
+    }
+
+    public function getPickupTimeAttribute(): string
+    {
+        return $this->attributes['pickup_time'] ?? '19.30 – 20.30 WIB';
+    }
+
+    public function getPickupDeadlineAttribute(): string
+    {
+        return $this->attributes['pickup_deadline'] ?? 'Hari ini tutup 21.00 WIB';
+    }
+
+    public function getTotalAttribute(): int
+    {
+        return (int) ($this->total_price ?? 0);
+    }
+
+    public function getFoodAttribute(): array
+    {
+        $item = $this->items?->first();
+        $foodModel = $item?->food;
+
+        $name = $foodModel?->name ?? $item?->food_name ?? 'Menu Makanan Surplus';
+        $shortName = strlen($name) > 25 ? substr($name, 0, 22) . '...' : $name;
+
+        return [
+            'name' => $name,
+            'shortName' => $shortName,
+            'priceDiscount' => (int) ($item?->price ?? $foodModel?->price_discount ?? 12000),
+            'priceOriginal' => (int) ($foodModel?->price_original ?? 25000),
+            'merchant' => $this->merchant?->name ?? 'Warung Bu Sari',
+            'image' => $foodModel?->image ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80',
+        ];
+    }
+
+    public function getQuantityAttribute(): int
+    {
+        $sum = $this->items?->sum('quantity');
+        return $sum && $sum > 0 ? (int) $sum : 1;
+    }
+
+    public function getEcoPackagingAttribute(): string
+    {
+        return $this->items?->first()?->eco_packaging ?? 'bawa_sendiri';
+    }
+
+    public function getEcoPackagingLabelAttribute(): string
+    {
+        return match ($this->ecoPackaging) {
+            'bawa_sendiri' => 'Bawa Wadah Sendiri (Rp0)',
+            'kotak_kertas' => 'Kotak Kertas Eco (Rp1.000)',
+            'thinwall' => 'Thinwall Food Grade (Rp2.000)',
+            default => 'Standar Warung',
+        };
+    }
+
+    public function getCustomerNoteAttribute(): string
+    {
+        return $this->notes ?? '';
+    }
+
+    public function getPaymentMethodAttribute(): string
+    {
+        return $this->payment?->payment_method ?? 'kasir';
+    }
+
+    public function getPaymentStatusAttribute(): string
+    {
+        return $this->payment?->status ?? 'menunggu_bayar';
+    }
+
+    public function getQrCodeAttribute(): string
+    {
+        return $this->qr_token ?? ($this->order_number . '-PF');
+    }
+
+    public function getDateAttribute(): string
+    {
+        return $this->created_at ? $this->created_at->translatedFormat('d M Y, H:i') : 'Hari ini';
     }
 }
