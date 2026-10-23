@@ -79,4 +79,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Order::class, 'user_id');
     }
+
+    /**
+     * Gerai Mitra UMKM yang dikelola pengguna (1-to-1).
+     */
+    public function merchant()
+    {
+        return $this->hasOne(Merchant::class, 'user_id');
+    }
 }

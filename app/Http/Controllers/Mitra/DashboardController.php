@@ -16,12 +16,22 @@ class DashboardController extends Controller
      */
     private function getActiveMerchant(): Merchant
     {
+        /** @var \App\Models\User|null $user */
         $user = auth()->user();
         if ($user && $user->merchant) {
-            return $user->merchant;
+            /** @var Merchant $userMerchant */
+            $userMerchant = $user->merchant;
+            return $userMerchant;
         }
 
-        return Merchant::first() ?? Merchant::create([
+        /** @var Merchant|null $first */
+        $first = Merchant::first();
+        if ($first) {
+            return $first;
+        }
+
+        /** @var Merchant $created */
+        $created = Merchant::create([
             'name' => 'Warung Bu Sari',
             'owner_name' => 'Ibu Sari',
             'slug' => 'warung-bu-sari',
@@ -36,6 +46,8 @@ class DashboardController extends Controller
             'balance_rp' => 216000,
             'total_revenue_rp' => 1450000,
         ]);
+
+        return $created;
     }
 
     /**
