@@ -1,12 +1,27 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
 import ScanQrModal from '@/Components/Mitra/ScanQrModal.vue';
 import PayoutModal from '@/Components/Mitra/PayoutModal.vue';
 import IncomingOrderBanner from '@/Components/Mitra/IncomingOrderBanner.vue';
 import SalesAnalyticsChart from '@/Components/Mitra/SalesAnalyticsChart.vue';
-import { getSavedOrders, updateOrderStatus, sampleFoods, getSoundPreference, saveSoundPreference, playOrderChime } from '@/Utils/mockFoods';
-import { ref, onMounted, computed } from 'vue';
+import { getSoundPreference, saveSoundPreference, playOrderChime } from '@/Utils/mockFoods';
+import { ref, onMounted, computed, watch } from 'vue';
+
+const props = defineProps({
+    orders: {
+        type: Array,
+        default: () => [],
+    },
+    metrics: {
+        type: Object,
+        default: () => ({}),
+    },
+    merchant: {
+        type: Object,
+        default: () => ({}),
+    },
+});
 
 const showScanModal = ref(false);
 const showPayoutModal = ref(false);
@@ -16,11 +31,25 @@ const knownOrderIds = ref(new Set());
 const totalWithdrawnToday = ref(0);
 let bannerTimeout = null;
 
-const orders = ref([]);
+const orders = ref([...props.orders]);
 const recentFilter = ref('semua'); // 'semua', 'menunggu', 'selesai'
 
+watch(() => props.orders, (newOrders) => {
+    if (newOrders && newOrders.length > 0) {
+        // Cek pesanan baru yang masuk dengan status 'menunggu' untuk memicu lonceng notifikasi
+        const newPending = newOrders.find(o => o.status === 'menunggu' && !knownOrderIds.value.has(String(o.id)));
+        if (newPending && knownOrderIds.value.size > 0) {
+            triggerIncomingNotification(newPending);
+        }
+        orders.value = [...newOrders];
+        knownOrderIds.value = new Set(newOrders.map(o => String(o.id)));
+    } else if (newOrders) {
+        orders.value = [];
+    }
+}, { deep: true, immediate: true });
+
 const reloadOrders = () => {
-    orders.value = getSavedOrders();
+    router.reload({ preserveScroll: true });
 };
 
 const availableBalance = computed(() => {
@@ -41,10 +70,10 @@ const triggerIncomingNotification = (newOrder) => {
     }
     incomingOrder.value = {
         id: newOrder.id,
-        customerName: newOrder.customerName || 'Mahasiswa UNESA',
+        customerName: newOrder.customerName || newOrder.customer_name || 'Mahasiswa UNESA',
         foodName: newOrder.food?.shortName || newOrder.food?.name || 'Makanan Surplus',
-        total: newOrder.total || 0,
-        ecoPackaging: newOrder.ecoPackaging === 'bawa_sendiri',
+        total: newOrder.total || newOrder.total_price || 0,
+        ecoPackaging: (newOrder.ecoPackaging || newOrder.eco_packaging) === 'bawa_sendiri',
         date: 'Baru saja'
     };
 
@@ -52,17 +81,6 @@ const triggerIncomingNotification = (newOrder) => {
     bannerTimeout = setTimeout(() => {
         incomingOrder.value = null;
     }, 7000);
-};
-
-const handleOrderStorageEvent = () => {
-    const freshOrders = getSavedOrders();
-    // Cari pesanan baru dengan status 'menunggu' yang belum pernah tercatat
-    const newPending = freshOrders.find(o => o.status === 'menunggu' && !knownOrderIds.value.has(String(o.id)));
-    if (newPending) {
-        triggerIncomingNotification(newPending);
-    }
-    knownOrderIds.value = new Set(freshOrders.map(o => String(o.id)));
-    orders.value = freshOrders;
 };
 
 // Simulasi pesanan baru masuk untuk demo & presentasi
@@ -75,7 +93,9 @@ const simulateIncomingOrder = () => {
 
     const simOrder = {
         id: simId,
+        order_number: simId,
         customerName: randomStudent,
+        customer_name: randomStudent,
         nim: '230512' + Math.floor(10000 + Math.random() * 90000),
         whatsapp: '0812' + Math.floor(10000000 + Math.random() * 90000000),
         food: {
@@ -83,11 +103,13 @@ const simulateIncomingOrder = () => {
             shortName: randomFood.split(' ')[0] + ' ' + randomFood.split(' ')[1],
             priceDiscount: 12000,
             priceOriginal: 25000,
-            merchant: 'Warung Bu Sari'
+            merchant: props.merchant?.name || 'Warung Bu Sari'
         },
         quantity: 1,
         ecoPackaging: 'bawa_sendiri',
+        ecoPackagingLabel: 'Bawa Wadah Sendiri (Rp0)',
         total: 12000,
+        total_price: 12000,
         pickupTime: '19.30 – 20.30 WIB',
         pickupDeadline: 'Hari ini tutup 21.00 WIB',
         date: 'Hari ini',
@@ -99,12 +121,8 @@ const simulateIncomingOrder = () => {
         hasReview: false
     };
 
-    const updated = [simOrder, ...orders.value];
-    orders.value = updated;
+    orders.value = [simOrder, ...orders.value];
     knownOrderIds.value.add(String(simOrder.id));
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('plusfood_orders', JSON.stringify(updated));
-    }
     triggerIncomingNotification(simOrder);
 };
 
@@ -116,7 +134,6 @@ const handleWithdrawn = ({ amount }) => {
 };
 
 onMounted(() => {
-    reloadOrders();
     knownOrderIds.value = new Set(orders.value.map(o => String(o.id)));
     isSoundEnabled.value = getSoundPreference();
 
@@ -125,42 +142,52 @@ onMounted(() => {
         if (savedWithdrawn) {
             totalWithdrawnToday.value = Number(savedWithdrawn) || 0;
         }
-
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'plusfood_orders') {
-                handleOrderStorageEvent();
-            }
-            if (e.key === 'plusfood_sound_enabled') {
-                isSoundEnabled.value = getSoundPreference();
-            }
-        });
     }
 });
 
 // Metrik Finansial Sesuai Spesifikasi PRD & Desain Sistem
 const completedOrders = computed(() => orders.value.filter(o => o.status === 'selesai'));
-const pendingOrders = computed(() => orders.value.filter(o => o.status === 'menunggu'));
+const pendingOrders = computed(() => orders.value.filter(o => o.status === 'menunggu' || o.status === 'siap_ambil'));
 
 const todayRevenue = computed(() => {
-    return completedOrders.value.reduce((acc, curr) => acc + (curr.total || 0), 216000);
+    if (props.metrics?.todayRevenue && props.metrics.todayRevenue > 0) {
+        return props.metrics.todayRevenue;
+    }
+    const realSum = completedOrders.value.reduce((acc, curr) => acc + (curr.total || curr.total_price || 0), 0);
+    return realSum > 0 ? realSum : (props.merchant?.balance_rp || 216000);
 });
 
 const rescuedPortions = computed(() => {
-    return completedOrders.value.reduce((acc, curr) => acc + (curr.quantity || 1), 18);
+    if (props.metrics?.rescuedPortions && props.metrics.rescuedPortions > 0) {
+        return props.metrics.rescuedPortions;
+    }
+    const realQty = completedOrders.value.reduce((acc, curr) => acc + (curr.quantity || 1), 0);
+    return realQty > 0 ? realQty : 18;
 });
 
-const totalListingPortions = ref(24);
+const totalListingPortions = computed(() => {
+    return props.metrics?.totalListingPortions || 24;
+});
+
 const recoveryRate = computed(() => {
+    if (props.metrics?.recoveryRate) return props.metrics.recoveryRate;
     return Math.round((rescuedPortions.value / totalListingPortions.value) * 100);
 });
 
 const validateOrderManual = (orderId) => {
-    updateOrderStatus(orderId, 'selesai');
-    reloadOrders();
+    router.patch(route('mitra.pesanan.status', orderId), {
+        status: 'selesai'
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            const found = orders.value.find(o => String(o.id) === String(orderId) || o.order_number === orderId);
+            if (found) found.status = 'selesai';
+        }
+    });
 };
 
 const handleValidated = (order) => {
-    reloadOrders();
+    router.reload({ preserveScroll: true });
 };
 
 // State Pencarian & Filter Tabel Interaktif
@@ -176,8 +203,15 @@ const toggleSortDue = () => {
 
 const cancelOrderManual = (orderId) => {
     if (confirm(`Batalkan pesanan #${orderId}? Status akan diubah menjadi dibatalkan.`)) {
-        updateOrderStatus(orderId, 'dibatalkan');
-        reloadOrders();
+        router.patch(route('mitra.pesanan.status', orderId), {
+            status: 'batal'
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                const found = orders.value.find(o => String(o.id) === String(orderId) || o.order_number === orderId);
+                if (found) found.status = 'batal';
+            }
+        });
     }
 };
 
@@ -948,6 +982,7 @@ const filteredDashboardOrders = computed(() => {
 
         <ScanQrModal
             v-if="showScanModal"
+            :orders="orders"
             @close="showScanModal = false"
             @validated="handleValidated"
         />

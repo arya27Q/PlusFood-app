@@ -80,6 +80,11 @@ class Food extends Model
         'isSealed',
         'isVerified',
         'distanceKm',
+        'pickupStart',
+        'pickupEnd',
+        'canteenLocation',
+        'campusZoneName',
+        'supportEcoPackaging',
     ];
 
     /**
@@ -308,6 +313,31 @@ class Food extends Model
     public function getIsVerifiedAttribute(): bool
     {
         return (bool) ($this->merchant?->is_verified ?? true);
+    }
+
+    public function getPickupStartAttribute(): string
+    {
+        return str_replace(':', '.', $this->pickup_time_start ?? '19.00');
+    }
+
+    public function getPickupEndAttribute(): string
+    {
+        return str_replace(':', '.', $this->pickup_time_end ?? '20.30');
+    }
+
+    public function getCanteenLocationAttribute(): string
+    {
+        return $this->merchant?->canteen_location ?? 'Kantin Stand 04';
+    }
+
+    public function getCampusZoneNameAttribute(): string
+    {
+        return $this->merchant?->campus_name ?? 'UNESA Ketintang';
+    }
+
+    public function getSupportEcoPackagingAttribute(): bool
+    {
+        return (bool) ($this->merchant?->support_eco ?? true);
     }
 
     /**
