@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Food;
 use App\Models\Merchant;
 use App\Models\Order;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,8 +18,8 @@ class DashboardController extends Controller
      */
     private function getActiveMerchant(): Merchant
     {
-        /** @var \App\Models\User|null $user */
-        $user = auth()->user();
+        /** @var User|null $user */
+        $user = Auth::user();
         if ($user && $user->merchant) {
             /** @var Merchant $userMerchant */
             $userMerchant = $user->merchant;

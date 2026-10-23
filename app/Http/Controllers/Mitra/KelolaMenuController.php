@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Mitra;
 use App\Http\Controllers\Controller;
 use App\Models\Food;
 use App\Models\Merchant;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,8 +20,8 @@ class KelolaMenuController extends Controller
      */
     private function getActiveMerchant(): Merchant
     {
-        /** @var \App\Models\User|null $user */
-        $user = auth()->user();
+        /** @var User|null $user */
+        $user = Auth::user();
         if ($user && $user->merchant) {
             /** @var Merchant $userMerchant */
             $userMerchant = $user->merchant;
@@ -152,7 +154,7 @@ class KelolaMenuController extends Controller
     /**
      * Perbarui jumlah sisa stok makanan surplus.
      */
-    public function updateStock(Request $request, $id): RedirectResponse
+    public function updateStock(Request $request, string|int $id): RedirectResponse
     {
         $request->validate([
             'stock' => 'required|integer|min:0',
@@ -171,7 +173,7 @@ class KelolaMenuController extends Controller
     /**
      * Beralih status makanan antara 'aktif' (tayang) dan 'habis'.
      */
-    public function toggleStatus($id): RedirectResponse
+    public function toggleStatus(string|int $id): RedirectResponse
     {
         $food = Food::findOrFail($id);
         $food->status = $food->status === 'aktif' ? 'habis' : 'aktif';
@@ -183,7 +185,7 @@ class KelolaMenuController extends Controller
     /**
      * Hapus menu surplus dari database.
      */
-    public function destroy($id): RedirectResponse
+    public function destroy(string|int $id): RedirectResponse
     {
         $food = Food::findOrFail($id);
         $food->delete();

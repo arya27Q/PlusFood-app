@@ -76,6 +76,7 @@ class CheckoutController extends Controller
         ]);
 
         return DB::transaction(function () use ($request, $validated) {
+            /** @var Food $food */
             $food = Food::with('merchant')->where('id', $validated['food_id'])->lockForUpdate()->firstOrFail();
 
             if ($food->stock < $validated['quantity']) {

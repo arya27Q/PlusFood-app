@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Mitra;
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,8 +19,8 @@ class PesananController extends Controller
      */
     private function getActiveMerchant(): Merchant
     {
-        /** @var \App\Models\User|null $user */
-        $user = auth()->user();
+        /** @var User|null $user */
+        $user = Auth::user();
         if ($user && $user->merchant) {
             /** @var Merchant $userMerchant */
             $userMerchant = $user->merchant;
@@ -95,7 +97,7 @@ class PesananController extends Controller
     /**
      * Perbarui status pesanan (e.g. validasi tiket kasir menjadi 'selesai' atau 'batal').
      */
-    public function updateStatus(Request $request, $id): RedirectResponse
+    public function updateStatus(Request $request, string|int $id): RedirectResponse
     {
         $request->validate([
             'status' => 'required|in:menunggu,siap_ambil,selesai,batal,dibatalkan',
