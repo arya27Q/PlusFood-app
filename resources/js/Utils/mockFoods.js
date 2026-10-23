@@ -508,4 +508,154 @@ export function mapDbOrder(db) {
     };
 }
 
+// --- KELOLA MENU SURPLUS CUSTOM (LOCALSTORAGE SINKRONISASI MAHASISWA) ---
+export function getCustomFoods() {
+    if (typeof window === 'undefined') return [];
+    try {
+        const data = localStorage.getItem('plusfood_custom_foods');
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
 
+export function saveCustomFood(foodItem) {
+    if (typeof window === 'undefined') return [];
+    try {
+        const current = getCustomFoods();
+        // Cegah duplikasi berdasarkan id atau slug
+        const filtered = current.filter(item => String(item.id) !== String(foodItem.id) && item.slug !== foodItem.slug);
+        const updated = [foodItem, ...filtered];
+        localStorage.setItem('plusfood_custom_foods', JSON.stringify(updated));
+        
+        // Dispatch storage event manual untuk tab yang sama jika dibutuhkan
+        window.dispatchEvent(new Event('plusfood_custom_foods_updated'));
+        return updated;
+    } catch (e) {
+        console.error('Gagal menyimpan menu surplus custom:', e);
+        return [];
+    }
+}
+
+export function deleteCustomFood(foodId) {
+    if (typeof window === 'undefined') return [];
+    try {
+        const current = getCustomFoods();
+        const updated = current.filter(item => String(item.id) !== String(foodId));
+        localStorage.setItem('plusfood_custom_foods', JSON.stringify(updated));
+        window.dispatchEvent(new Event('plusfood_custom_foods_updated'));
+        return updated;
+    } catch (e) {
+        return [];
+    }
+}
+
+export function getAllFoods() {
+    return [...getCustomFoods(), ...sampleFoods];
+}
+
+// --- SISTEM PENCAIRAN SALDO MITRA (PAYOUT / WITHDRAWAL) ---
+export const initialPayoutHistory = [
+    {
+        id: 'WD-849102',
+        amount: 150000,
+        bankName: 'Bank Mandiri',
+        bankAccount: '1420-0192-3841',
+        bankHolder: 'Sari Wulandari',
+        status: 'selesai',
+        statusLabel: 'Berhasil Masuk',
+        date: 'Kemarin, 21.15 WIB',
+        referenceId: 'TRX-MDR-99281'
+    },
+    {
+        id: 'WD-739201',
+        amount: 220000,
+        bankName: 'Bank Mandiri',
+        bankAccount: '1420-0192-3841',
+        bankHolder: 'Sari Wulandari',
+        status: 'selesai',
+        statusLabel: 'Berhasil Masuk',
+        date: '2 hari lalu, 20.40 WIB',
+        referenceId: 'TRX-MDR-88192'
+    }
+];
+
+export function getPayoutHistory() {
+    if (typeof window === 'undefined') return initialPayoutHistory;
+    try {
+        const data = localStorage.getItem('plusfood_payout_history');
+        if (!data) {
+            localStorage.setItem('plusfood_payout_history', JSON.stringify(initialPayoutHistory));
+            return initialPayoutHistory;
+        }
+        return JSON.parse(data);
+    } catch (e) {
+        return initialPayoutHistory;
+    }
+}
+
+export function addPayoutRecord(record) {
+    if (typeof window === 'undefined') return [];
+    try {
+        const history = getPayoutHistory();
+        const updated = [record, ...history];
+        localStorage.setItem('plusfood_payout_history', JSON.stringify(updated));
+        return updated;
+    } catch (e) {
+        return [];
+    }
+}
+
+// --- SISTEM SOUND NOTIFIKASI WEB AUDIO API (ORDER CHIME TING-TING) ---
+export function getSoundPreference() {
+    if (typeof window === 'undefined') return true;
+    try {
+        const val = localStorage.getItem('plusfood_sound_enabled');
+        return val !== null ? JSON.parse(val) : true;
+    } catch (e) {
+        return true;
+    }
+}
+
+export function saveSoundPreference(enabled) {
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem('plusfood_sound_enabled', JSON.stringify(enabled));
+        } catch (e) {}
+    }
+}
+
+export function playOrderChime() {
+    if (typeof window === 'undefined') return;
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
+        const playTone = (freq, delay, duration, gainLevel = 0.28) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'triangle'; // triangle gives a warm chime bell feel
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+
+            gain.gain.setValueAtTime(gainLevel, ctx.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + duration);
+        };
+
+        // Chime "ting-ting" melodis 2 nada ceria (E6 -> A6)
+        playTone(1318.51, 0, 0.45, 0.28);
+        playTone(1760.00, 0.13, 0.65, 0.32);
+    } catch (e) {
+        console.warn('AudioContext gagal memutar order chime:', e);
+    }
+}

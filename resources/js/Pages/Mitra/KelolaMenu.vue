@@ -1,8 +1,8 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
-import { sampleFoods, campusZones } from '@/Utils/mockFoods';
-import { ref, computed } from 'vue';
+import { sampleFoods, campusZones, saveCustomFood, getCustomFoods, deleteCustomFood } from '@/Utils/mockFoods';
+import { ref, computed, onMounted } from 'vue';
 
 // Zona kampus aktif di Surabaya (sinkron dengan filter mahasiswa)
 const availableCampusZones = computed(() => campusZones.filter(z => !z.isComingSoon));
@@ -31,9 +31,11 @@ const getTagBadgeClass = (tag) => {
 const activeListings = ref([
     {
         id: 101,
+        slug: 'nasi-ayam-bakar-bumbu-rujak-spesial-101',
         name: 'Nasi Ayam Bakar Bumbu Rujak Spesial',
         category: 'Nasi',
         campusZoneId: 'unesa-ketintang',
+        campusZone: 'unesa-ketintang',
         campusZoneName: 'UNESA Ketintang',
         canteenLocation: 'Kantin Vokasi Lt. 1 Stand 04',
         priceOriginal: 25000,
@@ -42,6 +44,7 @@ const activeListings = ref([
         pickupSession: 'malam',
         pickupStart: '19.30',
         pickupEnd: '20.30',
+        pickupTime: '19.30 – 20.30 WIB',
         status: 'aktif',
         tags: ['Halal', 'Bebas Kacang'],
         spiciness: 'Pedas Sedang',
@@ -50,9 +53,11 @@ const activeListings = ref([
     },
     {
         id: 102,
+        slug: 'sop-ayam-sayur-segar-warung-102',
         name: 'Sop Ayam & Sayur Segar Warung',
         category: 'Soto',
         campusZoneId: 'unesa-ketintang',
+        campusZone: 'unesa-ketintang',
         campusZoneName: 'UNESA Ketintang',
         canteenLocation: 'Kantin Vokasi Lt. 1 Stand 04',
         priceOriginal: 18000,
@@ -61,6 +66,7 @@ const activeListings = ref([
         pickupSession: 'sore',
         pickupStart: '19.00',
         pickupEnd: '20.30',
+        pickupTime: '19.00 – 20.30 WIB',
         status: 'aktif',
         tags: ['Halal', 'Bebas Kacang', 'Bebas Gluten'],
         spiciness: 'Tidak Pedas',
@@ -68,6 +74,19 @@ const activeListings = ref([
         image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=500&q=80'
     }
 ]);
+
+// Helper slug generator
+const slugify = (text) => {
+    return (text || '')
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '') || 'menu-surplus';
+};
 
 // Form Model Input Kilat yang Selaras dengan Filter Katalog Mahasiswa
 const form = ref({
@@ -91,6 +110,7 @@ const form = ref({
 });
 
 const isPublished = ref(false);
+const publishedFoodName = ref('');
 
 // Mengubah Jendela Waktu Ambil berdasarkan Preset Sesi
 const setPickupSession = (session) => {
@@ -205,40 +225,96 @@ const applyPreset = (preset) => {
     setPickupSession(preset.session);
 };
 
+// Ambil profil mitra resmi dari localStorage jika ada
+const getMitraStoreInfo = () => {
+    let merchantName = 'Warung Bu Sari';
+    let merchantAddress = form.value.canteenLocation || 'Kantin Vokasi Lt. 1 Stand 04, UNESA Ketintang';
+    if (typeof window !== 'undefined') {
+        try {
+            const raw = localStorage.getItem('plusfood_mitra_profile');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed.storeName) merchantName = parsed.storeName;
+                if (parsed.canteenLocation) merchantAddress = `${parsed.canteenLocation}, ${parsed.campusZone || 'Surabaya'}`;
+            }
+        } catch (e) {}
+    }
+    return { merchantName, merchantAddress };
+};
+
 const submitListing = () => {
     if (!isFormValid.value) return;
 
+    const newId = Date.now();
+    const newSlug = `${slugify(form.value.name)}-${String(newId).slice(-4)}`;
     const selectedZone = availableCampusZones.value.find(z => z.id === form.value.campusZoneId);
+    const { merchantName, merchantAddress } = getMitraStoreInfo();
 
-    activeListings.value.unshift({
-        id: Date.now(),
-        name: form.value.name,
+    const newFoodItem = {
+        id: newId,
+        slug: newSlug,
+        name: form.value.name.trim(),
+        shortName: form.value.name.trim().length > 25 ? form.value.name.trim().slice(0, 22) + '...' : form.value.name.trim(),
         category: form.value.category,
         campusZoneId: form.value.campusZoneId,
+        campusZone: form.value.campusZoneId,
         campusZoneName: selectedZone?.name || 'UNESA Ketintang',
-        canteenLocation: form.value.canteenLocation,
+        merchantZoneLabel: selectedZone ? selectedZone.name : 'Ketintang (Dekat UNESA)',
+        canteenLocation: form.value.canteenLocation.trim(),
         priceOriginal: Number(form.value.priceOriginal),
         priceDiscount: Number(form.value.priceDiscount),
+        discountPercent: discountPercent.value,
         stock: Number(form.value.stock),
         pickupSession: form.value.pickupSession,
         pickupStart: form.value.pickupStart,
         pickupEnd: form.value.pickupEnd,
+        pickupTime: `${form.value.pickupStart} – ${form.value.pickupEnd} WIB`,
+        pickupDeadlineInfo: `Hari ini · tutup ${form.value.pickupEnd} WIB`,
+        merchant: merchantName,
+        merchantInitial: merchantName.slice(0, 2).toUpperCase(),
+        merchantActiveSince: 'Maret 2023',
+        merchantRescuedCount: '1.420+',
+        rating: 4.9,
+        reviewsCount: 16,
+        distance: '0,5 km',
+        distanceMins: '3 mnt jalan kaki dari gerbang kampus',
+        address: merchantAddress,
+        batchCooked: 'Hari ini ' + form.value.pickupStart + ' WIB',
+        warmerGrade: 'Food Warmer Grade A',
+        co2Saved: '0,85 kg CO2e',
+        description: form.value.kitchenNote || 'Menu surplus lezat & higienis kualitas prima, disimpan di food warmer berstandar.',
+        packages: [
+            { icon: 'rice', title: '1 Porsi ' + form.value.name.trim() },
+            { icon: 'salad', title: 'Lalapan & Sambal Segar' },
+            { icon: 'eco', title: form.value.supportEcoPackaging ? 'Diskon Kemasan Bawa Wadah Sendiri' : 'Kemasan Higienis Standar' }
+        ],
         status: 'aktif',
         tags: [...form.value.tags],
+        dietaryTags: [...form.value.tags],
         spiciness: form.value.spiciness,
-        supportEcoPackaging: form.value.supportEcoPackaging,
-        image: form.value.image
-    });
+        supportEcoPackaging: Boolean(form.value.supportEcoPackaging),
+        image: form.value.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80',
+        minutesLeft: 45
+    };
 
+    // 1. Simpan ke plusfood_custom_foods agar tersinkronisasi ke katalog Mahasiswa
+    saveCustomFood(newFoodItem);
+
+    // 2. Tambahkan ke listing aktif lokal Mitra
+    activeListings.value.unshift(newFoodItem);
+
+    // 3. Tampilkan toast sukses "Menu Surplus Berhasil Dipublikasikan ke Mahasiswa!"
+    publishedFoodName.value = newFoodItem.name;
     isPublished.value = true;
     setTimeout(() => {
         isPublished.value = false;
         form.value.name = '';
-    }, 2500);
+    }, 4000);
 };
 
 const toggleStatus = (item) => {
     item.status = item.status === 'aktif' ? 'habis' : 'aktif';
+    syncCustomFood(item);
 };
 
 const adjustStock = (item, delta) => {
@@ -247,8 +323,37 @@ const adjustStock = (item, delta) => {
         item.stock = next;
         if (next === 0) item.status = 'habis';
         else item.status = 'aktif';
+        syncCustomFood(item);
     }
 };
+
+const syncCustomFood = (item) => {
+    try {
+        const custom = getCustomFoods();
+        const found = custom.find(c => String(c.id) === String(item.id));
+        if (found) {
+            found.stock = item.stock;
+            found.status = item.status;
+            localStorage.setItem('plusfood_custom_foods', JSON.stringify(custom));
+        }
+    } catch (e) {}
+};
+
+const removeListing = (item) => {
+    if (confirm(`Hapus menu "${item.name}" dari katalog?`)) {
+        activeListings.value = activeListings.value.filter(l => l.id !== item.id);
+        deleteCustomFood(item.id);
+    }
+};
+
+onMounted(() => {
+    const custom = getCustomFoods();
+    if (custom && custom.length > 0) {
+        const existingIds = new Set(activeListings.value.map(l => String(l.id)));
+        const newCustomItems = custom.filter(c => !existingIds.has(String(c.id)));
+        activeListings.value = [...newCustomItems, ...activeListings.value];
+    }
+});
 </script>
 
 <template>
@@ -275,16 +380,19 @@ const adjustStock = (item, delta) => {
             <!-- Toast Sukses Posting -->
             <div v-if="isPublished" class="rounded-2xl bg-emerald-600 p-4 text-white shadow-lg flex items-center justify-between animate-in fade-in zoom-in-95">
                 <div class="flex items-center gap-3">
-                    <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <div class="h-9 w-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                        <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
                     <div>
-                        <p class="text-sm font-extrabold">Listing Berhasil Dipublikasikan!</p>
+                        <p class="text-sm font-extrabold">Menu Surplus Berhasil Dipublikasikan ke Mahasiswa!</p>
                         <p class="text-xs text-white/90">
-                            Menu ini langsung muncul di katalog mahasiswa sesuai zona kampus dan pantangan alergi yang dipilih.
+                            Menu "{{ publishedFoodName || form.name }}" langsung muncul di Beranda & Katalog Mahasiswa serta siap dicheckout.
                         </p>
                     </div>
                 </div>
+                <span class="rounded-lg bg-white/20 px-3 py-1 text-xs font-bold shrink-0">Live & Terbuka</span>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -731,14 +839,25 @@ const adjustStock = (item, delta) => {
                                             <span class="rounded-md bg-rose-50 text-brand-maroon text-xs font-bold px-2 py-0.5">
                                                 {{ item.category }}
                                             </span>
-                                            <button
-                                                @click="toggleStatus(item)"
-                                                class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-xs cursor-pointer"
-                                                :class="item.status === 'aktif' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'"
-                                            >
-                                                <span class="h-1.5 w-1.5 rounded-full" :class="item.status === 'aktif' ? 'bg-white animate-pulse' : 'bg-slate-400'"></span>
-                                                <span>{{ item.status === 'aktif' ? 'TAYANG' : 'HABIS' }}</span>
-                                            </button>
+                                            <div class="flex items-center gap-1.5">
+                                                <button
+                                                    @click="toggleStatus(item)"
+                                                    class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-xs cursor-pointer"
+                                                    :class="item.status === 'aktif' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'"
+                                                >
+                                                    <span class="h-1.5 w-1.5 rounded-full" :class="item.status === 'aktif' ? 'bg-white animate-pulse' : 'bg-slate-400'"></span>
+                                                    <span>{{ item.status === 'aktif' ? 'TAYANG' : 'HABIS' }}</span>
+                                                </button>
+                                                <button
+                                                    @click="removeListing(item)"
+                                                    class="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                                    title="Hapus Menu"
+                                                >
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </div>
                                         <h3 class="text-sm font-bold text-slate-900 truncate mt-1">{{ item.name }}</h3>
                                         <p class="text-xs font-extrabold text-brand-maroon mt-0.5">

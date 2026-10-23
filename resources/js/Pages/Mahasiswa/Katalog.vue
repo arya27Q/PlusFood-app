@@ -2,7 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
-import { sampleFoods, campusZones } from '@/Utils/mockFoods';
+import { sampleFoods, campusZones, getCustomFoods } from '@/Utils/mockFoods';
 import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
@@ -16,8 +16,30 @@ const props = defineProps({
     },
 });
 
+const customFoods = ref([]);
+const reloadCustomFoods = () => {
+    customFoods.value = getCustomFoods();
+};
+
+onMounted(() => {
+    reloadCustomFoods();
+    isLoading.value = false;
+    if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'plusfood_custom_foods') {
+                reloadCustomFoods();
+            }
+        });
+        window.addEventListener('plusfood_custom_foods_updated', reloadCustomFoods);
+    }
+});
+
 const foodsList = computed(() => {
-    return (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
+    const base = (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
+    const custom = customFoods.value;
+    const customSlugs = new Set(custom.map(c => c.slug));
+    const filteredBase = base.filter(b => !customSlugs.has(b.slug) && !custom.some(c => String(c.id) === String(b.id)));
+    return [...custom, ...filteredBase];
 });
 
 const maxPrice = ref(props.filters?.max_price || 25000);

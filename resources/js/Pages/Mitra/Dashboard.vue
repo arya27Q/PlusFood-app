@@ -2,11 +2,20 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
 import ScanQrModal from '@/Components/Mitra/ScanQrModal.vue';
+import PayoutModal from '@/Components/Mitra/PayoutModal.vue';
+import IncomingOrderBanner from '@/Components/Mitra/IncomingOrderBanner.vue';
 import SalesAnalyticsChart from '@/Components/Mitra/SalesAnalyticsChart.vue';
-import { getSavedOrders, updateOrderStatus, sampleFoods } from '@/Utils/mockFoods';
+import { getSavedOrders, updateOrderStatus, sampleFoods, getSoundPreference, saveSoundPreference, playOrderChime } from '@/Utils/mockFoods';
 import { ref, onMounted, computed } from 'vue';
 
 const showScanModal = ref(false);
+const showPayoutModal = ref(false);
+const isSoundEnabled = ref(true);
+const incomingOrder = ref(null);
+const knownOrderIds = ref(new Set());
+const totalWithdrawnToday = ref(0);
+let bannerTimeout = null;
+
 const orders = ref([]);
 const recentFilter = ref('semua'); // 'semua', 'menunggu', 'selesai'
 
@@ -14,13 +23,115 @@ const reloadOrders = () => {
     orders.value = getSavedOrders();
 };
 
+const availableBalance = computed(() => {
+    return Math.max(0, todayRevenue.value - totalWithdrawnToday.value);
+});
+
+const toggleSound = () => {
+    isSoundEnabled.value = !isSoundEnabled.value;
+    saveSoundPreference(isSoundEnabled.value);
+    if (isSoundEnabled.value) {
+        playOrderChime();
+    }
+};
+
+const triggerIncomingNotification = (newOrder) => {
+    if (isSoundEnabled.value) {
+        playOrderChime();
+    }
+    incomingOrder.value = {
+        id: newOrder.id,
+        customerName: newOrder.customerName || 'Mahasiswa UNESA',
+        foodName: newOrder.food?.shortName || newOrder.food?.name || 'Makanan Surplus',
+        total: newOrder.total || 0,
+        ecoPackaging: newOrder.ecoPackaging === 'bawa_sendiri',
+        date: 'Baru saja'
+    };
+
+    if (bannerTimeout) clearTimeout(bannerTimeout);
+    bannerTimeout = setTimeout(() => {
+        incomingOrder.value = null;
+    }, 7000);
+};
+
+const handleOrderStorageEvent = () => {
+    const freshOrders = getSavedOrders();
+    // Cari pesanan baru dengan status 'menunggu' yang belum pernah tercatat
+    const newPending = freshOrders.find(o => o.status === 'menunggu' && !knownOrderIds.value.has(String(o.id)));
+    if (newPending) {
+        triggerIncomingNotification(newPending);
+    }
+    knownOrderIds.value = new Set(freshOrders.map(o => String(o.id)));
+    orders.value = freshOrders;
+};
+
+// Simulasi pesanan baru masuk untuk demo & presentasi
+const simulateIncomingOrder = () => {
+    const simId = 'ORD-' + Math.floor(100 + Math.random() * 900);
+    const mockStudents = ['Dimas Arya (Mhs. FBS)', 'Nabila Putri (Mhs. FEB)', 'Raka Pratama (Mhs. FT)', 'Alifia Zahra (Mhs. FIP)'];
+    const mockFoodTitles = ['Nasi Ayam Bakar Bumbu Rujak Spesial', 'Nasi Campur Bali Ayam Suwir', 'Soto Ayam Lamongan Koya Gurih'];
+    const randomStudent = mockStudents[Math.floor(Math.random() * mockStudents.length)];
+    const randomFood = mockFoodTitles[Math.floor(Math.random() * mockFoodTitles.length)];
+
+    const simOrder = {
+        id: simId,
+        customerName: randomStudent,
+        nim: '230512' + Math.floor(10000 + Math.random() * 90000),
+        whatsapp: '0812' + Math.floor(10000000 + Math.random() * 90000000),
+        food: {
+            name: randomFood,
+            shortName: randomFood.split(' ')[0] + ' ' + randomFood.split(' ')[1],
+            priceDiscount: 12000,
+            priceOriginal: 25000,
+            merchant: 'Warung Bu Sari'
+        },
+        quantity: 1,
+        ecoPackaging: 'bawa_sendiri',
+        total: 12000,
+        pickupTime: '19.30 – 20.30 WIB',
+        pickupDeadline: 'Hari ini tutup 21.00 WIB',
+        date: 'Hari ini',
+        paymentMethod: 'qris',
+        paymentStatus: 'lunas',
+        status: 'menunggu',
+        statusLabel: 'Menunggu Pickup',
+        qrCode: simId + '-BS',
+        hasReview: false
+    };
+
+    const updated = [simOrder, ...orders.value];
+    orders.value = updated;
+    knownOrderIds.value.add(String(simOrder.id));
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('plusfood_orders', JSON.stringify(updated));
+    }
+    triggerIncomingNotification(simOrder);
+};
+
+const handleWithdrawn = ({ amount }) => {
+    totalWithdrawnToday.value += amount;
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('plusfood_withdrawn_today', String(totalWithdrawnToday.value));
+    }
+};
+
 onMounted(() => {
     reloadOrders();
-    // Sinkronisasi Real-Time Dua Arah Bawaan Browser (Tanpa Websocket Vendor)
+    knownOrderIds.value = new Set(orders.value.map(o => String(o.id)));
+    isSoundEnabled.value = getSoundPreference();
+
     if (typeof window !== 'undefined') {
+        const savedWithdrawn = localStorage.getItem('plusfood_withdrawn_today');
+        if (savedWithdrawn) {
+            totalWithdrawnToday.value = Number(savedWithdrawn) || 0;
+        }
+
         window.addEventListener('storage', (e) => {
             if (e.key === 'plusfood_orders') {
-                reloadOrders();
+                handleOrderStorageEvent();
+            }
+            if (e.key === 'plusfood_sound_enabled') {
+                isSoundEnabled.value = getSoundPreference();
             }
         });
     }
@@ -169,19 +280,41 @@ const filteredDashboardOrders = computed(() => {
                 </div>
 
                 <!-- Action CTA Header -->
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <!-- Toggle Suara Notifikasi (Fitur 3) -->
+                    <button
+                        @click="toggleSound"
+                        class="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2.5 sm:py-3 text-xs font-bold transition shadow-xs cursor-pointer border"
+                        :class="isSoundEnabled ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'"
+                        :title="isSoundEnabled ? 'Klik untuk matikan suara lonceng' : 'Klik untuk nyalakan suara lonceng'"
+                    >
+                        <span class="text-sm leading-none">{{ isSoundEnabled ? '🔊' : '🔇' }}</span>
+                        <span>Suara Notifikasi: {{ isSoundEnabled ? 'Aktif' : 'Nonaktif' }}</span>
+                    </button>
+
+                    <!-- Tombol Simulasi Pesanan Masuk (Demo Presentasi) -->
+                    <button
+                        @click="simulateIncomingOrder"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 text-amber-300 hover:bg-slate-800 px-3.5 py-2.5 sm:py-3 text-xs font-black shadow-sm transition hover:scale-105 active:scale-95 cursor-pointer border border-amber-400/40"
+                        title="Simulasi Pesanan Masuk untuk Demo Presentasi"
+                    >
+                        <span>🔔 Tes Pesanan Masuk</span>
+                    </button>
+
                     <button
                         @click="showScanModal = true"
-                        class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-xs font-black text-stone-900 shadow-md hover:bg-amber-300 transition hover:scale-105"
+                        class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 sm:px-5 py-2.5 sm:py-3 text-xs font-black text-stone-900 shadow-md hover:bg-amber-300 transition hover:scale-105 cursor-pointer"
                     >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                         </svg>
-                        <span>Buka Pemindai QR</span>
+                        <span class="hidden sm:inline">Buka Pemindai QR</span>
+                        <span class="sm:hidden">Scan QR</span>
                     </button>
+
                     <Link
                         :href="route('mitra.kelola-menu')"
-                        class="inline-flex items-center gap-2 rounded-xl bg-brand-maroon px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition"
+                        class="inline-flex items-center gap-2 rounded-xl bg-brand-maroon px-4 sm:px-5 py-2.5 sm:py-3 text-xs font-bold text-white shadow-md hover:bg-brand-maroon-hover transition"
                     >
                         <span>+ Tambah Surplus Kilat</span>
                     </Link>
@@ -191,28 +324,48 @@ const filteredDashboardOrders = computed(() => {
             <!-- ================= KPI METRIC CARDS (GRID 3 KOLOM SESUAI SPEC) ================= -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                 
-                <!-- KPI 1: Pendapatan Hari Ini -->
-                <div class="rounded-[26px] bg-white p-6 border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.07)] transition-all duration-200 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Pendapatan Hari Ini
-                        </span>
-                        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                <!-- KPI 1: Pendapatan Hari Ini & Payout Saldo Dompet -->
+                <div class="rounded-[26px] bg-white p-6 border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.07)] transition-all duration-200 space-y-3.5 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                Pendapatan Hari Ini
+                            </span>
+                            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-black text-brand-maroon tracking-tight">
+                                Rp{{ todayRevenue.toLocaleString('id-ID') }}
+                            </p>
+                            <div class="flex items-center justify-between text-xs mt-1">
+                                <p class="text-emerald-700 font-bold flex items-center gap-1">
+                                    <svg class="h-3.5 w-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Tersedia: Rp{{ availableBalance.toLocaleString('id-ID') }}</span>
+                                </p>
+                                <span v-if="totalWithdrawnToday > 0" class="text-[10px] text-slate-400 font-semibold">
+                                    Ditarik: Rp{{ totalWithdrawnToday.toLocaleString('id-ID') }}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <p class="text-3xl font-black text-brand-maroon tracking-tight">
-                            Rp{{ todayRevenue.toLocaleString('id-ID') }}
-                        </p>
-                        <p class="text-xs text-emerald-700 font-bold mt-1 flex items-center gap-1">
-                            <svg class="h-3.5 w-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+
+                    <!-- Tombol Tarik Saldo / Pencairan Dana (Fitur 2) -->
+                    <div class="pt-2 border-t border-slate-100">
+                        <button
+                            @click="showPayoutModal = true"
+                            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-maroon via-[#7B0D2C] to-[#8E1032] px-4 py-2.5 text-xs font-black text-white shadow-sm hover:opacity-95 hover:shadow-md transition active:scale-98 cursor-pointer group"
+                        >
+                            <svg class="h-4 w-4 text-amber-300 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <span>100% masuk langsung ke kantong kasir</span>
-                        </p>
+                            <span>Tarik Saldo / Pencairan Dana</span>
+                        </button>
                     </div>
                 </div>
 
@@ -797,6 +950,21 @@ const filteredDashboardOrders = computed(() => {
             v-if="showScanModal"
             @close="showScanModal = false"
             @validated="handleValidated"
+        />
+
+        <!-- Modal Dialog Pencairan Dana Mitra (Fitur 2) -->
+        <PayoutModal
+            :show="showPayoutModal"
+            :available-balance="availableBalance"
+            :today-revenue="todayRevenue"
+            @close="showPayoutModal = false"
+            @withdrawn="handleWithdrawn"
+        />
+
+        <!-- Floating Banner Pesanan Baru Masuk (Fitur 3) -->
+        <IncomingOrderBanner
+            :order="incomingOrder"
+            @close="incomingOrder = null"
         />
     </MitraLayout>
 </template>
