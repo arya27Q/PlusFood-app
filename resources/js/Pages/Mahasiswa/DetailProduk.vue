@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
-import { sampleFoods } from '@/Utils/mockFoods';
+import { sampleFoods, getCustomFoods } from '@/Utils/mockFoods';
 import { ref, computed } from 'vue';
 import FoodPackageIcon from '@/Components/Mahasiswa/FoodPackageIcon.vue';
 
@@ -104,8 +104,11 @@ const props = defineProps({
     },
 });
 
-// Ambil makanan dari database via props.food, atau fallback ke mockFoods
+// Ambil makanan dari custom foods, database via props.food, atau fallback ke sampleFoods
 const food = computed(() => {
+    const custom = getCustomFoods();
+    const foundCustom = custom.find(f => f.slug === props.slug);
+    if (foundCustom) return foundCustom;
     if (props.food) return props.food;
     return sampleFoods.find(f => f.slug === props.slug) || sampleFoods[0];
 });

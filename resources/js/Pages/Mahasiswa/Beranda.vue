@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
 import PickupTicketDetail from '@/Components/Mahasiswa/PickupTicketDetail.vue';
-import { sampleFoods, campusZones, getSavedOrders, mapDbOrder } from '@/Utils/mockFoods';
+import { sampleFoods, campusZones, getSavedOrders, mapDbOrder, getCustomFoods } from '@/Utils/mockFoods';
 import { ref, computed, onMounted } from 'vue';
 import { useAuth } from '@/Composables/useAuth';
 
@@ -25,6 +25,11 @@ const selectedRadius = ref('2 km');
 const selectedFastFilter = ref('Semua');
 const showLocationModal = ref(false);
 const isLoading = ref(true);
+const customFoods = ref([]);
+
+const reloadCustomFoods = () => {
+    customFoods.value = getCustomFoods();
+};
 
 // ================= STATE PESANAN AKTIF & DRAFT CHECKOUT =================
 const activeTicketOrder = ref(null);
@@ -107,8 +112,34 @@ const fastFilters = [
     '< Rp15.000'
 ];
 
+onMounted(() => {
+    reloadActiveOrders();
+    checkDraftCheckout();
+    reloadCustomFoods();
+    isLoading.value = false;
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'plusfood_orders') {
+                reloadActiveOrders();
+            }
+            if (e.key === 'plusfood_custom_foods') {
+                reloadCustomFoods();
+            }
+            if (e.key === 'plusfood_draft_checkout') {
+                checkDraftCheckout();
+            }
+        });
+        window.addEventListener('plusfood_custom_foods_updated', reloadCustomFoods);
+    }
+});
+
 const foodsList = computed(() => {
-    return (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
+    const base = (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
+    const custom = customFoods.value;
+    const customSlugs = new Set(custom.map(c => c.slug));
+    const filteredBase = base.filter(b => !customSlugs.has(b.slug) && !custom.some(c => String(c.id) === String(b.id)));
+    return [...custom, ...filteredBase];
 });
 
 const filteredFoods = computed(() => {

@@ -2,7 +2,8 @@
 import { Head } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
 import ScanQrModal from '@/Components/Mitra/ScanQrModal.vue';
-import { getSavedOrders, updateOrderStatus } from '@/Utils/mockFoods';
+import IncomingOrderBanner from '@/Components/Mitra/IncomingOrderBanner.vue';
+import { getSavedOrders, updateOrderStatus, getSoundPreference, saveSoundPreference, playOrderChime } from '@/Utils/mockFoods';
 import { ref, onMounted, computed } from 'vue';
 
 const showScanModal = ref(false);
@@ -10,18 +11,107 @@ const orders = ref([]);
 const activeTab = ref('semua'); // 'semua', 'menunggu', 'selesai', 'dibatalkan'
 const searchQuery = ref('');
 const notification = ref('');
+const isSoundEnabled = ref(true);
+const incomingOrder = ref(null);
+const knownOrderIds = ref(new Set());
+let bannerTimeout = null;
 
 const reloadOrders = () => {
     orders.value = getSavedOrders();
 };
 
+const toggleSound = () => {
+    isSoundEnabled.value = !isSoundEnabled.value;
+    saveSoundPreference(isSoundEnabled.value);
+    if (isSoundEnabled.value) {
+        playOrderChime();
+    }
+};
+
+const triggerIncomingNotification = (newOrder) => {
+    if (isSoundEnabled.value) {
+        playOrderChime();
+    }
+    incomingOrder.value = {
+        id: newOrder.id,
+        customerName: newOrder.customerName || 'Mahasiswa UNESA',
+        foodName: newOrder.food?.shortName || newOrder.food?.name || 'Makanan Surplus',
+        total: newOrder.total || 0,
+        ecoPackaging: newOrder.ecoPackaging === 'bawa_sendiri',
+        date: 'Baru saja'
+    };
+
+    if (bannerTimeout) clearTimeout(bannerTimeout);
+    bannerTimeout = setTimeout(() => {
+        incomingOrder.value = null;
+    }, 7000);
+};
+
+const handleOrderStorageEvent = () => {
+    const freshOrders = getSavedOrders();
+    const newPending = freshOrders.find(o => o.status === 'menunggu' && !knownOrderIds.value.has(String(o.id)));
+    if (newPending) {
+        triggerIncomingNotification(newPending);
+    }
+    knownOrderIds.value = new Set(freshOrders.map(o => String(o.id)));
+    orders.value = freshOrders;
+};
+
+// Simulasi pesanan masuk untuk demo di halaman pesanan
+const simulateIncomingOrder = () => {
+    const simId = 'ORD-' + Math.floor(100 + Math.random() * 900);
+    const mockStudents = ['Kevin Pratama (Mhs. FT)', 'Dewi Anggraini (Mhs. FMIPA)', 'Bagas Wicaksono (Mhs. FISH)'];
+    const mockFoodTitles = ['Nasi Ayam Bakar Bumbu Rujak Spesial', 'Nasi Campur Bali Ayam Suwir', 'Sop Ayam & Sayur Segar'];
+    const randomStudent = mockStudents[Math.floor(Math.random() * mockStudents.length)];
+    const randomFood = mockFoodTitles[Math.floor(Math.random() * mockFoodTitles.length)];
+
+    const simOrder = {
+        id: simId,
+        customerName: randomStudent,
+        nim: '230512' + Math.floor(10000 + Math.random() * 90000),
+        whatsapp: '0812' + Math.floor(10000000 + Math.random() * 90000000),
+        food: {
+            name: randomFood,
+            shortName: randomFood.split(' ')[0] + ' ' + randomFood.split(' ')[1],
+            priceDiscount: 12000,
+            priceOriginal: 25000,
+            merchant: 'Warung Bu Sari'
+        },
+        quantity: 1,
+        ecoPackaging: 'bawa_sendiri',
+        total: 12000,
+        pickupTime: '19.30 – 20.30 WIB',
+        pickupDeadline: 'Hari ini tutup 21.00 WIB',
+        date: 'Hari ini',
+        paymentMethod: 'qris',
+        paymentStatus: 'lunas',
+        status: 'menunggu',
+        statusLabel: 'Menunggu Pickup',
+        qrCode: simId + '-BS',
+        hasReview: false
+    };
+
+    const updated = [simOrder, ...orders.value];
+    orders.value = updated;
+    knownOrderIds.value.add(String(simOrder.id));
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('plusfood_orders', JSON.stringify(updated));
+    }
+    triggerIncomingNotification(simOrder);
+};
+
 onMounted(() => {
     reloadOrders();
-    // Sinkronisasi Real-Time Dua Arah Bawaan Browser (Tanpa Websocket Vendor)
+    knownOrderIds.value = new Set(orders.value.map(o => String(o.id)));
+    isSoundEnabled.value = getSoundPreference();
+
     if (typeof window !== 'undefined') {
         window.addEventListener('storage', (e) => {
             if (e.key === 'plusfood_orders') {
-                reloadOrders();
+                handleOrderStorageEvent();
+            }
+            if (e.key === 'plusfood_sound_enabled') {
+                isSoundEnabled.value = getSoundPreference();
             }
         });
     }
@@ -171,14 +261,35 @@ const exportCsv = () => {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
+                    <!-- Toggle Suara Notifikasi (Fitur 3) -->
+                    <button
+                        @click="toggleSound"
+                        class="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition shadow-xs cursor-pointer border"
+                        :class="isSoundEnabled ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'"
+                        :title="isSoundEnabled ? 'Klik untuk mematikan suara lonceng' : 'Klik untuk mengaktifkan suara lonceng'"
+                    >
+                        <span class="text-sm leading-none">{{ isSoundEnabled ? '🔊' : '🔇' }}</span>
+                        <span>Suara Notifikasi: {{ isSoundEnabled ? 'Aktif' : 'Nonaktif' }}</span>
+                    </button>
+
+                    <!-- Tombol Simulasi Pesanan Masuk (Demo) -->
+                    <button
+                        @click="simulateIncomingOrder"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 text-amber-300 hover:bg-slate-800 px-3.5 py-2 text-xs font-black shadow-sm transition hover:scale-105 active:scale-95 cursor-pointer border border-amber-400/40"
+                        title="Simulasi Pesanan Masuk untuk Demo"
+                    >
+                        <span>🔔 Tes Pesanan</span>
+                    </button>
+
                     <button
                         @click="printRekap"
-                        class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-2xs transition"
+                        class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
                     >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        <span>Cetak Rekap Kasir</span>
+                        <span class="hidden sm:inline">Cetak Rekap Kasir</span>
+                        <span class="sm:hidden">Cetak</span>
                     </button>
 
                     <button
@@ -188,12 +299,13 @@ const exportCsv = () => {
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        <span>Ekspor CSV</span>
+                        <span class="hidden sm:inline">Ekspor CSV</span>
+                        <span class="sm:hidden">CSV</span>
                     </button>
 
                     <button
                         @click="showScanModal = true"
-                        class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2 text-xs font-black text-stone-900 shadow-sm hover:bg-amber-300 transition"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2 text-xs font-black text-stone-900 shadow-sm hover:bg-amber-300 transition cursor-pointer"
                     >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -671,6 +783,12 @@ const exportCsv = () => {
             v-if="showScanModal"
             @close="showScanModal = false"
             @validated="handleValidated"
+        />
+
+        <!-- Floating Banner Pesanan Baru Masuk (Fitur 3) -->
+        <IncomingOrderBanner
+            :order="incomingOrder"
+            @close="incomingOrder = null"
         />
     </MitraLayout>
 </template>
