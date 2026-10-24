@@ -14,7 +14,7 @@ defineProps({
 const isVisible = ref(false);
 
 const form = useForm({
-    email: 'raka@mhs.unesa.ac.id',
+    email: '',
 });
 
 onMounted(() => {

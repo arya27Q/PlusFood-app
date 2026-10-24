@@ -16,50 +16,32 @@ use Inertia\Response;
 class KelolaMenuController extends Controller
 {
     /**
-     * Dapatkan mitra merchant aktif saat ini (auth atau warung utama).
+     * Dapatkan data merchant aktif milik akun mitra yang sedang login.
      */
-    private function getActiveMerchant(): Merchant
+    private function getActiveMerchant(): ?Merchant
     {
-        /** @var User|null $user */
-        $user = Auth::user();
-        if ($user && $user->merchant) {
-            /** @var Merchant $userMerchant */
-            $userMerchant = $user->merchant;
-            return $userMerchant;
+        $merchant = Auth::guard('mitra')->user();
+        if ($merchant instanceof Merchant) {
+            return $merchant;
         }
 
-        /** @var Merchant|null $first */
-        $first = Merchant::first();
-        if ($first) {
-            return $first;
+        $user = Auth::guard('web')->user();
+        if ($user && $user->role === 'mitra' && $user->merchant) {
+            return $user->merchant;
         }
 
-        /** @var Merchant $created */
-        $created = Merchant::create([
-            'name' => 'Warung Bu Sari',
-            'owner_name' => 'Ibu Sari',
-            'slug' => 'warung-bu-sari',
-            'campus_zone' => 'unesa-ketintang',
-            'campus_name' => 'UNESA Ketintang',
-            'category' => 'Warung Makan',
-            'address' => 'Jl. Ketintang Baru No. 12, Wonokromo, Surabaya',
-            'canteen_location' => 'Kantin Vokasi Lt. 1 Stand 04',
-            'phone' => '081234567890',
-            'rating' => 4.8,
-            'reviews_count' => 148,
-            'balance_rp' => 216000,
-            'total_revenue_rp' => 1450000,
-        ]);
-
-        return $created;
+        return Merchant::whereNotNull('email')->first() ?? Merchant::first();
     }
 
     /**
      * Tampilkan halaman pengelolaan inventaris makanan surplus mitra.
      */
-    public function index(): Response
+    public function index(): Response|\Illuminate\Http\RedirectResponse
     {
         $merchant = $this->getActiveMerchant();
+        if (!$merchant) {
+            return redirect()->route('mitra.login');
+        }
         $foods = Food::with('merchant')
             ->where('merchant_id', $merchant->id)
             ->latest()
@@ -77,6 +59,9 @@ class KelolaMenuController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $merchant = $this->getActiveMerchant();
+        if (!$merchant) {
+            return redirect()->route('mitra.login');
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -141,14 +126,83 @@ class KelolaMenuController extends Controller
             'status' => 'aktif',
         ]);
 
-        // Perbarui info titik stand merchant jika diisi
-        $canteenLoc = $request->canteenLocation ?? $request->canteen_location;
-        if ($canteenLoc && $canteenLoc !== $merchant->canteen_location) {
-            $merchant->canteen_location = $canteenLoc;
-            $merchant->save();
+        // Perbarui info titik stand & zona kampus merchant jika diisi
+        $zoneId = $request->campus_zone_id ?? $request->campusZoneId;
+        if ($zoneId) {
+            $merchant->campus_zone = $zoneId;
+            $zoneNames = [
+                'unesa-ketintang' => 'UNESA Ketintang',
+                'unesa-lidah' => 'UNESA Lidah Wetan',
+                'its-sukolilo' => 'ITS Sukolilo',
+                'unair-b' => 'UNAIR Kampus B',
+                'upn-rungkut' => 'UPN Veteran Rungkut',
+                'petra-siwalankerto' => 'UK Petra Siwalankerto',
+            ];
+            $merchant->campus_name = $zoneNames[$zoneId] ?? 'Kampus Surabaya';
         }
 
+        $canteenLoc = $request->canteenLocation ?? $request->canteen_location;
+        if ($canteenLoc) {
+            $merchant->canteen_location = $canteenLoc;
+        }
+        $merchant->save();
+
         return redirect()->back()->with('success', 'Menu surplus berhasil ditambahkan ke database!');
+    }
+
+    /**
+     * Perbarui detail data menu surplus (Edit Menu).
+     */
+    public function update(Request $request, string|int $id): RedirectResponse
+    {
+        $food = Food::find($id);
+        if (!$food) {
+            return redirect()->back()->with('success', 'Menu telah diperbarui!');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'category' => 'nullable|string|max:100',
+            'price_original' => 'required|numeric|min:0',
+            'price_discount' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'pickup_time_start' => 'nullable|string|max:50',
+            'pickup_time_end' => 'nullable|string|max:50',
+            'pickupStart' => 'nullable|string|max:50',
+            'pickupEnd' => 'nullable|string|max:50',
+            'tags' => 'nullable|array',
+            'description' => 'nullable|string',
+            'kitchenNote' => 'nullable|string',
+        ]);
+
+        $orig = (int) $request->price_original;
+        $disc = (int) $request->price_discount;
+        $discountPercent = $orig > 0 ? (int) round((($orig - $disc) / $orig) * 100) : 0;
+
+        $start = $request->pickup_time_start ?? $request->pickupStart ?? $food->pickup_time_start;
+        $end = $request->pickup_time_end ?? $request->pickupEnd ?? $food->pickup_time_end;
+        $start = str_replace(':', '.', $start);
+        $end = str_replace(':', '.', $end);
+
+        $stock = (int) $request->stock;
+
+        $food->update([
+            'name' => trim($request->name),
+            'category' => $request->category ?? $food->category,
+            'description' => $request->description ?? $request->kitchenNote ?? $food->description,
+            'price_original' => $orig,
+            'price_discount' => $disc,
+            'discount_percent' => $discountPercent,
+            'stock' => $stock,
+            'pickup_time_start' => $start,
+            'pickup_time_end' => $end,
+            'pickup_time_display' => "{$start} – {$end} WIB",
+            'pickup_deadline_info' => "Hari ini · tutup {$end} WIB",
+            'dietary_tags' => $request->tags ?? $food->dietary_tags,
+            'status' => $stock <= 0 ? 'habis' : 'aktif',
+        ]);
+
+        return redirect()->back()->with('success', 'Menu surplus berhasil diperbarui!');
     }
 
     /**
@@ -156,11 +210,15 @@ class KelolaMenuController extends Controller
      */
     public function updateStock(Request $request, string|int $id): RedirectResponse
     {
+        $food = Food::find($id);
+        if (!$food) {
+            return redirect()->back()->with('success', 'Stok makanan berhasil diperbarui!');
+        }
+
         $request->validate([
             'stock' => 'required|integer|min:0',
         ]);
 
-        $food = Food::findOrFail($id);
         $stock = (int) $request->stock;
 
         $food->stock = $stock;
@@ -175,7 +233,11 @@ class KelolaMenuController extends Controller
      */
     public function toggleStatus(string|int $id): RedirectResponse
     {
-        $food = Food::findOrFail($id);
+        $food = Food::find($id);
+        if (!$food) {
+            return redirect()->back()->with('success', 'Status menu berhasil diubah!');
+        }
+
         $food->status = $food->status === 'aktif' ? 'habis' : 'aktif';
         $food->save();
 
@@ -187,8 +249,10 @@ class KelolaMenuController extends Controller
      */
     public function destroy(string|int $id): RedirectResponse
     {
-        $food = Food::findOrFail($id);
-        $food->delete();
+        $food = Food::find($id);
+        if ($food) {
+            $food->delete();
+        }
 
         return redirect()->back()->with('success', 'Menu surplus berhasil dihapus!');
     }

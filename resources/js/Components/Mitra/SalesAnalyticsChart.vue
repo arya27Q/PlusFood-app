@@ -1,32 +1,111 @@
 <script setup>
 import { ref, computed } from 'vue';
 
+const props = defineProps({
+    chartData: {
+        type: Array,
+        default: () => [],
+    },
+    orders: {
+        type: Array,
+        default: () => [],
+    },
+    merchant: {
+        type: Object,
+        default: () => ({}),
+    },
+    metrics: {
+        type: Object,
+        default: () => ({}),
+    },
+    ecoPercent: {
+        type: Number,
+        default: 0,
+    },
+});
+
 // Filter metrik yang dipilih mitra
 const activeMetric = ref('porsi'); // 'porsi', 'pendapatan', 'lingkungan'
 const activePeriod = ref('7hari'); // '7hari', 'bulan'
 
-// Data harian (7 Hari Terakhir)
-const dailyData = ref([
-    { day: 'Kamis', short: 'Kam', date: '10 Okt', porsi: 16, totalListing: 20, revenue: 192000, costSaved: 128000, co2: 4.2, peakHour: '19.45 WIB' },
-    { day: 'Jumat', short: 'Jum', date: '11 Okt', porsi: 22, totalListing: 24, revenue: 264000, costSaved: 176000, co2: 5.8, peakHour: '19.30 WIB' },
-    { day: 'Sabtu', short: 'Sab', date: '12 Okt', porsi: 18, totalListing: 22, revenue: 216000, costSaved: 144000, co2: 4.7, peakHour: '20.00 WIB' },
-    { day: 'Minggu', short: 'Min', date: '13 Okt', porsi: 14, totalListing: 18, revenue: 168000, costSaved: 112000, co2: 3.6, peakHour: '19.15 WIB' },
-    { day: 'Senin', short: 'Sen', date: '14 Okt', porsi: 20, totalListing: 22, revenue: 240000, costSaved: 160000, co2: 5.2, peakHour: '19.40 WIB' },
-    { day: 'Selasa', short: 'Sel', date: '15 Okt', porsi: 25, totalListing: 26, revenue: 300000, costSaved: 200000, co2: 6.5, peakHour: '19.20 WIB' },
-    { day: 'Rabu (Hari Ini)', short: 'Rab', date: '16 Okt', porsi: 24, totalListing: 26, revenue: 288000, costSaved: 192000, co2: 6.2, peakHour: '19.35 WIB', isToday: true }
-]);
+function generateDefault7Days() {
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const dayShorts = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    const result = [];
+    const now = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dayIdx = d.getDay();
+        const isToday = i === 0;
+
+        result.push({
+            day: isToday ? `${dayNames[dayIdx]} (Hari Ini)` : dayNames[dayIdx],
+            short: dayShorts[dayIdx],
+            date: `${d.getDate()} ${monthNames[d.getMonth()]}`,
+            porsi: 0,
+            totalListing: 1,
+            revenue: 0,
+            costSaved: 0,
+            co2: 0,
+            peakHour: '19.30 WIB',
+            isToday: isToday,
+        });
+    }
+    return result;
+}
+
+// Data harian (7 Hari Terakhir) dinamis riil
+const dailyData = computed(() => {
+    let base = props.chartData && props.chartData.length === 7 
+        ? JSON.parse(JSON.stringify(props.chartData))
+        : generateDefault7Days();
+
+    // Reconcile secara reaktif dengan props.orders
+    if (props.orders && props.orders.length > 0) {
+        const completed = props.orders.filter(o => o.status === 'selesai');
+        const todayPorsi = completed.reduce((acc, o) => {
+            return acc + (o.items ? o.items.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0) : 1);
+        }, 0);
+        const todayRevenue = completed.reduce((acc, o) => acc + Number(o.total_price || o.total || 0), 0);
+        const todayCostSaved = completed.reduce((acc, o) => acc + Number(o.money_saved || 0), 0);
+        const todayWeight = completed.reduce((acc, o) => acc + Number(o.weight_saved_grams || 0), 0);
+        const todayCo2 = Number((todayWeight > 0 ? (todayWeight / 1000 * 2.5) : (todayPorsi * 0.25)).toFixed(1));
+
+        if (base.length > 0) {
+            const todayItem = base[base.length - 1];
+            todayItem.porsi = Math.max(todayItem.porsi, todayPorsi);
+            todayItem.revenue = Math.max(todayItem.revenue, todayRevenue);
+            todayItem.costSaved = Math.max(todayItem.costSaved, todayCostSaved);
+            todayItem.co2 = Math.max(todayItem.co2, todayCo2);
+            todayItem.totalListing = Math.max(todayItem.totalListing, todayItem.porsi, 1);
+            if (completed.length > 0) {
+                todayItem.peakHour = completed[0]?.pickup_time || completed[0]?.pickupTime || '19.30 WIB';
+            }
+        }
+    }
+
+    return base;
+});
 
 const hoveredIndex = ref(6); // Default fokus ke hari ini
-const activeHoveredData = computed(() => dailyData.value[hoveredIndex.value] || dailyData.value[6]);
+const activeHoveredData = computed(() => dailyData.value[hoveredIndex.value] || dailyData.value[dailyData.value.length - 1] || {});
 
 // Statistik Akumulasi
-const totalPorsiRescued = computed(() => dailyData.value.reduce((acc, curr) => acc + curr.porsi, 0));
-const totalRevenue = computed(() => dailyData.value.reduce((acc, curr) => acc + curr.revenue, 0));
-const totalCostSaved = computed(() => dailyData.value.reduce((acc, curr) => acc + curr.costSaved, 0));
-const totalCo2 = computed(() => dailyData.value.reduce((acc, curr) => acc + curr.co2, 0).toFixed(1));
+const totalPorsiRescued = computed(() => dailyData.value.reduce((acc, curr) => acc + (curr.porsi || 0), 0));
+const totalRevenue = computed(() => dailyData.value.reduce((acc, curr) => acc + (curr.revenue || 0), 0));
+const totalCostSaved = computed(() => dailyData.value.reduce((acc, curr) => acc + (curr.costSaved || 0), 0));
+const totalCo2 = computed(() => {
+    const sum = dailyData.value.reduce((acc, curr) => acc + (curr.co2 || 0), 0);
+    return sum.toFixed(1);
+});
 const rescueRateWeekly = computed(() => {
-    const listing = dailyData.value.reduce((acc, curr) => acc + curr.totalListing, 0);
-    return Math.round((totalPorsiRescued.value / listing) * 100);
+    const listing = dailyData.value.reduce((acc, curr) => acc + (curr.totalListing || 0), 0);
+    if (listing <= 0 || totalPorsiRescued.value <= 0) return 0;
+    return Math.min(100, Math.round((totalPorsiRescued.value / listing) * 100));
 });
 
 // SVG Chart Dimension & Calculations
@@ -35,18 +114,18 @@ const svgHeight = 220;
 const paddingX = 40;
 const paddingY = 30;
 
-// Menentukan nilai max berdasarkan metrik aktif
+// Menentukan nilai max berdasarkan metrik aktif (aman dari pembagian nol)
 const maxValue = computed(() => {
     if (activeMetric.value === 'porsi') {
-        const max = Math.max(...dailyData.value.map(d => d.totalListing));
+        const max = Math.max(1, ...dailyData.value.map(d => Math.max(d.totalListing || 0, d.porsi || 0)));
         return Math.ceil(max * 1.15);
     }
     if (activeMetric.value === 'pendapatan') {
-        const max = Math.max(...dailyData.value.map(d => d.revenue));
+        const max = Math.max(10000, ...dailyData.value.map(d => d.revenue || 0));
         return Math.ceil(max * 1.15);
     }
     // lingkungan (co2)
-    const max = Math.max(...dailyData.value.map(d => d.co2));
+    const max = Math.max(1, ...dailyData.value.map(d => d.co2 || 0));
     return Math.ceil(max * 1.2);
 });
 
@@ -367,7 +446,7 @@ const areaPath = computed(() => {
                         </div>
                         <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
                             <p class="text-[10px] text-slate-500 font-semibold">Bawa Wadah</p>
-                            <p class="text-sm font-black text-brand-maroon mt-0.5">74% Mahasiswa</p>
+                            <p class="text-sm font-black text-brand-maroon mt-0.5">{{ props.ecoPercent || 0 }}% Mahasiswa</p>
                             <p class="text-[9px] text-emerald-700 font-bold">Hemat sampah mika</p>
                         </div>
                     </div>
@@ -376,7 +455,7 @@ const areaPath = computed(() => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span><strong class="text-slate-900">Sentra UNESA Ketintang:</strong> Menu warung Anda terhubung ke 1.200+ mahasiswa aktif sekitar kampus.</span>
+                        <span><strong class="text-slate-900">Sentra {{ merchant?.campus_name || 'UNESA Ketintang' }}:</strong> Menu warung Anda terhubung ke 1.200+ mahasiswa aktif sekitar kampus.</span>
                     </div>
                 </div>
 

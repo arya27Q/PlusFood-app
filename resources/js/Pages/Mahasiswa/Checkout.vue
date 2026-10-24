@@ -1,11 +1,7 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
-import { sampleFoods, addOrder, getCustomFoods } from '@/Utils/mockFoods';
-import { ref, computed, onMounted, watch } from 'vue';
-import { useAuth } from '@/Composables/useAuth';
-
-const auth = useAuth();
+import { useCheckout } from '@/Composables/useCheckout';
 
 const props = defineProps({
     food: {
@@ -26,324 +22,46 @@ const props = defineProps({
     },
 });
 
-const food = ref(props.food || (getCustomFoods()[0] || sampleFoods[0]));
-const quantity = ref(props.initialQuantity || 1);
-
-// State: 'idle' | 'loading' | 'success'
-const orderState = ref('idle');
-const generatedOrderId = ref('');
-const loadingProgress = ref(0);
-const isSubmitting = ref(false);
-
-// Form
-const userName = ref(props.customer?.name || auth.user.value?.name || 'Raka Pratama');
-const userAddress = ref(props.customer?.address || auth.user.value?.address || 'Jl. Ketintang Baru No. 14, Gayungan, Surabaya');
-const userWhatsapp = ref(props.customer?.phone || auth.user.value?.phone || '081234567890');
-const userEmail = ref(props.customer?.email || auth.user.value?.email || 'raka.pratama@mhs.unesa.ac.id');
-const userNim = ref(props.customer?.nim || auth.user.value?.nim || '23051204088');
-const userNote = ref('');
-
-// Touched tracking for inline field errors (Modul 8 Target 2)
-const touched = ref({
-    name: false,
-    address: false,
-    whatsapp: false,
-    email: false,
-});
-
-// Inline Field Validation & Sanitization (.trim() checked)
-const nameError = computed(() => {
-    const val = userName.value.trim();
-    if (!val) return 'Nama lengkap wajib diisi.';
-    if (val.length < 3) return 'Nama minimal 3 karakter.';
-    return '';
-});
-
-const addressError = computed(() => {
-    const val = userAddress.value.trim();
-    if (!val) return 'Alamat kos/penjemputan wajib diisi.';
-    return '';
-});
-
-const whatsappError = computed(() => {
-    const raw = userWhatsapp.value.trim().replace(/[-\s]/g, '');
-    if (!raw) return 'Nomor WhatsApp wajib diisi.';
-    if (!/^\d+$/.test(raw)) return 'Nomor WhatsApp hanya boleh angka.';
-    if (raw.length < 10 || raw.length > 15) return 'Nomor WhatsApp tidak valid (10-15 digit).';
-    return '';
-});
-
-const emailError = computed(() => {
-    const val = userEmail.value.trim();
-    if (!val) return 'Alamat email wajib diisi.';
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(val)) return 'Format email tidak valid (contoh: nama@gmail.com).';
-    return '';
-});
-
-// Overall Form Validity & Toast state
-const isFormValid = computed(() => {
-    return !nameError.value && !addressError.value && !whatsappError.value && !emailError.value;
-});
-
-const showSuccessToast = ref(false);
-
-// Packaging
-const ecoPackaging = ref(props.initialPackaging || 'bawa_sendiri');
-
-// Payment (100% Cashless Sandbox Simulator untuk proteksi mitra dari order fiktif)
-const paymentMethod = ref('qris');
-
-// Pickup time & arrival
-const arrivalEstimates = [
-    { id: 'awal', label: 'Awal Jendela', sub: 'Saat surplus siap' },
-    { id: 'tengah', label: 'Pertengahan', sub: 'Fleksibel santai' },
-    { id: 'akhir', label: 'Menjelang Tutup', sub: 'Sebelum batas akhir' }
-];
-const selectedArrival = ref('tengah');
-const remindBefore = ref(true);
-
-const unitPrice = computed(() => {
-    return food.value?.priceDiscount ?? food.value?.price_discount ?? 12000;
-});
-const originalPrice = computed(() => {
-    return food.value?.priceOriginal ?? food.value?.price_original ?? food.value?.price ?? 25000;
-});
-const subtotal = computed(() => unitPrice.value * quantity.value);
-const packagingFee = computed(() => {
-    if (ecoPackaging.value === 'kotak_kertas') return 1000;
-    if (ecoPackaging.value === 'thinwall') return 2000;
-    return 0;
-});
-const serviceFee = 1000;
-const totalPayment = computed(() => subtotal.value + packagingFee.value + serviceFee);
-const savedAmount = computed(() => (originalPrice.value - unitPrice.value) * quantity.value);
-const weightSaved = computed(() => quantity.value * (food.value?.weight_grams || 400));
-
-// Simpan & Kelola Draft Checkout (Mencegah pesanan hilang jika kepencet Home)
-const saveCheckoutDraft = () => {
-    if (typeof window === 'undefined' || !food.value) return;
-    try {
-        const draft = {
-            slug: food.value.slug,
-            foodId: food.value.id,
-            foodName: food.value.name,
-            foodImage: food.value.image,
-            merchantName: food.value.merchantName || food.value.merchant?.name || food.value.merchant || 'Mitra Kampus',
-            quantity: quantity.value,
-            packaging: ecoPackaging.value,
-            paymentMethod: paymentMethod.value,
-            totalPayment: totalPayment.value,
-            pickupTime: food.value.pickupTime || food.value.pickup_time_display || '19.30 – 20.30 WIB',
-            address: food.value.address || 'Surabaya',
-            timestamp: Date.now(),
-        };
-        localStorage.setItem('plusfood_draft_checkout', JSON.stringify(draft));
-    } catch (e) {}
-};
-
-const clearCheckoutDraft = () => {
-    if (typeof window === 'undefined') return;
-    try {
-        localStorage.removeItem('plusfood_draft_checkout');
-    } catch (e) {}
-};
-
-onMounted(() => {
-    if (typeof window !== 'undefined') {
-        const allAvailableFoods = [...getCustomFoods(), ...sampleFoods];
-        const params = new URLSearchParams(window.location.search);
-        const slug = params.get('slug');
-        const qty = parseInt(params.get('qty'), 10);
-        if (slug) {
-            const found = allAvailableFoods.find(f => f.slug === slug);
-            if (found) food.value = found;
-        } else {
-            // Pulihkan dari draft lokal jika membuka checkout kembali
-            const rawDraft = localStorage.getItem('plusfood_draft_checkout');
-            if (rawDraft) {
-                try {
-                    const draft = JSON.parse(rawDraft);
-                    if (draft.slug) {
-                        const found = allAvailableFoods.find(f => f.slug === draft.slug);
-                        if (found) food.value = found;
-                    }
-                    if (draft.quantity) quantity.value = Math.min(draft.quantity, food.value?.stock || 10);
-                    if (draft.packaging) ecoPackaging.value = draft.packaging;
-                    if (draft.paymentMethod) paymentMethod.value = draft.paymentMethod;
-                } catch (e) {}
-            }
-        }
-        if (qty && !isNaN(qty) && qty > 0 && food.value) {
-            quantity.value = Math.min(qty, food.value.stock);
-        }
-    }
-    saveCheckoutDraft();
-});
-
-watch([quantity, ecoPackaging, paymentMethod, food], () => {
-    saveCheckoutDraft();
-});
-
-const paymentOptions = [
-    { id: 'qris', label: 'QRIS Dinamis', sublabel: 'BCA, Mandiri, BRI, Semua Bank', color: 'bg-indigo-600', initial: 'QR' },
-    { id: 'gopay', label: 'GoPay Sandbox', sublabel: 'Instan 1-Klik Simulasi', color: 'bg-sky-500', initial: 'GP' },
-    { id: 'dana', label: 'DANA Sandbox', sublabel: 'Dompet Digital Kampus', color: 'bg-blue-600', initial: 'DA' },
-];
-
-const fmt = (n) => (n || 0).toLocaleString('id-ID');
-
-let progressTimer = null;
-const confirmReservation = () => {
-    // Sanitasi data form (.trim())
-    userName.value = userName.value.trim();
-    userAddress.value = userAddress.value.trim();
-    userWhatsapp.value = userWhatsapp.value.trim();
-    userEmail.value = userEmail.value.trim();
-
-    // Tandai semua field sebagai disentuh
-    touched.value = { name: true, address: true, whatsapp: true, email: true };
-
-    if (!isFormValid.value || isSubmitting.value) return;
-
-    isSubmitting.value = true;
-    orderState.value = 'loading';
-    loadingProgress.value = 10;
-
-    let elapsed = 0;
-    const duration = 1800;
-    const tick = 40;
-    progressTimer = setInterval(() => {
-        elapsed += tick;
-        loadingProgress.value = Math.min(94, Math.round(100 * (1 - Math.pow(1 - elapsed / duration, 2))));
-    }, tick);
-
-    // Kirim request ke backend Laravel Database
-    const backendFoodId = (food.value.id && Number(food.value.id) <= 99) ? Number(food.value.id) : 1;
-    router.post(route('checkout.store'), {
-        food_id: backendFoodId,
-        quantity: quantity.value,
-        eco_packaging: ecoPackaging.value,
-        customer_name: userName.value,
-        customer_phone: userWhatsapp.value,
-        customer_email: userEmail.value,
-        customer_address: userAddress.value,
-        customer_nim: userNim.value,
-        notes: userNote.value.trim(),
-        payment_method: paymentMethod.value,
-        arrival_estimate: selectedArrival.value,
-        remind_before: remindBefore.value,
-    }, {
-        onSuccess: (page) => {
-            clearInterval(progressTimer);
-            loadingProgress.value = 100;
-            isSubmitting.value = false;
-
-            const newId = page.props?.flash?.order_id || 'PF-' + Math.floor(10000 + Math.random() * 90000);
-            generatedOrderId.value = newId;
-
-            const cleanMerchantName = typeof food.value?.merchant === 'object' && food.value?.merchant?.name
-                ? food.value.merchant.name
-                : (food.value?.merchantName || (typeof food.value?.merchant === 'string' ? food.value.merchant : 'Mitra PlusFood'));
-
-            // Sinkronisasi data ke LocalStorage untuk fallback offline & real-time update
-            addOrder({
-                id: newId,
-                customerName: userName.value,
-                nim: userNim.value,
-                whatsapp: userWhatsapp.value,
-                email: userEmail.value,
-                address: userAddress.value,
-                note: userNote.value.trim(),
-                food: {
-                    ...food.value,
-                    merchant: cleanMerchantName,
-                    merchantName: cleanMerchantName,
-                    shortName: food.value?.shortName || food.value?.name,
-                },
-                quantity: quantity.value,
-                ecoPackaging: ecoPackaging.value,
-                ecoPackagingLabel: ecoPackaging.value === 'bawa_sendiri' ? 'Bawa Wadah Sendiri' : ecoPackaging.value === 'kotak_kertas' ? 'Kotak Kertas' : 'Thinwall',
-                subtotal: subtotal.value,
-                packagingFee: packagingFee.value,
-                total: totalPayment.value,
-                pickupTime: food.value.pickupTime || food.value.pickup_time_display || '19.30 – 20.30 WIB',
-                pickupDeadline: food.value.pickupDeadlineInfo || food.value.pickup_deadline_info || 'Hari ini tutup 21.00 WIB',
-                date: 'Hari ini',
-                paymentMethod: paymentMethod.value,
-                paymentGateway: 'sandbox_simulator',
-                paymentReference: 'SBX-' + paymentMethod.value.toUpperCase() + '-' + newId,
-                paymentStatus: 'lunas',
-                paidAt: new Date().toISOString(),
-                status: 'menunggu',
-                statusLabel: 'Menunggu Pickup',
-                qrCode: newId + '-' + (food.value.merchantInitial || food.value.merchant?.initial || 'PF'),
-                mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-                hasReview: false,
-            });
-
-            // Hapus draft checkout karena pesanan sudah resmi masuk
-            clearCheckoutDraft();
-
-            showSuccessToast.value = true;
-            setTimeout(() => { orderState.value = 'success'; }, 300);
-            setTimeout(() => { showSuccessToast.value = false; }, 4000);
-        },
-        onError: (errors) => {
-            // Fallback graceful untuk demo offline / custom foods
-            clearInterval(progressTimer);
-            loadingProgress.value = 100;
-            isSubmitting.value = false;
-
-            const newId = 'PF-' + Math.floor(10000 + Math.random() * 90000);
-            generatedOrderId.value = newId;
-
-            const cleanMerchantName = typeof food.value?.merchant === 'object' && food.value?.merchant?.name
-                ? food.value.merchant.name
-                : (food.value?.merchantName || (typeof food.value?.merchant === 'string' ? food.value.merchant : 'Mitra PlusFood'));
-
-            addOrder({
-                id: newId,
-                customerName: userName.value,
-                nim: userNim.value,
-                whatsapp: userWhatsapp.value,
-                email: userEmail.value,
-                address: userAddress.value,
-                note: userNote.value.trim(),
-                food: {
-                    ...food.value,
-                    merchant: cleanMerchantName,
-                    merchantName: cleanMerchantName,
-                    shortName: food.value?.shortName || food.value?.name,
-                },
-                quantity: quantity.value,
-                ecoPackaging: ecoPackaging.value,
-                ecoPackagingLabel: ecoPackaging.value === 'bawa_sendiri' ? 'Bawa Wadah Sendiri' : ecoPackaging.value === 'kotak_kertas' ? 'Kotak Kertas' : 'Thinwall',
-                subtotal: subtotal.value,
-                packagingFee: packagingFee.value,
-                total: totalPayment.value,
-                pickupTime: food.value.pickupTime || food.value.pickup_time_display || '19.30 – 20.30 WIB',
-                pickupDeadline: food.value.pickupDeadlineInfo || food.value.pickup_deadline_info || 'Hari ini tutup 21.00 WIB',
-                date: 'Hari ini',
-                paymentMethod: paymentMethod.value,
-                paymentGateway: 'sandbox_simulator',
-                paymentReference: 'SBX-' + paymentMethod.value.toUpperCase() + '-' + newId,
-                paymentStatus: 'lunas',
-                paidAt: new Date().toISOString(),
-                status: 'menunggu',
-                statusLabel: 'Menunggu Pickup',
-                qrCode: newId + '-' + (food.value.merchantInitial || food.value.merchant?.initial || 'PF'),
-                mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-                hasReview: false,
-            });
-
-            clearCheckoutDraft();
-            showSuccessToast.value = true;
-            setTimeout(() => { orderState.value = 'success'; }, 300);
-            setTimeout(() => { showSuccessToast.value = false; }, 4000);
-        }
-    });
-};
+const {
+    auth,
+    food,
+    quantity,
+    orderState,
+    generatedOrderId,
+    loadingProgress,
+    isSubmitting,
+    userName,
+    userAddress,
+    userWhatsapp,
+    userEmail,
+    userNim,
+    userNote,
+    touched,
+    nameError,
+    addressError,
+    whatsappError,
+    emailError,
+    isFormValid,
+    showSuccessToast,
+    ecoPackaging,
+    paymentMethod,
+    arrivalEstimates,
+    selectedArrival,
+    remindBefore,
+    unitPrice,
+    originalPrice,
+    subtotal,
+    packagingFee,
+    serviceFee,
+    totalPayment,
+    savedAmount,
+    weightSaved,
+    saveCheckoutDraft,
+    clearCheckoutDraft,
+    paymentOptions,
+    fmt,
+    confirmReservation,
+} = useCheckout(props);
 </script>
 
 <template>
@@ -543,18 +261,36 @@ const confirmReservation = () => {
                                 <span>100% Non-Tunai</span>
                             </span>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div class="space-y-2">
                             <label
                                 v-for="opt in paymentOptions"
                                 :key="opt.id"
-                                class="flex items-center gap-2.5 rounded-xl border-2 p-2.5 cursor-pointer transition"
-                                :class="paymentMethod === opt.id ? 'border-brand-maroon bg-rose-50/50 shadow-xs' : 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50/60'"
+                                class="flex items-center justify-between gap-3 rounded-xl border-2 p-2.5 cursor-pointer transition select-none"
+                                :class="paymentMethod === opt.id ? 'border-brand-maroon bg-rose-50/60 shadow-xs' : 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50/70'"
                             >
-                                <input type="radio" :value="opt.id" v-model="paymentMethod" class="sr-only" />
-                                <div class="h-7 w-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black shrink-0 shadow-xs" :class="opt.color">{{ opt.initial }}</div>
-                                <div class="min-w-0">
-                                    <p class="text-[10px] font-bold text-[#2D1B1E] leading-none truncate">{{ opt.label }}</p>
-                                    <p class="text-[9px] text-[#8C7A72] mt-0.5 truncate">{{ opt.sublabel }}</p>
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <input type="radio" :value="opt.id" v-model="paymentMethod" class="sr-only" />
+                                    <!-- Badge Logo Pembayaran Resmi & Jelas -->
+                                    <div 
+                                        class="h-8 w-12 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs font-black text-[11px] tracking-tight"
+                                        :style="{ backgroundColor: opt.id === 'qris' ? '#D32F2F' : opt.id === 'gopay' ? '#00AED6' : '#118EEA' }"
+                                    >
+                                        <span v-if="opt.id === 'qris'">QRIS</span>
+                                        <span v-else-if="opt.id === 'gopay'">GoPay</span>
+                                        <span v-else-if="opt.id === 'dana'">DANA</span>
+                                        <span v-else>{{ opt.initial }}</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-extrabold text-[#2D1B1E] leading-tight">{{ opt.label }}</p>
+                                        <p class="text-[10px] text-[#8C7A72] mt-0.5 leading-tight">{{ opt.sublabel }}</p>
+                                    </div>
+                                </div>
+                                <!-- Radio Check Indicator -->
+                                <div 
+                                    class="h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 transition"
+                                    :class="paymentMethod === opt.id ? 'border-brand-maroon bg-brand-maroon' : 'border-slate-300 bg-white'"
+                                >
+                                    <div v-if="paymentMethod === opt.id" class="h-1.5 w-1.5 rounded-full bg-white"></div>
                                 </div>
                             </label>
                         </div>

@@ -1,10 +1,13 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { onMounted, onUnmounted } from 'vue';
+
+const page = usePage();
 
 const handleEnterKey = (e) => {
     if (e.key === 'Enter') {
-        router.visit(route('mitra.dashboard'));
+        const isMitra = !!(page.props?.auth?.mitra || page.props?.auth?.isMitra);
+        router.visit(isMitra ? route('mitra.dashboard') : route('mitra.login'));
     }
 };
 
@@ -18,7 +21,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head title="Portal Mitra UMKM - PlusFood" />
+    <Head title="Mitra UMKM - PlusFood" />
 
     <!-- Outer Fullscreen Container with Dark Maroon Gradient -->
     <div class="relative min-h-screen w-full overflow-hidden bg-[#5A071E] text-white selection:bg-amber-400 selection:text-stone-900 flex flex-col justify-between p-6 sm:p-10 lg:p-14">
@@ -44,7 +47,7 @@ onUnmounted(() => {
             <div class="absolute -bottom-16 -left-16 h-[280px] w-[280px] rounded-full border border-white/[0.09]"></div>
         </div>
 
-        <!-- ================= TOP HEADER (BRAND LOGO & SWITCHER) ================= -->
+        <!-- ================= TOP HEADER (BRAND LOGO) ================= -->
         <header class="relative z-10 flex items-center justify-between">
             <!-- Logo PlusFood Rounded Square Badge -->
             <div class="flex items-center gap-3.5">
@@ -62,24 +65,8 @@ onUnmounted(() => {
                     <h1 class="text-base sm:text-lg font-black tracking-tight text-white leading-none">
                         PlusFood
                     </h1>
-                    <span class="text-xs font-semibold text-white/70 block mt-0.5">
-                        Portal Mitra UMKM
-                    </span>
                 </div>
             </div>
-
-            <!-- Switcher ke Mode Mahasiswa -->
-            <Link
-                :href="route('beranda')"
-                class="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-3.5 py-2 text-xs font-bold text-white/90 backdrop-blur-md transition"
-            >
-                <svg class="h-3.5 w-3.5 text-white/90 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                </svg>
-                <span>Mode Mahasiswa</span>
-                <span class="text-xs">→</span>
-            </Link>
         </header>
 
         <!-- ================= MAIN CONTENT (HEADLINE & METRICS) ================= -->
@@ -156,7 +143,7 @@ onUnmounted(() => {
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                     <!-- Primary Button Putih Masuk ke Dashboard Sesuai Gambar -->
                     <Link
-                        :href="route('mitra.dashboard')"
+                        :href="($page.props.auth?.mitra || $page.props.auth?.isMitra) ? route('mitra.dashboard') : route('mitra.login')"
                         class="inline-flex items-center justify-between gap-4 rounded-2xl bg-white px-6 py-3.5 text-sm sm:text-base font-extrabold text-[#5A071E] shadow-2xl hover:bg-stone-50 hover:scale-[1.02] active:scale-[0.98] transition group"
                     >
                         <span>Masuk ke Dashboard</span>

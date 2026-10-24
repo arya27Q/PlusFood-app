@@ -1,9 +1,7 @@
 <script setup>
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
-import { useAuth } from '@/Composables/useAuth';
-import { campusZones } from '@/Utils/mockFoods';
-import { ref, computed } from 'vue';
+import { useMahasiswaProfil } from '@/Composables/useMahasiswaProfil';
 
 const props = defineProps({
     user: {
@@ -14,186 +12,45 @@ const props = defineProps({
         type: Object,
         default: () => null,
     },
-});
-
-const auth = useAuth();
-
-// State Data Diri (disinkronkan dengan database user atau auth fallback)
-const isEditing = ref(false);
-const saveToast = ref(false);
-const saveToastMessage = ref('Data profil berhasil diperbarui!');
-
-const activeUser = computed(() => props.user || auth.user.value || {});
-
-const profileForm = useForm({
-    name: activeUser.value.name || 'Raka Pratama',
-    nim: activeUser.value.nim || '23051204117',
-    phone: activeUser.value.phone || activeUser.value.whatsapp || '081234567890',
-    whatsapp: activeUser.value.phone || activeUser.value.whatsapp || '081234567890',
-    email: activeUser.value.email || 'raka@mhs.unesa.ac.id',
-    address: activeUser.value.address || 'Jl. Ketintang Madya VI No. 21',
-    major: activeUser.value.major || 'S1 Teknik Informatika · 2023',
-    campus: activeUser.value.campus || 'Universitas Negeri Surabaya',
-});
-
-// Lokasi Kampus & Radius Acuan (Sinkron dengan model database user_preferences & mockFoods)
-const availableCampuses = computed(() => campusZones.filter(c => !c.isComingSoon && c.id !== 'all'));
-const selectedCampus = ref(props.preference?.campus_zone || 'unesa-ketintang');
-const selectedRadius = ref(props.preference?.radius || '2 km');
-const radiuses = ['500 m', '1 km', '2 km', '3 km', '5 km'];
-
-// Preferensi Diet & Pembayaran
-const dietaryTags = ref([
-    { id: 'halal', label: 'Halal', selected: props.preference?.prefer_halal ?? true },
-    { id: 'vegetarian', label: 'Vegetarian', selected: props.preference?.prefer_vegetarian ?? false },
-    { id: 'tidak_pedas', label: 'Tidak pedas', selected: props.preference?.prefer_not_spicy ?? true },
-    { id: 'tanpa_kacang', label: 'Tanpa kacang', selected: props.preference?.prefer_nut_free ?? false },
-    { id: 'tanpa_seafood', label: 'Tanpa seafood', selected: false },
-]);
-
-const toggleDietary = (tag) => {
-    tag.selected = !tag.selected;
-    savePreferences();
-};
-
-const selectedPayment = ref('QRIS'); // 'QRIS' | 'Tunai'
-
-// Warung Favorit
-const favoriteStores = [
-    {
-        name: 'Warung Bu Sari',
-        rescuedCount: '5x diselamatkan',
-        image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=200&q=80',
+    favoriteStores: {
+        type: Array,
+        default: () => [],
     },
-    {
-        name: 'Soto Cak Har',
-        rescuedCount: '3x diselamatkan',
-        image: 'https://images.unsplash.com/photo-1572441713132-c542fc4fe282?auto=format&fit=crop&w=200&q=80',
+    completedOrdersCount: {
+        type: Number,
+        default: 0,
     },
-    {
-        name: 'Kedai Malam Unesa',
-        rescuedCount: '2x diselamatkan',
-        image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=200&q=80',
-    },
-];
-
-// Keamanan Akun & Modal Ganti Password
-const lastPasswordChange = ref('Baru saja disinkronkan');
-const showPasswordModal = ref(false);
-const showOldPassword = ref(false);
-const showNewPassword = ref(false);
-const showConfirmPassword = ref(false);
-const passwordError = ref('');
-const passwordSuccessToast = ref(false);
-
-const passwordForm = useForm({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
 });
 
-const openPasswordModal = () => {
-    passwordForm.reset();
-    passwordError.value = '';
-    showOldPassword.value = false;
-    showNewPassword.value = false;
-    showConfirmPassword.value = false;
-    showPasswordModal.value = true;
-};
-
-const handlePasswordSubmit = () => {
-    passwordError.value = '';
-    passwordForm.put(route('profil.password'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            showPasswordModal.value = false;
-            passwordForm.reset();
-            passwordSuccessToast.value = true;
-            lastPasswordChange.value = 'Baru saja diubah';
-            setTimeout(() => {
-                passwordSuccessToast.value = false;
-            }, 3500);
-        },
-        onError: (errs) => {
-            passwordError.value = errs.current_password || errs.password || errs.password_confirmation || 'Gagal mengubah password. Cek kembali password lama Anda.';
-        },
-    });
-};
-
-// Simpan Data Diri ke Backend MySQL
-const saveProfile = () => {
-    profileForm.phone = profileForm.phone || profileForm.whatsapp;
-    profileForm.put(route('profil.update'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            isEditing.value = false;
-            saveToastMessage.value = 'Data profil berhasil diperbarui ke database!';
-            saveToast.value = true;
-            setTimeout(() => {
-                saveToast.value = false;
-            }, 3000);
-        },
-        onError: () => {
-            saveToastMessage.value = 'Gagal menyimpan profil. Mohon periksa inputan.';
-            saveToast.value = true;
-            setTimeout(() => {
-                saveToast.value = false;
-            }, 3000);
-        },
-    });
-};
-
-// Simpan Preferensi ke Backend MySQL (tabel user_preferences)
-const savePreferences = () => {
-    router.post(route('profil.preferences'), {
-        campus_zone: selectedCampus.value,
-        radius: selectedRadius.value,
-        prefer_halal: dietaryTags.value.find(t => t.id === 'halal')?.selected ?? true,
-        prefer_vegetarian: dietaryTags.value.find(t => t.id === 'vegetarian')?.selected ?? false,
-        prefer_not_spicy: dietaryTags.value.find(t => t.id === 'tidak_pedas')?.selected ?? true,
-        prefer_nut_free: dietaryTags.value.find(t => t.id === 'tanpa_kacang')?.selected ?? false,
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            saveToastMessage.value = 'Preferensi makanan berhasil disimpan!';
-            saveToast.value = true;
-            setTimeout(() => {
-                saveToast.value = false;
-            }, 3000);
-        },
-    });
-};
-
-// Metrik Dampak & Level Gamifikasi dari Data User Database
-const userStats = computed(() => {
-    const u = activeUser.value;
-    const portions = u.portions_rescued ?? 5;
-    const money = u.money_saved_rp ?? 85000;
-    const co2 = u.co2_saved_grams ?? 3400;
-    const level = u.rescuer_level ?? 2;
-    const points = portions * 68;
-    const nextLevelPoints = level * 250;
-    const pointsRemaining = Math.max(0, nextLevelPoints - points);
-    const progressPercent = Math.min(100, Math.round((points / nextLevelPoints) * 100));
-
-    let formattedMoney = 'Rp' + Math.round(money / 1000) + 'rb';
-    if (money >= 1000000) {
-        formattedMoney = 'Rp' + (money / 1000000).toFixed(1) + 'jt';
-    }
-
-    const formattedCo2 = (co2 / 1000).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' kg';
-
-    return {
-        level,
-        portions,
-        moneySaved: formattedMoney,
-        co2Saved: formattedCo2,
-        points,
-        nextLevelPoints,
-        pointsRemaining,
-        progressPercent: progressPercent || 68,
-    };
-});
+const {
+    auth,
+    isEditing,
+    saveToast,
+    saveToastMessage,
+    activeUser,
+    profileForm,
+    availableCampuses,
+    selectedCampus,
+    selectedRadius,
+    radiuses,
+    dietaryTags,
+    toggleDietary,
+    selectedPayment,
+    favoriteStores,
+    lastPasswordChange,
+    showPasswordModal,
+    showOldPassword,
+    showNewPassword,
+    showConfirmPassword,
+    passwordError,
+    passwordSuccessToast,
+    passwordForm,
+    openPasswordModal,
+    handlePasswordSubmit,
+    saveProfile,
+    savePreferences,
+    userStats,
+} = useMahasiswaProfil(props);
 </script>
 
 <template>
@@ -346,7 +203,7 @@ const userStats = computed(() => {
                             <span>Warung Favorit</span>
                         </h3>
 
-                        <div class="space-y-2">
+                        <div v-if="favoriteStores && favoriteStores.length > 0" class="space-y-2">
                             <Link
                                 v-for="(store, idx) in favoriteStores"
                                 :key="idx"
@@ -371,6 +228,13 @@ const userStats = computed(() => {
                                 <svg class="w-4 h-4 text-stone-300 group-hover:text-brand-maroon group-hover:translate-x-0.5 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                                 </svg>
+                            </Link>
+                        </div>
+                        <div v-else class="text-center py-5 px-3 rounded-2xl bg-[#FAF7F2] border border-dashed border-[#EAE0D5] space-y-1.5">
+                            <p class="text-xs font-bold text-stone-600">Belum ada warung favorit</p>
+                            <p class="text-[11px] text-stone-400">Warung yang makanannya kamu selamatkan akan otomatis tercatat di sini.</p>
+                            <Link :href="route('katalog')" class="inline-block text-[11px] font-extrabold text-brand-maroon hover:underline pt-1">
+                                Jelajahi Makanan →
                             </Link>
                         </div>
                     </div>

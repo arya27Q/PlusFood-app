@@ -3,18 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 
-class Merchant extends Model
+class Merchant extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
+
+    protected $table = 'merchants';
 
     protected $fillable = [
         'user_id',
         'name',
         'owner_name',
+        'email',
+        'password',
         'slug',
         'nib',
         'campus_zone',
@@ -37,7 +42,13 @@ class Merchant extends Model
         'image',
     ];
 
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
     protected $casts = [
+        'password' => 'hashed',
         'rating' => 'float',
         'reviews_count' => 'integer',
         'is_verified' => 'boolean',
@@ -72,6 +83,14 @@ class Merchant extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Relasi ke daftar ulasan mahasiswa untuk mitra ini.
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 
     /**

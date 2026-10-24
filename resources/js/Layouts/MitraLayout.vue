@@ -1,20 +1,45 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/UI/ApplicationLogo.vue';
 import ScanQrModal from '@/Components/Mitra/ScanQrModal.vue';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     title: {
         type: String,
         default: 'Mitra Dashboard - PlusFood',
     },
 });
 
+const page = usePage();
+
 const isStoreOpen = ref(true);
 const showScanModal = ref(false);
 const isCollapsed = ref(false);
 const isMobileOpen = ref(false);
+
+const pendingCount = computed(() => {
+    if (page.props.mitraPendingCount !== undefined && page.props.mitraPendingCount !== null) {
+        return Number(page.props.mitraPendingCount);
+    }
+    const orders = page.props.orders || page.props.allMitraOrders || [];
+    return orders.filter(o => o.status === 'menunggu' || o.status === 'siap_ambil').length;
+});
+
+// Data Toko Mitra Dinamis Terhubung ke MySQL & Auth Session
+const currentUser = computed(() => page.props.auth?.user);
+const currentMerchant = computed(() => currentUser.value?.merchant);
+const currentStoreName = computed(() => currentMerchant.value?.name || currentUser.value?.name || 'Gerai Mitra');
+const currentStoreLocation = computed(() => currentMerchant.value?.canteen_location || currentMerchant.value?.campus_name || 'Kantin UNESA');
+const currentInitials = computed(() => {
+    const name = currentStoreName.value;
+    if (!name) return 'GM';
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+});
 
 const toggleSidebar = () => {
     if (window.innerWidth < 768) {
@@ -28,7 +53,7 @@ const handleValidated = (order) => {
     // Listener scan QR kasir
 };
 
-const navItems = [
+const navItems = computed(() => [
     {
         name: 'Dashboard',
         route: 'mitra.dashboard',
@@ -43,14 +68,14 @@ const navItems = [
         name: 'Pesanan Masuk',
         route: 'mitra.pesanan',
         icon: 'orders',
-        badge: '3',
+        badge: pendingCount.value > 0 ? String(pendingCount.value) : null,
     },
     {
         name: 'Profil Gerai',
         route: 'mitra.profil',
         icon: 'store',
     },
-];
+]);
 </script>
 
 <template>
@@ -94,7 +119,7 @@ const navItems = [
                                     MITRA
                                 </span>
                             </div>
-                            <span class="text-[10px] text-slate-500 block font-semibold leading-tight truncate">Warung Bu Sari</span>
+                            <span class="text-[10px] text-slate-500 block font-semibold leading-tight truncate">{{ currentStoreName }}</span>
                         </div>
                     </Link>
 
@@ -223,20 +248,20 @@ const navItems = [
                     class="rounded-2xl p-2.5 bg-slate-50 border border-slate-200/80 flex items-center gap-3 transition hover:bg-slate-100/80"
                 >
                     <div class="h-9 w-9 rounded-xl bg-brand-maroon text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">
-                        WB
+                        {{ currentInitials }}
                     </div>
                     <div class="min-w-0 flex-1 overflow-hidden">
-                        <p class="text-xs font-bold text-slate-900 truncate">Warung Bu Sari</p>
-                        <p class="text-[10px] text-slate-500 truncate">Kantin Vokasi Stand 04</p>
+                        <p class="text-xs font-bold text-slate-900 truncate">{{ currentStoreName }}</p>
+                        <p class="text-[10px] text-slate-500 truncate">{{ currentStoreLocation }}</p>
                     </div>
                 </Link>
                 <div v-else class="flex justify-center">
                     <button
                         @click="isCollapsed = false"
                         class="h-10 w-10 rounded-xl bg-brand-maroon text-white flex items-center justify-center font-bold text-xs shadow-2xs cursor-pointer hover:opacity-90 transition"
-                        title="Warung Bu Sari · Klik untuk buka sidebar"
+                        :title="currentStoreName + ' · Klik untuk buka sidebar'"
                     >
-                        WB
+                        {{ currentInitials }}
                     </button>
                 </div>
             </div>
@@ -266,7 +291,7 @@ const navItems = [
                         <div class="hidden sm:flex items-center gap-2">
                             <span class="text-xs font-bold text-slate-900">Panel Gerai UMKM</span>
                             <span class="text-xs text-slate-400">·</span>
-                            <span class="text-xs text-slate-500 font-medium">Warung Bu Sari (UNESA)</span>
+                            <span class="text-xs text-slate-500 font-medium">{{ currentStoreName }} (UNESA)</span>
                         </div>
                     </div>
 
@@ -370,8 +395,8 @@ const navItems = [
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
-                    <span class="absolute -top-1 -right-1.5 h-4 w-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
-                        3
+                    <span v-if="pendingCount > 0" class="absolute -top-1 -right-1.5 h-4 w-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center animate-pulse">
+                        {{ pendingCount }}
                     </span>
                 </div>
                 <span class="text-[10px] leading-tight">Pesanan</span>
@@ -394,6 +419,7 @@ const navItems = [
         <!-- Global Modal Scanner QR Kasir -->
         <ScanQrModal
             v-if="showScanModal"
+            :orders="$page.props.allMitraOrders || $page.props.orders || []"
             @close="showScanModal = false"
             @validated="handleValidated"
         />

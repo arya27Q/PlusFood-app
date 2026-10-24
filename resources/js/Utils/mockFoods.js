@@ -402,39 +402,156 @@ export const sampleFoods = [
 // Inisialisasi Mock Pesanan (Dikosongkan untuk testing alur bersih)
 export const initialOrders = [];
 
-export function getSavedOrders() {
+export function getSavedOrders(currentUserId = null, currentUserEmail = null) {
     if (typeof window === 'undefined') return [];
+    if (localStorage.getItem('plusfood_orders_cleared') === 'true') return [];
     try {
         const data = localStorage.getItem('plusfood_orders');
-        return data ? JSON.parse(data) : [];
+        let orders = data ? JSON.parse(data) : [];
+        if (!Array.isArray(orders)) return [];
+
+        if (currentUserId || currentUserEmail) {
+            orders = orders.filter(o => {
+                const oUserId = o.user_id || o.userId;
+                const oEmail = o.customer_email || o.email || o.userEmail;
+                if (oUserId && currentUserId && Number(oUserId) !== Number(currentUserId)) return false;
+                if (oEmail && currentUserEmail && String(oEmail).trim().toLowerCase() !== String(currentUserEmail).trim().toLowerCase()) return false;
+                return true;
+            });
+        }
+
+        return orders;
     } catch (e) {
         return [];
     }
 }
 
+let isSavingOrders = false;
+let isSyncingOrders = false;
+
 export function saveOrders(orders) {
-    if (typeof window !== 'undefined') {
-        try {
-            localStorage.setItem('plusfood_orders', JSON.stringify(orders));
-        } catch (e) {}
+    if (typeof window === 'undefined' || isSavingOrders) return;
+    isSavingOrders = true;
+    try {
+        localStorage.setItem('plusfood_orders', JSON.stringify(orders));
+        // Kirim event secara asinkron agar tidak memblokir render / navigasi Inertia
+        setTimeout(() => {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('plusfood_order_status_updated'));
+            }
+        }, 0);
+    } catch (e) {
+        console.warn('Gagal menyimpan pesanan ke localStorage:', e);
+    } finally {
+        isSavingOrders = false;
     }
 }
 
 export function addOrder(newOrder) {
-    const orders = getSavedOrders();
-    const updated = [newOrder, ...orders];
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('plusfood_orders_cleared');
+    }
+    const orderWithDate = {
+        ...newOrder,
+        created_at: newOrder.created_at || new Date().toISOString(),
+        createdAt: newOrder.createdAt || newOrder.created_at || new Date().toISOString()
+    };
+    let allOrders = [];
+    try {
+        const data = typeof window !== 'undefined' ? localStorage.getItem('plusfood_orders') : null;
+        allOrders = data ? JSON.parse(data) : [];
+        if (!Array.isArray(allOrders)) allOrders = [];
+    } catch (e) {
+        allOrders = [];
+    }
+    const updated = [orderWithDate, ...allOrders.filter(o => o.id !== orderWithDate.id)];
     saveOrders(updated);
     return updated;
 }
 
+export function syncLocalOrdersWithDb(dbOrders = [], currentUserId = null, currentUserEmail = null) {
+    if (typeof window !== 'undefined' && localStorage.getItem('plusfood_orders_cleared') === 'true') {
+        return [];
+    }
+    if (isSyncingOrders) return getSavedOrders(currentUserId, currentUserEmail);
+    isSyncingOrders = true;
+    try {
+        const local = getSavedOrders(currentUserId, currentUserEmail);
+        if (!Array.isArray(local) || local.length === 0) return [];
+
+        const extractDigits = (val) => {
+            if (!val) return '';
+            const match = String(val).match(/\d{4,6}/);
+            return match ? match[0] : String(val).toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^pf/, '');
+        };
+
+        let changed = false;
+        local.forEach(loc => {
+            const lDigits = extractDigits(loc.id || loc.order_number || loc.manualCode || loc.qrCode);
+            const lClean = String(loc.id || loc.order_number || '').toLowerCase().replace(/[#\s]/g, '');
+
+            const matchDb = (dbOrders || []).find(db => {
+                const dbDigits = extractDigits(db.order_number || db.id || db.qr_token || db.qrCode);
+                const dbClean = String(db.order_number || db.id || '').toLowerCase().replace(/[#\s]/g, '');
+                return (lDigits && dbDigits && lDigits === dbDigits) || (lClean && dbClean && lClean === dbClean);
+            });
+
+            if (matchDb) {
+                const rawDbStatus = matchDb.status;
+                const normalizedDbStatus = (rawDbStatus === 'batal' || rawDbStatus === 'dibatalkan') ? 'dibatalkan' : rawDbStatus;
+                if (normalizedDbStatus && loc.status !== normalizedDbStatus) {
+                    loc.status = normalizedDbStatus;
+                    loc.statusLabel = normalizedDbStatus === 'selesai' ? 'Selesai Diambil' : (normalizedDbStatus === 'dibatalkan' ? 'Dibatalkan' : 'Menunggu Pickup');
+                    changed = true;
+                }
+            } else if ((dbOrders || []).some(d => d.status === 'selesai')) {
+                const completedDb = (dbOrders || []).find(d => d.status === 'selesai');
+                if (completedDb && (loc.status === 'menunggu' || loc.status === 'siap_ambil')) {
+                    loc.status = 'selesai';
+                    loc.statusLabel = 'Selesai Diambil';
+                    loc.order_number = completedDb.order_number || loc.order_number;
+                    changed = true;
+                }
+            }
+        });
+
+        if (changed) {
+            saveOrders(local);
+        }
+
+        return local;
+    } finally {
+        isSyncingOrders = false;
+    }
+}
+
 export function updateOrderStatus(orderId, status) {
     const orders = getSavedOrders();
-    const found = orders.find(o => o.id.toLowerCase() === orderId.toLowerCase() || o.qrCode.toLowerCase() === orderId.toLowerCase());
-    if (found) {
-        found.status = status;
-        found.statusLabel = status === 'selesai' ? 'Selesai Diambil' : (status === 'dibatalkan' ? 'Dibatalkan' : 'Menunggu Pickup');
+    const extractDigits = (val) => {
+        if (!val) return '';
+        const match = String(val).match(/\d{4,6}/);
+        return match ? match[0] : String(val).toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^pf/, '');
+    };
+
+    const targetDigits = extractDigits(orderId);
+    let matched = false;
+    let foundOrder = null;
+
+    orders.forEach(o => {
+        const oDigits = extractDigits(o.id || o.order_number || o.manualCode || o.qrCode);
+        if ((targetDigits && oDigits && targetDigits === oDigits) || 
+            String(o.id || '').toLowerCase() === String(orderId || '').toLowerCase() || 
+            String(o.order_number || '').toLowerCase() === String(orderId || '').toLowerCase()) {
+            o.status = status === 'batal' ? 'dibatalkan' : status;
+            o.statusLabel = status === 'selesai' ? 'Selesai Diambil' : (status === 'batal' || status === 'dibatalkan' ? 'Dibatalkan' : 'Menunggu Pickup');
+            matched = true;
+            foundOrder = o;
+        }
+    });
+
+    if (matched) {
         saveOrders(orders);
-        return { success: true, order: found };
+        return { success: true, order: foundOrder };
     }
     return { success: false, message: 'Tiket tidak ditemukan / salah kode' };
 }
@@ -442,20 +559,49 @@ export function updateOrderStatus(orderId, status) {
 // Sistem Ulasan Berhadiah (+15 Green Points) sesuai Desain Sistem POV Mahasiswa
 export function addOrderReview(orderId, reviewData) {
     const orders = getSavedOrders();
-    const found = orders.find(o => o.id.toLowerCase() === orderId.toLowerCase());
+    const cleanDigits = (val) => String(val || '').replace(/[^0-9]/g, '');
+    const targetDigits = cleanDigits(orderId);
+    const targetStr = String(orderId || '').toLowerCase().trim();
+
+    let found = orders.find(o => {
+        const oDigits = cleanDigits(o.id || o.order_number || o.manualCode);
+        const oStr = String(o.id || o.order_number || o.manualCode || '').toLowerCase().trim();
+        return (targetDigits && oDigits && targetDigits === oDigits) || oStr === targetStr;
+    });
+
+    const reviewPayload = {
+        rating: reviewData.rating || 5,
+        tags: reviewData.tags || [],
+        comment: reviewData.comment || '',
+        date: 'Hari ini',
+        pointsEarned: 15
+    };
+
     if (found) {
         found.isReviewed = true;
-        found.review = {
-            rating: reviewData.rating || 5,
-            tags: reviewData.tags || [],
-            comment: reviewData.comment || '',
-            date: 'Hari ini',
-            pointsEarned: 15
+        found.hasReview = true;
+        found.review = reviewPayload;
+    } else {
+        found = {
+            id: orderId,
+            order_number: orderId,
+            status: 'selesai',
+            isReviewed: true,
+            hasReview: true,
+            review: reviewPayload
         };
-        saveOrders(orders);
-        return { success: true, pointsEarned: 15 };
+        orders.push(found);
     }
-    return { success: false };
+    saveOrders(orders);
+
+    if (typeof window !== 'undefined') {
+        const delta = parseInt(localStorage.getItem('plusfood_merchant_review_delta') || '0', 10);
+        localStorage.setItem('plusfood_merchant_review_delta', String(delta + 1));
+        window.dispatchEvent(new CustomEvent('plusfood_review_added', { detail: { orderId, review: reviewPayload } }));
+        window.dispatchEvent(new Event('storage'));
+    }
+
+    return { success: true, pointsEarned: 15 };
 }
 
 // Mapper untuk mengubah data relasi Order Eloquent Laravel ke objek Pesanan Frontend
@@ -488,23 +634,27 @@ export function mapDbOrder(db) {
         quantity: firstItem?.quantity || 1,
         ecoPackaging: firstItem?.eco_packaging || 'bawa_sendiri',
         ecoPackagingLabel: firstItem?.eco_packaging === 'bawa_sendiri' ? 'Bawa Wadah Sendiri' : firstItem?.eco_packaging === 'kotak_kertas' ? 'Kotak Kertas' : 'Thinwall',
-        subtotal: db.total_items_price,
-        packagingFee: db.total_packaging_fee,
-        total: db.total_price,
+        subtotal: Number(db.total_items_price || 0),
+        packagingFee: Number(db.total_packaging_fee || 0),
+        total: Number(db.total_price || db.total || 0),
+        total_price: Number(db.total_price || db.total || 0),
         pickupTime: db.pickup_time,
         pickupDeadline: db.pickup_deadline,
         date: db.created_at ? new Date(db.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini',
+        created_at: db.created_at || new Date().toISOString(),
+        createdAt: db.created_at || new Date().toISOString(),
         paymentMethod: db.payment?.payment_method || 'qris',
         paymentGateway: db.payment?.payment_gateway || 'sandbox_simulator',
         paymentReference: db.payment?.payment_reference || ('SBX-QRIS-' + db.order_number),
         paymentStatus: db.payment?.status || (db.status === 'menunggu' ? 'lunas' : 'menunggu_bayar'),
         paidAt: db.payment?.paid_at,
-        status: db.status,
+        status: db.status === 'batal' ? 'dibatalkan' : db.status,
         statusLabel: db.status === 'menunggu' ? 'Menunggu Pickup' : db.status === 'siap_ambil' ? 'Siap Diambil' : db.status === 'selesai' ? 'Selesai' : 'Dibatalkan',
         qrCode: db.qr_token || (db.order_number + '-PF'),
         manualCode: db.order_number,
         mapsUrl: 'https://maps.google.com/?q=-7.3115,112.7275',
-        hasReview: db.has_review || false,
+        hasReview: Boolean(db.has_review),
+        isReviewed: Boolean(db.has_review),
     };
 }
 
@@ -530,6 +680,7 @@ export function saveCustomFood(foodItem) {
         
         // Dispatch storage event manual untuk tab yang sama jika dibutuhkan
         window.dispatchEvent(new Event('plusfood_custom_foods_updated'));
+        window.dispatchEvent(new Event('storage'));
         return updated;
     } catch (e) {
         console.error('Gagal menyimpan menu surplus custom:', e);
@@ -541,10 +692,49 @@ export function deleteCustomFood(foodId) {
     if (typeof window === 'undefined') return [];
     try {
         const current = getCustomFoods();
-        const updated = current.filter(item => String(item.id) !== String(foodId));
+        const targetStr = String(foodId).toLowerCase().trim();
+        const updated = current.filter(item => 
+            String(item.id).toLowerCase().trim() !== targetStr && 
+            String(item.slug || '').toLowerCase().trim() !== targetStr &&
+            String(item.name || '').toLowerCase().trim() !== targetStr
+        );
         localStorage.setItem('plusfood_custom_foods', JSON.stringify(updated));
         window.dispatchEvent(new Event('plusfood_custom_foods_updated'));
+        window.dispatchEvent(new Event('storage'));
         return updated;
+    } catch (e) {
+        return [];
+    }
+}
+
+export function decrementCustomFoodStock(targetIdentifier, qty = 1) {
+    if (typeof window === 'undefined') return [];
+    try {
+        const current = getCustomFoods();
+        const targetStr = String(targetIdentifier).toLowerCase();
+        let changed = false;
+        current.forEach(item => {
+            if (
+                String(item.id).toLowerCase() === targetStr ||
+                String(item.slug || '').toLowerCase() === targetStr ||
+                String(item.name || '').trim().toLowerCase() === targetStr
+            ) {
+                const currentStock = Number(item.stock ?? item.portions ?? 1);
+                const newStock = Math.max(0, currentStock - qty);
+                item.stock = newStock;
+                item.portions = newStock;
+                if (newStock <= 0) {
+                    item.status = 'habis';
+                }
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem('plusfood_custom_foods', JSON.stringify(current));
+            window.dispatchEvent(new Event('plusfood_custom_foods_updated'));
+            window.dispatchEvent(new Event('storage'));
+        }
+        return current;
     } catch (e) {
         return [];
     }
@@ -580,26 +770,31 @@ export const initialPayoutHistory = [
     }
 ];
 
-export function getPayoutHistory() {
-    if (typeof window === 'undefined') return initialPayoutHistory;
+export function getPayoutHistory(merchantId = null) {
+    if (typeof window === 'undefined') return [];
     try {
-        const data = localStorage.getItem('plusfood_payout_history');
+        const key = merchantId ? `plusfood_payout_history_${merchantId}` : 'plusfood_payout_history';
+        const data = localStorage.getItem(key);
         if (!data) {
-            localStorage.setItem('plusfood_payout_history', JSON.stringify(initialPayoutHistory));
-            return initialPayoutHistory;
+            if (String(merchantId) === '1' || merchantId === 'warung-bu-sari') {
+                localStorage.setItem(key, JSON.stringify(initialPayoutHistory));
+                return initialPayoutHistory;
+            }
+            return [];
         }
         return JSON.parse(data);
     } catch (e) {
-        return initialPayoutHistory;
+        return [];
     }
 }
 
-export function addPayoutRecord(record) {
+export function addPayoutRecord(record, merchantId = null) {
     if (typeof window === 'undefined') return [];
     try {
-        const history = getPayoutHistory();
+        const key = merchantId ? `plusfood_payout_history_${merchantId}` : 'plusfood_payout_history';
+        const history = getPayoutHistory(merchantId);
         const updated = [record, ...history];
-        localStorage.setItem('plusfood_payout_history', JSON.stringify(updated));
+        localStorage.setItem(key, JSON.stringify(updated));
         return updated;
     } catch (e) {
         return [];

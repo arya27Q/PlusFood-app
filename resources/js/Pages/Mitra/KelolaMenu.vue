@@ -1,8 +1,7 @@
 <script setup>
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
-import { campusZones } from '@/Utils/mockFoods';
-import { ref, computed, watch, onMounted } from 'vue';
+import { useKelolaMenu } from '@/Composables/useKelolaMenu';
 
 const props = defineProps({
     foods: {
@@ -15,275 +14,44 @@ const props = defineProps({
     },
 });
 
-// Zona kampus aktif di Surabaya (sinkron dengan filter mahasiswa)
-const availableCampusZones = computed(() => campusZones.filter(z => !z.isComingSoon));
-
-const isCampusDropdownOpen = ref(false);
-
-const selectedCampusZone = computed(() => {
-    return availableCampusZones.value.find(z => z.id === form.value.campusZoneId) || availableCampusZones.value[0] || { name: 'Pilih Zona Kampus' };
-});
-
-const selectCampusZone = (zoneId) => {
-    form.value.campusZoneId = zoneId;
-    isCampusDropdownOpen.value = false;
-};
-
-const getTagBadgeClass = (tag) => {
-    const t = tag.toLowerCase();
-    if (t.includes('halal')) return 'bg-emerald-600 text-white border-emerald-700';
-    if (t.includes('kacang')) return 'bg-sky-600 text-white border-sky-700';
-    if (t.includes('vegetarian') || t.includes('nabati')) return 'bg-teal-600 text-white border-teal-700';
-    if (t.includes('gluten')) return 'bg-purple-600 text-white border-purple-700';
-    return 'bg-slate-700 text-white border-slate-800';
-};
-
-// Listing aktif yang terhubung langsung dengan database MySQL foods
-const activeListings = ref([...props.foods]);
-
-watch(() => props.foods, (newVal) => {
-    if (newVal) {
-        activeListings.value = [...newVal];
-    }
-}, { deep: true, immediate: true });
-
-// Form Model Input Kilat yang Selaras dengan Filter Katalog Mahasiswa
-const form = ref({
-    name: '',
-    category: 'Nasi',
-    campusZoneId: props.merchant?.campus_zone || 'unesa-ketintang',
-    canteenLocation: props.merchant?.canteen_location || 'Kantin Vokasi Lt. 1 Stand 04',
-    priceOriginal: 22000,
-    priceDiscount: 11000,
-    estimatedCost: 8000,
-    stock: 4,
-    pickupSession: 'malam', // 'siang', 'sore', 'malam', 'custom'
-    pickupStart: '19.00',
-    pickupEnd: '20.30',
-    tags: ['Halal', 'Bebas Kacang'],
-    spiciness: 'Tidak Pedas', // 'Tidak Pedas', 'Pedas Sedang', 'Sangat Pedas'
-    supportEcoPackaging: true,
-    ecoDiscount: 500,
-    kitchenNote: 'Disimpan hangat di food warmer grade A sejak jam masak',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80'
-});
-
-const isPublished = ref(false);
-const publishedFoodName = ref('');
-
-// Mengubah Jendela Waktu Ambil berdasarkan Preset Sesi
-const setPickupSession = (session) => {
-    form.value.pickupSession = session;
-    if (session === 'siang') {
-        form.value.pickupStart = '13.00';
-        form.value.pickupEnd = '15.00';
-    } else if (session === 'sore') {
-        form.value.pickupStart = '16.30';
-        form.value.pickupEnd = '18.00';
-    } else if (session === 'malam') {
-        form.value.pickupStart = '19.00';
-        form.value.pickupEnd = '20.30';
-    }
-};
-
-// Kalkulasi Diskon & Smart Recovery Assistant Sesuai PRD
-const discountPercent = computed(() => {
-    if (!form.value.priceOriginal || form.value.priceOriginal <= 0) return 0;
-    const diff = form.value.priceOriginal - form.value.priceDiscount;
-    return Math.max(0, Math.round((diff / form.value.priceOriginal) * 100));
-});
-
-const capitalRecoveryRate = computed(() => {
-    if (!form.value.estimatedCost || form.value.estimatedCost <= 0) return 100;
-    return Math.round((form.value.priceDiscount / form.value.estimatedCost) * 100);
-});
-
-// Form Guard Validasi
-const isFormValid = computed(() => {
-    return form.value.name.trim() !== '' &&
-           form.value.priceDiscount > 0 &&
-           form.value.priceDiscount < form.value.priceOriginal &&
-           form.value.stock > 0 &&
-           form.value.canteenLocation.trim() !== '';
-});
-
-// Preset Menu Cepat Sesuai Makanan di Kampus
-const presetMenus = [
-    { 
-        name: 'Nasi Ayam Bakar Bumbu Rujak', 
-        cat: 'Nasi', 
-        orig: 25000, 
-        disc: 12000, 
-        cost: 9000, 
-        session: 'malam',
-        tags: ['Halal', 'Bebas Kacang'], 
-        spiciness: 'Pedas Sedang',
-        canteen: 'Kantin Vokasi Stand 04',
-        image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=500&q=80'
-    },
-    { 
-        name: 'Nasi Campur Bali Ayam Suwir', 
-        cat: 'Nasi', 
-        orig: 24000, 
-        disc: 12000, 
-        cost: 8500, 
-        session: 'malam',
-        tags: ['Halal'], 
-        spiciness: 'Pedas Sedang',
-        canteen: 'Pujasera Ketintang Stand 02',
-        image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80'
-    },
-    { 
-        name: 'Sop Ayam & Sayur Segar Warung', 
-        cat: 'Soto', 
-        orig: 18000, 
-        disc: 9000, 
-        cost: 6000, 
-        session: 'sore',
-        tags: ['Halal', 'Bebas Kacang', 'Bebas Gluten'], 
-        spiciness: 'Tidak Pedas',
-        canteen: 'Kantin Vokasi Stand 04',
-        image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=500&q=80'
-    },
-    { 
-        name: 'Nasi Pecel Telur Dadar Madiun', 
-        cat: 'Nasi', 
-        orig: 16000, 
-        disc: 8000, 
-        cost: 5500, 
-        session: 'siang',
-        tags: ['Halal', 'Vegetarian'], 
-        spiciness: 'Pedas Sedang',
-        canteen: 'Kantin Pusat Stand 08',
-        image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=500&q=80'
-    },
-    { 
-        name: 'Roti Bakar Bandung Cokelat Keju', 
-        cat: 'Roti', 
-        orig: 18000, 
-        disc: 9000, 
-        cost: 6500, 
-        session: 'malam',
-        tags: ['Halal', 'Vegetarian'], 
-        spiciness: 'Tidak Pedas',
-        canteen: 'Sentra Jajanan Malam',
-        image: 'https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=500&q=80'
-    }
-];
-
-const applyPreset = (preset) => {
-    form.value.name = preset.name;
-    form.value.category = preset.cat;
-    form.value.priceOriginal = preset.orig;
-    form.value.priceDiscount = preset.disc;
-    form.value.estimatedCost = preset.cost;
-    form.value.tags = [...preset.tags];
-    form.value.spiciness = preset.spiciness;
-    form.value.canteenLocation = preset.canteen;
-    form.value.image = preset.image;
-    setPickupSession(preset.session);
-};
-
-// Ambil profil mitra resmi dari localStorage jika ada
-const getMitraStoreInfo = () => {
-    let merchantName = 'Warung Bu Sari';
-    let merchantAddress = form.value.canteenLocation || 'Kantin Vokasi Lt. 1 Stand 04, UNESA Ketintang';
-    if (typeof window !== 'undefined') {
-        try {
-            const raw = localStorage.getItem('plusfood_mitra_profile');
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (parsed.storeName) merchantName = parsed.storeName;
-                if (parsed.canteenLocation) merchantAddress = `${parsed.canteenLocation}, ${parsed.campusZone || 'Surabaya'}`;
-            }
-        } catch (e) {}
-    }
-    return { merchantName, merchantAddress };
-};
-
-const isSubmitting = ref(false);
-
-const submitListing = () => {
-    if (!isFormValid.value || isSubmitting.value) return;
-
-    isSubmitting.value = true;
-    const foodPayload = {
-        name: form.value.name.trim(),
-        category: form.value.category,
-        campus_zone_id: form.value.campusZoneId,
-        campusZoneId: form.value.campusZoneId,
-        canteen_location: form.value.canteenLocation.trim(),
-        canteenLocation: form.value.canteenLocation.trim(),
-        price_original: Number(form.value.priceOriginal),
-        price_discount: Number(form.value.priceDiscount),
-        estimated_cost: Number(form.value.estimatedCost),
-        stock: Number(form.value.stock),
-        pickup_session: form.value.pickupSession,
-        pickup_time_start: form.value.pickupStart,
-        pickup_time_end: form.value.pickupEnd,
-        pickupStart: form.value.pickupStart,
-        pickupEnd: form.value.pickupEnd,
-        tags: [...form.value.tags],
-        spiciness: form.value.spiciness,
-        support_eco_packaging: Boolean(form.value.supportEcoPackaging),
-        supportEcoPackaging: Boolean(form.value.supportEcoPackaging),
-        description: form.value.kitchenNote,
-        kitchenNote: form.value.kitchenNote,
-        image: form.value.image
-    };
-
-    router.post(route('mitra.kelola-menu.store'), foodPayload, {
-        preserveScroll: true,
-        onSuccess: () => {
-            publishedFoodName.value = foodPayload.name;
-            isPublished.value = true;
-            form.value.name = '';
-            isSubmitting.value = false;
-            setTimeout(() => {
-                isPublished.value = false;
-            }, 4000);
-        },
-        onError: (err) => {
-            console.error('Gagal mempublikasikan menu surplus:', err);
-            isSubmitting.value = false;
-        },
-        onFinish: () => {
-            isSubmitting.value = false;
-        }
-    });
-};
-
-const toggleStatus = (item) => {
-    const nextStatus = item.status === 'aktif' ? 'habis' : 'aktif';
-    item.status = nextStatus;
-    router.patch(route('mitra.kelola-menu.toggle', item.id), {}, {
-        preserveScroll: true
-    });
-};
-
-const adjustStock = (item, delta) => {
-    const next = item.stock + delta;
-    if (next >= 0) {
-        item.stock = next;
-        item.status = next === 0 ? 'habis' : 'aktif';
-        router.patch(route('mitra.kelola-menu.stock', item.id), {
-            stock: next
-        }, {
-            preserveScroll: true
-        });
-    }
-};
-
-const removeListing = (item) => {
-    if (confirm(`Hapus menu "${item.name}" dari katalog?`)) {
-        router.delete(route('mitra.kelola-menu.destroy', item.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                activeListings.value = activeListings.value.filter(l => l.id !== item.id);
-            }
-        });
-    }
-};
+const {
+    availableCampusZones,
+    isCampusDropdownOpen,
+    selectedCampusZone,
+    selectCampusZone,
+    getTagBadgeClass,
+    activeListings,
+    form,
+    isPublished,
+    publishedFoodName,
+    setPickupSession,
+    discountPercent,
+    capitalRecoveryRate,
+    isFormValid,
+    presetMenus,
+    applyPreset,
+    getMitraStoreInfo,
+    isSubmitting,
+    showSuccessModal,
+    publishedItemDetails,
+    showEditModal,
+    editingItem,
+    isUpdating,
+    editForm,
+    showDeleteConfirm,
+    itemToDelete,
+    isDeleting,
+    scrollToListing,
+    resetFormForNewItem,
+    validationError,
+    submitListing,
+    openEditModal,
+    saveEdit,
+    openDeleteModal,
+    confirmDelete,
+    toggleStatus,
+    adjustStock,
+} = useKelolaMenu(props);
 </script>
 
 <template>
@@ -292,23 +60,33 @@ const removeListing = (item) => {
 
         <div class="space-y-7">
             
-            <!-- Header Halaman -->
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <!-- Header Halaman & Navigasi Cepat -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 class="text-3xl font-black text-slate-900">Kelola & Input Surplus Kilat</h1>
                     <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
                         Posting sisa makanan layak konsumsi dalam kurang dari 1 menit, selaras dengan filter lokasi & pantangan mahasiswa.
                     </p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="rounded-xl bg-emerald-600 text-white px-3.5 py-1.5 text-xs font-black shadow-xs">
-                        {{ activeListings.filter(l => l.status === 'aktif').length }} Menu Sedang Tayang
+                <div class="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        @click="scrollToListing"
+                        class="inline-flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 text-xs font-black shadow-sm transition active:scale-95 cursor-pointer"
+                    >
+                        <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span>Kelola Menu Aktif ({{ activeListings.length }})</span>
+                    </button>
+                    <span class="rounded-xl bg-emerald-600 text-white px-3.5 py-2.5 text-xs font-black shadow-xs">
+                        {{ activeListings.filter(l => l.status === 'aktif').length }} Tayang
                     </span>
                 </div>
             </div>
 
             <!-- Toast Sukses Posting -->
-            <div v-if="isPublished" class="rounded-2xl bg-emerald-600 p-4 text-white shadow-lg flex items-center justify-between animate-in fade-in zoom-in-95">
+            <div v-if="isPublished" class="rounded-2xl bg-emerald-600 p-4 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in zoom-in-95">
                 <div class="flex items-center gap-3">
                     <div class="h-9 w-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                         <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -322,7 +100,23 @@ const removeListing = (item) => {
                         </p>
                     </div>
                 </div>
-                <span class="rounded-lg bg-white/20 px-3 py-1 text-xs font-bold shrink-0">Live & Terbuka</span>
+                <div class="flex items-center gap-2 self-end sm:self-center">
+                    <button
+                        type="button"
+                        @click="resetFormForNewItem"
+                        class="rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 px-3.5 py-2 text-xs font-black shadow-xs transition active:scale-95 cursor-pointer"
+                    >
+                        ➕ Publikasikan Menu Lagi
+                    </button>
+                    <button
+                        type="button"
+                        @click="isPublished = false"
+                        class="h-8 w-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition cursor-pointer"
+                        title="Tutup"
+                    >
+                        ✕
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -362,6 +156,7 @@ const removeListing = (item) => {
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-bold text-slate-900 mb-1">Nama Makanan Surplus *</label>
                                 <input
+                                    id="input-food-name"
                                     type="text"
                                     v-model="form.name"
                                     required
@@ -727,23 +522,28 @@ const removeListing = (item) => {
 
                         <!-- Tombol Submit Publikasi -->
                         <div class="pt-2">
+                            <div v-if="validationError" class="mb-3 rounded-xl bg-rose-50 border-2 border-rose-300 p-3 text-xs font-bold text-rose-800 flex items-center gap-2 animate-bounce">
+                                <svg class="h-4 w-4 text-rose-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span>{{ validationError }}</span>
+                            </div>
+
                             <button
                                 type="submit"
-                                :disabled="!isFormValid"
-                                class="w-full rounded-xl bg-brand-maroon py-3.5 text-xs font-black text-white shadow-md hover:bg-brand-maroon-hover transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                :disabled="isSubmitting"
+                                class="w-full rounded-xl bg-brand-maroon py-3.5 text-xs font-black text-white shadow-md hover:bg-brand-maroon-hover active:scale-[0.99] transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                             >
-                                Publikasikan Surplus Sekarang ({{ form.stock }} Porsi)
+                                <span v-if="isSubmitting">Sedang Mempublikasikan...</span>
+                                <span v-else> Publikasikan Surplus Sekarang ({{ form.stock }} Porsi)</span>
                             </button>
-                            <p v-if="!isFormValid" class="text-[10px] text-rose-600 mt-1.5 text-center">
-                                * Pastikan nama menu, lokasi stand, dan harga terisi dengan benar.
-                            </p>
                         </div>
                     </form>
                 </div>
 
                 <!-- ================= SISI KANAN: DAFTAR LISTING AKTIF HARI INI (Span 5) ================= -->
                 <div class="lg:col-span-5 space-y-4">
-                    <div class="rounded-[26px] bg-white p-6 border border-slate-200/90 shadow-sm space-y-4">
+                    <div id="daftar-listing-aktif" class="rounded-[26px] bg-white p-6 border border-slate-200/90 shadow-sm space-y-4">
                         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                             <div>
                                 <h2 class="text-base font-black text-slate-900">Daftar Listing Aktif Hari Ini</h2>
@@ -759,29 +559,60 @@ const removeListing = (item) => {
                             <div
                                 v-for="item in activeListings"
                                 :key="item.id"
-                                class="rounded-2xl p-4 border border-slate-200/90 bg-white space-y-3.5 transition shadow-2xs hover:border-slate-300"
-                                :class="{ 'opacity-60': item.status === 'habis' }"
+                                class="rounded-2xl p-4 border space-y-3.5 transition shadow-2xs"
+                                :class="[
+                                    (item.status === 'habis' || Number(item.stock) <= 0)
+                                        ? 'bg-slate-100 border-slate-300 text-slate-500 shadow-none'
+                                        : 'bg-white border-slate-200/90 hover:border-slate-300'
+                                ]"
                             >
                                 <div class="flex items-start gap-3">
-                                    <img :src="item.image" :alt="item.name" class="h-16 w-16 rounded-xl object-cover bg-slate-100 shrink-0 border border-slate-200" />
+                                    <div class="relative shrink-0">
+                                        <img
+                                            :src="item.image"
+                                            :alt="item.name"
+                                            class="h-16 w-16 rounded-xl object-cover bg-slate-100 border border-slate-200 transition"
+                                            :class="{ 'grayscale contrast-75 opacity-70': item.status === 'habis' || Number(item.stock) <= 0 }"
+                                        />
+                                        <span
+                                            v-if="item.status === 'habis' || Number(item.stock) <= 0"
+                                            class="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-900/60 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-[1px]"
+                                        >
+                                            Habis
+                                        </span>
+                                    </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center justify-between">
-                                            <span class="rounded-md bg-rose-50 text-brand-maroon text-xs font-bold px-2 py-0.5">
+                                            <span
+                                                class="rounded-md text-xs font-bold px-2 py-0.5"
+                                                :class="(item.status === 'habis' || Number(item.stock) <= 0) ? 'bg-slate-200 text-slate-600' : 'bg-rose-50 text-brand-maroon'"
+                                            >
                                                 {{ item.category }}
                                             </span>
                                             <div class="flex items-center gap-1.5">
                                                 <button
                                                     @click="toggleStatus(item)"
                                                     class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-xs cursor-pointer"
-                                                    :class="item.status === 'aktif' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'"
+                                                    :class="(item.status === 'aktif' && Number(item.stock) > 0) ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-300 text-slate-700 hover:bg-slate-400'"
                                                 >
-                                                    <span class="h-1.5 w-1.5 rounded-full" :class="item.status === 'aktif' ? 'bg-white animate-pulse' : 'bg-slate-400'"></span>
-                                                    <span>{{ item.status === 'aktif' ? 'TAYANG' : 'HABIS' }}</span>
+                                                    <span class="h-1.5 w-1.5 rounded-full" :class="(item.status === 'aktif' && Number(item.stock) > 0) ? 'bg-white animate-pulse' : 'bg-slate-500'"></span>
+                                                    <span>{{ (item.status === 'aktif' && Number(item.stock) > 0) ? 'TAYANG' : 'HABIS' }}</span>
                                                 </button>
+                                                <!-- Tombol Edit Menu -->
                                                 <button
-                                                    @click="removeListing(item)"
+                                                    @click="openEditModal(item)"
+                                                    class="p-1 rounded-lg text-slate-500 hover:text-brand-maroon hover:bg-rose-50 transition cursor-pointer"
+                                                    title="Edit Menu"
+                                                >
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                </button>
+                                                <!-- Tombol Hapus / Batalkan Publikasi -->
+                                                <button
+                                                    @click="openDeleteModal(item)"
                                                     class="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                                    title="Hapus Menu"
+                                                    title="Batalkan / Hapus Menu"
                                                 >
                                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -789,8 +620,13 @@ const removeListing = (item) => {
                                                 </button>
                                             </div>
                                         </div>
-                                        <h3 class="text-sm font-bold text-slate-900 truncate mt-1">{{ item.name }}</h3>
-                                        <p class="text-xs font-extrabold text-brand-maroon mt-0.5">
+                                        <h3
+                                            class="text-sm font-bold truncate mt-1"
+                                            :class="(item.status === 'habis' || Number(item.stock) <= 0) ? 'text-slate-500 line-through' : 'text-slate-900'"
+                                        >
+                                            {{ item.name }}
+                                        </h3>
+                                        <p class="text-xs font-extrabold mt-0.5" :class="(item.status === 'habis' || Number(item.stock) <= 0) ? 'text-slate-500' : 'text-brand-maroon'">
                                             Rp{{ item.priceDiscount.toLocaleString('id-ID') }}
                                             <span class="text-xs text-slate-400 line-through font-normal ml-1.5">Rp{{ item.priceOriginal.toLocaleString('id-ID') }}</span>
                                         </p>
@@ -830,8 +666,8 @@ const removeListing = (item) => {
 
                                 <!-- Stepper Stok Cepat & Rentang Waktu -->
                                 <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
-                                    <div class="flex items-center gap-1.5 text-xs font-bold text-brand-maroon">
-                                        <svg class="h-3.5 w-3.5 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <div class="flex items-center gap-1.5 text-xs font-bold" :class="(item.status === 'habis' || Number(item.stock) <= 0) ? 'text-slate-500' : 'text-brand-maroon'">
+                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <circle cx="12" cy="12" r="9" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
                                         </svg>
@@ -841,11 +677,17 @@ const removeListing = (item) => {
                                         <span class="text-xs font-bold text-slate-600">Sisa:</span>
                                         <button
                                             @click="adjustStock(item, -1)"
-                                            class="h-7 w-7 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-sm hover:bg-slate-100 cursor-pointer shadow-2xs transition flex items-center justify-center"
+                                            :disabled="Number(item.stock) <= 0"
+                                            class="h-7 w-7 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-sm hover:bg-slate-100 cursor-pointer shadow-2xs transition flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
                                         >
                                             -
                                         </button>
-                                        <span class="font-extrabold text-sm text-slate-900 px-1">{{ item.stock }}</span>
+                                        <span
+                                            class="font-extrabold text-sm px-1"
+                                            :class="Number(item.stock) <= 0 ? 'text-rose-600' : 'text-slate-900'"
+                                        >
+                                            {{ Number(item.stock) <= 0 ? '0 (Habis)' : item.stock }}
+                                        </span>
                                         <button
                                             @click="adjustStock(item, 1)"
                                             class="h-7 w-7 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-sm hover:bg-slate-100 cursor-pointer shadow-2xs transition flex items-center justify-center"
@@ -853,6 +695,30 @@ const removeListing = (item) => {
                                             +
                                         </button>
                                     </div>
+                                </div>
+
+                                <!-- Tombol Aksi Nyata: Edit & Batalkan/Hapus Publikasi -->
+                                <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        @click="openEditModal(item)"
+                                        class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 py-2 px-3 text-xs font-bold text-slate-800 transition active:scale-95 cursor-pointer shadow-2xs"
+                                    >
+                                        <svg class="h-3.5 w-3.5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        <span>Edit Menu</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="openDeleteModal(item)"
+                                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 py-2 px-3 text-xs font-bold text-rose-700 transition active:scale-95 cursor-pointer shadow-2xs"
+                                    >
+                                        <svg class="h-3.5 w-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <span>Hapus Menu</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -863,5 +729,307 @@ const removeListing = (item) => {
             </div>
 
         </div>
+
+        <!-- ================= 1. MODAL EFEK SUKSES PUBLIKASI SURPLUS ================= -->
+        <Teleport to="body">
+            <div
+                v-if="showSuccessModal"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in"
+                style="top: 0; left: 0; width: 100vw; height: 100vh;"
+            >
+                <div class="relative w-full max-w-md rounded-[32px] bg-white p-6 sm:p-7 shadow-2xl border-2 border-emerald-400 text-center space-y-5 animate-in zoom-in-95">
+                    
+                    <!-- Decorative Particle Badge -->
+                    <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-100 text-emerald-600 border-2 border-emerald-300 shadow-lg shadow-emerald-600/20">
+                        <svg class="h-10 w-10 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+
+                    <div>
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-black border border-emerald-300 uppercase tracking-wider">
+                            ✨ Publikasi Berhasil!
+                        </span>
+                        <h3 class="text-2xl font-black text-slate-900 mt-2">Menu Surplus Resmi Tayang</h3>
+                        <p class="text-xs text-slate-600 mt-1 max-w-xs mx-auto">
+                            Menu Anda sudah aktif dan langsung dapat diselamatkan oleh mahasiswa di Beranda & Katalog.
+                        </p>
+                    </div>
+
+                    <!-- Ringkasan Menu yang Baru Dipublikasikan -->
+                    <div v-if="publishedItemDetails" class="rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left space-y-2.5">
+                        <div class="flex items-center gap-3">
+                            <img
+                                :src="publishedItemDetails.image"
+                                :alt="publishedItemDetails.name"
+                                class="h-14 w-14 rounded-xl object-cover bg-slate-200 shrink-0 border border-slate-200"
+                            />
+                            <div class="min-w-0 flex-1">
+                                <span class="rounded bg-rose-50 text-brand-maroon text-[10px] font-black px-1.5 py-0.5">
+                                    {{ publishedItemDetails.category }}
+                                </span>
+                                <h4 class="text-sm font-bold text-slate-900 truncate mt-0.5">
+                                    {{ publishedItemDetails.name }}
+                                </h4>
+                                <p class="text-xs font-black text-brand-maroon">
+                                    Rp{{ Number(publishedItemDetails.priceDiscount || 0).toLocaleString('id-ID') }}
+                                    <span class="text-slate-400 line-through font-normal text-[11px] ml-1">
+                                        Rp{{ Number(publishedItemDetails.priceOriginal || 0).toLocaleString('id-ID') }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-600 font-bold">
+                            <span class="flex items-center gap-1">
+                                <span>📦 Sisa:</span>
+                                <strong class="text-slate-900">{{ publishedItemDetails.stock }} Porsi</strong>
+                            </span>
+                            <span class="flex items-center gap-1 text-amber-800">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="9" stroke-width="2" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
+                                </svg>
+                                <span>{{ publishedItemDetails.pickupTime }}</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Aksi -->
+                    <div class="space-y-2 pt-1">
+                        <button
+                            @click="scrollToListing"
+                            class="w-full rounded-xl bg-brand-maroon py-3 text-xs font-black text-white shadow-md hover:bg-brand-maroon-hover transition active:scale-95 cursor-pointer"
+                        >
+                            Lihat di Daftar Menu Listing ({{ activeListings.length }} Menu)
+                        </button>
+                        
+                        <div class="flex gap-2">
+                            <button
+                                @click="showSuccessModal = false"
+                                class="flex-1 rounded-xl bg-slate-100 hover:bg-slate-200 py-2.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                            >
+                                + Tambah Menu Lain
+                            </button>
+                            <Link
+                                :href="route('katalog')"
+                                target="_blank"
+                                class="flex-1 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-300 hover:border-brand-maroon py-2.5 text-xs font-bold text-slate-800 hover:text-brand-maroon transition"
+                            >
+                                <span>Buka Mahasiswa</span>
+                                <svg class="h-3.5 w-3.5 -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </Link>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- ================= 2. MODAL EDIT MENU SURPLUS ================= -->
+        <Teleport to="body">
+            <div
+                v-if="showEditModal"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in"
+                style="top: 0; left: 0; width: 100vw; height: 100vh;"
+            >
+                <div class="relative w-full max-w-lg rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto space-y-5 animate-in zoom-in-95">
+                    
+                    <button
+                        @click="showEditModal = false"
+                        class="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    <div>
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-900 px-3 py-1 text-[11px] font-extrabold border border-amber-300">
+                            Edit Data Menu
+                        </span>
+                        <h3 class="text-xl font-black text-slate-900 mt-1.5">Perbarui Menu Surplus</h3>
+                        <p class="text-xs text-slate-500">Sesuaikan harga diskon, porsi tersisa, atau jendela waktu pengambilan.</p>
+                    </div>
+
+                    <form @submit.prevent="saveEdit" class="space-y-4 text-left">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-900 mb-1">Nama Menu *</label>
+                            <input
+                                type="text"
+                                v-model="editForm.name"
+                                required
+                                class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-900 focus:border-brand-maroon focus:outline-none"
+                            />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-900 mb-1">Kategori</label>
+                                <select
+                                    v-model="editForm.category"
+                                    class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-900 focus:border-brand-maroon focus:outline-none"
+                                >
+                                    <option value="Nasi">Nasi</option>
+                                    <option value="Mie">Mie</option>
+                                    <option value="Soto">Soto</option>
+                                    <option value="Roti">Roti</option>
+                                    <option value="Camilan">Camilan</option>
+                                    <option value="Minuman">Minuman</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-900 mb-1">Sisa Porsi (Stok) *</label>
+                                <input
+                                    type="number"
+                                    v-model="editForm.stock"
+                                    min="0"
+                                    max="100"
+                                    required
+                                    class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-900 focus:border-brand-maroon focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-900 mb-1">Harga Normal (Rp) *</label>
+                                <input
+                                    type="number"
+                                    v-model="editForm.priceOriginal"
+                                    step="500"
+                                    required
+                                    class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-900 focus:border-brand-maroon focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-900 mb-1">Harga Diskon Surplus *</label>
+                                <input
+                                    type="number"
+                                    v-model="editForm.priceDiscount"
+                                    step="500"
+                                    required
+                                    class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-brand-maroon focus:border-brand-maroon focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-900 mb-1">Jam Ambil Mulai</label>
+                                <input
+                                    type="text"
+                                    v-model="editForm.pickupStart"
+                                    placeholder="19.00"
+                                    class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-900 focus:border-brand-maroon focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-900 mb-1">Jam Ambil Selesai</label>
+                                <input
+                                    type="text"
+                                    v-model="editForm.pickupEnd"
+                                    placeholder="20.30"
+                                    class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-900 focus:border-brand-maroon focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Tag Pantangan Alergi -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-900 mb-1.5">Tag Alergen & Kualitas:</label>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <label class="flex items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
+                                    <input type="checkbox" value="Halal" v-model="editForm.tags" class="rounded text-brand-maroon" />
+                                    <span>Halal</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
+                                    <input type="checkbox" value="Bebas Kacang" v-model="editForm.tags" class="rounded text-brand-maroon" />
+                                    <span>Bebas Kacang</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
+                                    <input type="checkbox" value="Vegetarian" v-model="editForm.tags" class="rounded text-brand-maroon" />
+                                    <span>Vegetarian</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-900 mb-1">Catatan Makanan</label>
+                            <textarea
+                                v-model="editForm.kitchenNote"
+                                rows="2"
+                                class="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 focus:border-brand-maroon focus:outline-none"
+                            ></textarea>
+                        </div>
+
+                        <div class="pt-2 flex gap-2">
+                            <button
+                                type="button"
+                                @click="showEditModal = false"
+                                class="flex-1 rounded-xl bg-slate-100 hover:bg-slate-200 py-3 text-xs font-bold text-slate-700 transition cursor-pointer"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="isUpdating"
+                                class="flex-1 rounded-xl bg-brand-maroon hover:bg-brand-maroon-hover py-3 text-xs font-black text-white shadow-md transition disabled:opacity-50 cursor-pointer"
+                            >
+                                <span v-if="isUpdating">Menyimpan...</span>
+                                <span v-else>Simpan Perubahan</span>
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- ================= 3. MODAL BATALKAN / HAPUS PUBLIKASI ================= -->
+        <Teleport to="body">
+            <div
+                v-if="showDeleteConfirm"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in"
+                style="top: 0; left: 0; width: 100vw; height: 100vh;"
+            >
+                <div class="relative w-full max-w-sm rounded-[28px] bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 text-center space-y-4 animate-in zoom-in-95">
+                    
+                    <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 border-2 border-rose-300">
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-black text-slate-900">Batalkan & Hapus Publikasi?</h3>
+                        <p class="text-xs text-slate-600 mt-1">
+                            Menu <strong class="text-slate-900">"{{ itemToDelete?.name }}"</strong> akan ditarik dari katalog mahasiswa dan tidak dapat dipesan lagi.
+                        </p>
+                    </div>
+
+                    <div class="pt-2 flex gap-2">
+                        <button
+                            type="button"
+                            @click="showDeleteConfirm = false"
+                            class="flex-1 rounded-xl bg-slate-100 hover:bg-slate-200 py-3 text-xs font-bold text-slate-700 transition cursor-pointer"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="button"
+                            @click="confirmDelete"
+                            :disabled="isDeleting"
+                            class="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 py-3 text-xs font-black text-white shadow-md transition disabled:opacity-50 cursor-pointer"
+                        >
+                            <span v-if="isDeleting">Menghapus...</span>
+                            <span v-else>Ya, Hapus</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </MitraLayout>
 </template>

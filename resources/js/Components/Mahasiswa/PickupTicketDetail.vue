@@ -13,7 +13,7 @@ const emit = defineEmits(['back', 'cancel']);
 // Format manual code (e.g. "S B - 4 X 2 9 A")
 const manualCode = computed(() => {
     if (props.order.manualCode) return props.order.manualCode;
-    const raw = props.order.id ? props.order.id.replace(/[^A-Za-z0-9]/g, '') : 'SB4X29A';
+    const raw = (props.order?.order_number || props.order?.id) ? String(props.order.order_number || props.order.id).replace(/[^A-Za-z0-9]/g, '') : 'SB4X29A';
     if (raw.length >= 6) {
         return `${raw.substring(0, 2)} - ${raw.substring(2, 6)}`;
     }
@@ -77,11 +77,69 @@ onUnmounted(() => {
     if (countdownInterval) clearInterval(countdownInterval);
 });
 
-// Modal konfirmasi pembatalan
+// Cek batas toleransi pembatalan 15 menit
+const orderAgeMinutes = computed(() => {
+    const raw = props.order?.created_at || props.order?.createdAt;
+    if (!raw) return 0;
+    let s = String(raw).trim();
+    if (!s.endsWith('Z') && !s.includes('+') && s.includes(' ')) {
+        s = s.replace(' ', 'T') + 'Z';
+    }
+    const t = new Date(s).getTime();
+    if (isNaN(t)) return 0;
+    return Math.max(0, (Date.now() - t) / (1000 * 60));
+});
+
+const canCancel = computed(() => {
+    return orderAgeMinutes.value <= 15;
+});
+
+const cancelMinutesRemaining = computed(() => {
+    return Math.max(0, Math.ceil(15 - orderAgeMinutes.value));
+});
+
+// Modal konfirmasi pembatalan & pilihan alasan
 const showCancelConfirm = ref(false);
+const showExpiredNotice = ref(false);
+const cancellationReasons = [
+    'Salah pilih menu atau jumlah porsi',
+    'Jadwal kuliah / ada agenda mendadak',
+    'Waktu / jarak penjemputan tidak memungkinkan',
+    'Sudah makan di tempat lain',
+    'Lainnya',
+];
+const selectedReason = ref('Salah pilih menu atau jumlah porsi');
+const customReason = ref('');
+const isSubmittingCancel = ref(false);
+
+const finalCancellationReason = computed(() => {
+    if (selectedReason.value === 'Lainnya') {
+        return customReason.value.trim() || 'Alasan lainnya';
+    }
+    return selectedReason.value;
+});
+
+const openCancelModal = () => {
+    if (!canCancel.value) {
+        showExpiredNotice.value = true;
+        return;
+    }
+    selectedReason.value = 'Salah pilih menu atau jumlah porsi';
+    customReason.value = '';
+    showCancelConfirm.value = true;
+};
+
 const handleConfirmCancel = () => {
-    showCancelConfirm.value = false;
-    emit('cancel', props.order);
+    if (!canCancel.value) {
+        showCancelConfirm.value = false;
+        showExpiredNotice.value = true;
+        return;
+    }
+    isSubmittingCancel.value = true;
+    emit('cancel', {
+        order: props.order,
+        reason: finalCancellationReason.value,
+    });
 };
 </script>
 
@@ -285,7 +343,7 @@ const handleConfirmCancel = () => {
                         <div class="text-left">
                             <p class="text-[#8A7570] font-medium text-[11px]">Pemesan</p>
                             <p class="text-[#2D1B1E] font-black text-sm mt-0.5">
-                                {{ order.customerName || 'Raka Pratama' }}
+                                {{ order.customerName || auth.user.value?.name || 'Mahasiswa' }}
                             </p>
                         </div>
                         <div class="text-right">
@@ -404,55 +462,161 @@ const handleConfirmCancel = () => {
                     </div>
                 </div>
 
-                <!-- 4. Cancel Policy Note -->
+                <!-- 4. Cancel Policy Note (15-Minute Tolerance) -->
                 <div class="pt-1 px-1">
-                    <p class="text-xs text-[#8A7570] leading-relaxed">
-                        Tidak jadi ambil? 
+                    <div v-if="canCancel" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80">
+                        <div class="flex items-center gap-2 text-xs text-[#8A7570]">
+                            <svg class="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10" stroke-width="2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+                            </svg>
+                            <span>Batas pembatalan tersisa: <strong class="text-amber-900 font-black">{{ cancelMinutesRemaining }} menit</strong></span>
+                        </div>
                         <button
-                            @click="showCancelConfirm = true"
-                            class="font-black text-brand-maroon hover:underline underline-offset-2 ml-1"
+                            type="button"
+                            @click="openCancelModal"
+                            class="text-xs font-black text-rose-600 hover:text-rose-700 hover:underline underline-offset-2 self-start sm:self-auto cursor-pointer"
                         >
-                            Batalkan pesanan
-                        </button> 
-                        maksimal 30 menit sebelum jam ambil.
-                    </p>
+                            Batalkan Pesanan
+                        </button>
+                    </div>
+
+                    <div v-else class="flex items-center gap-2.5 p-3 rounded-2xl bg-stone-100 text-stone-500 border border-stone-200">
+                        <svg class="h-4 w-4 text-stone-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <p class="text-xs font-medium">
+                            Pesanan melewati batas waktu toleransi 15 menit sehingga tidak dapat dibatalkan.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= MODAL KONFIRMASI PEMBATALAN (FULL-SCREEN BACKDROP) ================= -->
+        <!-- ================= MODAL KONFIRMASI PEMBATALAN DENGAN PILIHAN ALASAN ================= -->
         <Teleport to="body">
+            <!-- Modal Pilih Alasan Pembatalan (Toleransi <= 15 Menit) -->
             <div
                 v-if="showCancelConfirm"
                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
                 style="top: 0; left: 0; width: 100vw; height: 100vh;"
             >
-                <div class="w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl border border-[#E8DFD8] text-center space-y-4">
-                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-700">
-                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-black text-[#2D1B1E]">Batalkan Pesanan Ini?</h3>
-                        <p class="text-xs text-stone-500 mt-1">
-                            Porsi makanan surplus ini akan dikembalikan ke listing aktif agar dapat diselamatkan mahasiswa lain.
-                        </p>
-                    </div>
-
-                    <div class="flex items-center gap-3 pt-2">
+                <div class="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl border border-[#E8DFD8] space-y-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-700 shrink-0">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black text-[#2D1B1E]">Batalkan Pesanan Surplus?</h3>
+                                <p class="text-xs text-stone-500">
+                                    Toleransi pembatalan tersisa <strong>{{ cancelMinutesRemaining }} menit</strong>.
+                                </p>
+                            </div>
+                        </div>
                         <button
+                            type="button"
+                            @click="showCancelConfirm = false"
+                            class="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Pilih Alasan Pembatalan (POV Mahasiswa) -->
+                    <div class="space-y-2 pt-1">
+                        <label class="block text-xs font-bold text-stone-700">
+                            Pilih alasan pembatalan:
+                        </label>
+                        <div class="space-y-1.5">
+                            <label
+                                v-for="(reason, idx) in cancellationReasons"
+                                :key="idx"
+                                class="flex items-center gap-3 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition"
+                                :class="selectedReason === reason ? 'border-brand-maroon bg-brand-maroon/5 text-brand-maroon font-bold' : 'border-stone-200 text-stone-600 hover:bg-stone-50'"
+                            >
+                                <input
+                                    type="radio"
+                                    name="cancel_reason"
+                                    :value="reason"
+                                    v-model="selectedReason"
+                                    class="text-brand-maroon focus:ring-brand-maroon h-4 w-4"
+                                />
+                                <span class="flex-1">{{ reason }}</span>
+                            </label>
+                        </div>
+
+                        <!-- Input Alasan Lainnya -->
+                        <div v-if="selectedReason === 'Lainnya'" class="pt-1.5">
+                            <textarea
+                                v-model="customReason"
+                                rows="2"
+                                placeholder="Tuliskan alasan pembatalan Anda..."
+                                class="w-full rounded-xl border border-stone-200 p-2.5 text-xs text-stone-800 placeholder:text-stone-400 focus:border-brand-maroon focus:ring-brand-maroon"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl bg-amber-50/80 p-3 text-[11px] text-amber-900 border border-amber-200/80 leading-relaxed">
+                        Porsi makanan surplus ini akan langsung otomatis dikembalikan ke etalase katalog agar dapat diselamatkan mahasiswa lain.
+                    </div>
+
+                    <div class="flex items-center gap-2.5 pt-1">
+                        <button
+                            type="button"
                             @click="showCancelConfirm = false"
                             class="flex-1 rounded-xl border border-stone-200 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-50 transition"
                         >
                             Kembali
                         </button>
                         <button
+                            type="button"
+                            :disabled="isSubmittingCancel"
                             @click="handleConfirmCancel"
-                            class="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white hover:bg-rose-700 transition"
+                            class="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white hover:bg-rose-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            Ya, Batalkan
+                            <svg v-if="isSubmittingCancel" class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>{{ isSubmittingCancel ? 'Membatalkan...' : 'Ya, Batalkan Pesanan' }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Notice jika waktu pembatalan sudah lewat 15 menit -->
+            <div
+                v-if="showExpiredNotice"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+                style="top: 0; left: 0; width: 100vw; height: 100vh;"
+            >
+                <div class="w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl border border-[#E8DFD8] text-center space-y-4">
+                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" stroke-width="2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01" />
+                        </svg>
+                    </div>
+
+                    <div>
+                        <h3 class="text-base font-black text-[#2D1B1E]">Tidak Dapat Dibatalkan</h3>
+                        <p class="text-xs text-stone-500 mt-1.5 leading-relaxed">
+                            Pesanan ini telah melewati batas toleransi <strong>15 menit</strong> setelah pemesanan. Makanan surplus sedang disiapkan oleh mitra penjual.
+                        </p>
+                    </div>
+
+                    <div class="pt-2">
+                        <button
+                            type="button"
+                            @click="showExpiredNotice = false"
+                            class="w-full rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white hover:bg-brand-maroon-hover transition"
+                        >
+                            Saya Mengerti
                         </button>
                     </div>
                 </div>

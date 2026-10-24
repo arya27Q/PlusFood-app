@@ -57,9 +57,20 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $user = User::where('email', $this->email)->first();
+        $email = Str::lower(trim($this->string('email')));
+        $password = $this->string('password');
+
+        $user = User::where('email', $email)->first();
 
         if (! $user) {
+            if (\App\Models\Merchant::where('email', $email)->exists()) {
+                RateLimiter::hit($this->throttleKey());
+
+                throw ValidationException::withMessages([
+                    'email' => 'Maaf, akun ini terdaftar sebagai Mitra UMKM. Silakan masuk melalui portal Mitra.',
+                ]);
+            }
+
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -75,7 +86,7 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::guard('web')->attempt(['email' => $email, 'password' => $password], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

@@ -1,11 +1,11 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/UI/ApplicationLogo.vue';
 import Dropdown from '@/Components/UI/Dropdown.vue';
 import DropdownLink from '@/Components/UI/DropdownLink.vue';
 import { useAuth } from '@/Composables/useAuth';
-import { getSavedOrders } from '@/Utils/mockFoods';
-import { ref, onMounted, computed } from 'vue';
+import { getSavedOrders, syncLocalOrdersWithDb } from '@/Utils/mockFoods';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 
 defineProps({
     title: {
@@ -15,16 +15,41 @@ defineProps({
 });
 
 const auth = useAuth();
+const page = usePage();
 
 // Pelacakan status pesanan aktif di seluruh halaman (agar tidak hilang saat navigasi)
 const activeOrders = ref([]);
 const loadActiveOrders = () => {
-    const orders = getSavedOrders();
-    activeOrders.value = (orders || []).filter(o => o.status === 'menunggu' || o.status === 'siap_ambil');
+    if (typeof window !== 'undefined' && localStorage.getItem('plusfood_orders_cleared') === 'true') {
+        activeOrders.value = [];
+        return;
+    }
+    const currentUserId = auth.user.value?.id;
+    const currentUserEmail = auth.user.value?.email;
+    const dbOrders = page.props?.allMitraOrders || page.props?.dbOrders || page.props?.activeOrders || [];
+    const orders = syncLocalOrdersWithDb(dbOrders, currentUserId, currentUserEmail);
+    activeOrders.value = (orders || []).filter(o => {
+        if (currentUserId) {
+            const oUserId = o.user_id || o.userId;
+            const oEmail = o.customer_email || o.email || o.userEmail;
+            if (oUserId && oUserId !== currentUserId) return false;
+            if (oEmail && currentUserEmail && oEmail.toLowerCase() !== currentUserEmail.toLowerCase()) return false;
+        }
+        return o.status === 'menunggu' || o.status === 'siap_ambil';
+    });
 };
 
 const activeOrdersCount = computed(() => activeOrders.value.length);
 const latestActiveOrder = computed(() => activeOrders.value[0] || null);
+
+watch(() => page.props?.allMitraOrders, () => {
+    loadActiveOrders();
+});
+
+watch(() => auth.user.value?.id, () => {
+    loadActiveOrders();
+    loadDraftCheckout();
+});
 
 // Pelacakan draft checkout tertunda (jika user kepencet Katalog/Profil/dll saat mau bayar)
 const draftCheckout = ref(null);
@@ -34,6 +59,16 @@ const loadDraftCheckout = () => {
         const raw = localStorage.getItem('plusfood_draft_checkout');
         if (raw) {
             const data = JSON.parse(raw);
+            const currentUserId = auth.user.value?.id;
+            const currentUserEmail = auth.user.value?.email;
+            if (currentUserId && data.userId && data.userId !== currentUserId) {
+                draftCheckout.value = null;
+                return;
+            }
+            if (currentUserEmail && data.userEmail && data.userEmail.toLowerCase() !== currentUserEmail.toLowerCase()) {
+                draftCheckout.value = null;
+                return;
+            }
             if (Date.now() - (data.timestamp || 0) < 2 * 60 * 60 * 1000) {
                 draftCheckout.value = data;
             } else {
@@ -56,18 +91,31 @@ const discardDraft = (e) => {
     draftCheckout.value = null;
 };
 
+let storageHandler = null;
+let statusHandler = null;
+
 onMounted(() => {
     loadActiveOrders();
     loadDraftCheckout();
     if (typeof window !== 'undefined') {
-        window.addEventListener('storage', (e) => {
+        storageHandler = (e) => {
             if (e.key === 'plusfood_orders') {
                 loadActiveOrders();
             }
             if (e.key === 'plusfood_draft_checkout') {
                 loadDraftCheckout();
             }
-        });
+        };
+        statusHandler = () => loadActiveOrders();
+        window.addEventListener('storage', storageHandler);
+        window.addEventListener('plusfood_order_status_updated', statusHandler);
+    }
+});
+
+onUnmounted(() => {
+    if (typeof window !== 'undefined') {
+        if (storageHandler) window.removeEventListener('storage', storageHandler);
+        if (statusHandler) window.removeEventListener('plusfood_order_status_updated', statusHandler);
     }
 });
 </script>
@@ -116,7 +164,7 @@ onMounted(() => {
                             </span>
                         </Link>
                         <Link
-                            :href="route('profil')"
+                            :href="auth.isLoggedIn.value ? route('profil') : route('login')"
                             class="rounded-xl px-4 py-2 text-sm font-bold transition-all"
                             :class="route().current('profil') ? 'bg-[#F5EFE6] text-brand-maroon font-extrabold' : 'text-[#6E5A54] hover:text-brand-maroon hover:bg-[#FAF7F2]'"
                         >
@@ -150,8 +198,8 @@ onMounted(() => {
                         </svg>
                     </button>
 
-                    <!-- User Profile / Avatar Menu -->
-                    <div v-if="auth.user.value" class="relative">
+                    <!-- User Profile / Avatar Menu (Khusus Mahasiswa yang sedang Login) -->
+                    <div v-if="auth.isLoggedIn.value && auth.user.value" class="relative">
                         <Dropdown align="right" width="48">
                             <template #trigger>
                                 <button class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-maroon text-xs font-extrabold text-white shadow-sm ring-2 ring-brand-maroon/20 hover:scale-105 transition cursor-pointer">
@@ -162,6 +210,7 @@ onMounted(() => {
                                 <div class="px-4 py-2.5 border-b border-[#F5EFE6] text-xs">
                                     <p class="font-bold text-[#2D1B1E] truncate">{{ auth.user.value.name }}</p>
                                     <p class="text-[#8C7A72] text-[11px] truncate">{{ auth.user.value.email }}</p>
+                                    <span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold">Akun Mahasiswa</span>
                                 </div>
                                 <DropdownLink :href="route('profil')">
                                     Profil Saya
@@ -211,7 +260,7 @@ onMounted(() => {
         >
             <!-- Skenario 1: Pesanan Resmi Aktif Berlangsung -->
             <div
-                v-if="latestActiveOrder && !route().current('riwayat') && !route().current('checkout')"
+                v-if="latestActiveOrder && !route().current('beranda') && !route().current('riwayat') && !route().current('checkout')"
                 class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 max-w-[calc(100vw-2rem)] sm:max-w-md shadow-2xl"
             >
                 <Link
@@ -332,7 +381,7 @@ onMounted(() => {
             </Link>
 
             <Link
-                :href="route('profil')"
+                :href="auth.isLoggedIn.value ? route('profil') : route('login')"
                 class="flex-1 flex flex-col items-center gap-0.5 transition-colors"
                 :class="route().current('profil') ? 'text-brand-maroon font-black' : 'text-[#8C7A72] hover:text-brand-maroon font-medium'"
             >
@@ -342,18 +391,6 @@ onMounted(() => {
                     </svg>
                 </div>
                 <span class="text-[10px] leading-tight">Profil</span>
-            </Link>
-
-            <Link
-                :href="route('mitra.dashboard')"
-                class="flex-1 flex flex-col items-center gap-0.5 text-amber-800 font-bold hover:text-amber-900 transition-colors"
-            >
-                <div class="p-1 rounded-xl bg-amber-100 border border-amber-300">
-                    <svg class="h-5 w-5 text-amber-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                </div>
-                <span class="text-[10px] leading-tight">Mitra</span>
             </Link>
         </nav>
 

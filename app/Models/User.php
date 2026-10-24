@@ -65,6 +65,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Bootstrap the model and its events.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user) {
+            if ($user->merchant) {
+                $user->merchant->foods()->delete();
+                $user->merchant->delete();
+            }
+            if ($user->preference) {
+                $user->preference->delete();
+            }
+        });
+    }
+
+    /**
      * User dietary and campus preferences (1-to-1).
      */
     public function preference()
@@ -78,6 +94,14 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class, 'user_id');
+    }
+
+    /**
+     * Riwayat ulasan yang diberikan pengguna (1-to-Many).
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'user_id');
     }
 
     /**

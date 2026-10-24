@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { getSavedOrders } from '@/Utils/mockFoods';
 
 const props = defineProps({
@@ -12,74 +12,165 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'validated']);
 
+const page = usePage();
 const manualCode = ref('');
 const scanState = ref('scanning'); // 'scanning', 'success', 'error'
 const validatedOrder = ref(null);
 const errorMessage = ref('');
 const isValidating = ref(false);
 
+// Menggabungkan props.orders, Inertia page props, dan LocalStorage
+const allAvailableOrders = computed(() => {
+    const list = [];
+    const pushUnique = (item) => {
+        if (!item) return;
+        const sId = String(item.id || '');
+        const sNum = String(item.order_number || '');
+        if (!list.some(o => (sId && String(o.id) === sId) || (sNum && o.order_number === sNum))) {
+            list.push(item);
+        }
+    };
+    (props.orders || []).forEach(pushUnique);
+    (page.props.allMitraOrders || []).forEach(pushUnique);
+    (page.props.orders || []).forEach(pushUnique);
+    getSavedOrders().forEach(pushUnique);
+    return list;
+});
+
+const pendingOrders = computed(() => {
+    return allAvailableOrders.value.filter(o => o.status === 'menunggu' || o.status === 'siap_ambil');
+});
+
 const sampleTestCode = computed(() => {
-    const pending = props.orders?.find(o => o.status === 'menunggu');
-    return pending?.order_number || pending?.id || 'PF-88219';
+    const pending = pendingOrders.value[0] || allAvailableOrders.value[0];
+    return pending?.order_number || (pending ? ('PF-' + pending.id) : 'PF-77312');
 });
 
 const validateCode = (codeToTest) => {
-    const raw = (codeToTest || manualCode.value).trim();
+    const raw = (codeToTest || manualCode.value || '').trim();
     if (!raw || isValidating.value) return;
 
-    const code = raw.toLowerCase();
+    // Normalisasi input string: hapus spasi berlebih, strip '#' dan 'pf-' atau 'pf'
+    const cleanRaw = raw.replace(/[#\s]/g, '').toLowerCase();
+    const cleanNumOnly = cleanRaw.replace(/^pf-?/, '');
+    const digitsMatch = raw.match(/\d{4,6}/);
+    const digitsOnly = digitsMatch ? digitsMatch[0] : cleanNumOnly;
 
-    // Prioritaskan mencari di props.orders (data database MySQL)
-    const list = (props.orders && props.orders.length > 0) ? props.orders : getSavedOrders();
+    const list = allAvailableOrders.value;
     const found = list.find(o => {
-        const idStr = String(o.id || '').toLowerCase();
-        const numStr = String(o.order_number || '').toLowerCase();
-        const qrStr = String(o.qr_token || o.qrCode || '').toLowerCase();
-        return idStr === code || 
-               numStr === code || 
-               qrStr === code || 
-               idStr.replace(/^pf-/, '') === code.replace(/^pf-/, '') ||
-               numStr.replace(/^pf-/, '') === code.replace(/^pf-/, '');
+        const idStr = String(o.id || '').trim().toLowerCase().replace(/[#\s]/g, '');
+        const numStr = String(o.order_number || o.manualCode || '').trim().toLowerCase().replace(/[#\s]/g, '');
+        const qrStr = String(o.qr_token || o.qrCode || '').trim().toLowerCase().replace(/[#\s]/g, '');
+        const oDigits = (idStr + ' ' + numStr + ' ' + qrStr).match(/\d{4,6}/)?.[0];
+
+        return cleanRaw === idStr || 
+               cleanRaw === numStr || 
+               cleanRaw === qrStr || 
+               cleanNumOnly === idStr.replace(/^pf-?/, '') ||
+               cleanNumOnly === numStr.replace(/^pf-?/, '') ||
+               (digitsOnly && oDigits && digitsOnly === oDigits) ||
+               cleanRaw === ('pf-' + idStr) ||
+               (cleanNumOnly && qrStr.includes(cleanNumOnly));
     });
 
-    if (!found) {
-        scanState.value = 'error';
-        errorMessage.value = `Kode "${raw}" tidak ditemukan dalam sistem pesanan aktif.`;
-        return;
+    if (found) {
+        if (found.status === 'selesai') {
+            scanState.value = 'error';
+            errorMessage.value = `Tiket #${found.order_number || found.id} SUDAH DIGUNAKAN sebelumnya! (Makanan telah diserahkan)`;
+            return;
+        }
+
+        if (found.status === 'batal' || found.status === 'dibatalkan') {
+            scanState.value = 'error';
+            errorMessage.value = `Tiket #${found.order_number || found.id} telah KADALUARSA / Dibatalkan.`;
+            return;
+        }
     }
 
-    if (found.status === 'selesai') {
-        scanState.value = 'error';
-        errorMessage.value = `Tiket #${found.order_number || found.id} SUDAH DIGUNAKAN sebelumnya! Cegah penyerahan ganda.`;
-        return;
-    }
-
-    if (found.status === 'batal' || found.status === 'dibatalkan') {
-        scanState.value = 'error';
-        errorMessage.value = `Tiket #${found.order_number || found.id} telah KADALUARSA / Dibatalkan.`;
-        return;
-    }
-
-    // Sukses validasi -> kirim patch ke database MySQL via router.patch
+    // Eksekusi validasi ke backend MySQL via patch
     isValidating.value = true;
-    router.patch(route('mitra.pesanan.status', found.id), {
+    const targetLookup = found ? (found.order_number || found.id) : (digitsOnly ? ('PF-' + digitsOnly) : cleanRaw);
+
+    router.patch(route('mitra.pesanan.status', targetLookup), {
         status: 'selesai'
     }, {
         preserveScroll: true,
-        onSuccess: () => {
-            found.status = 'selesai';
-            validatedOrder.value = found;
-            scanState.value = 'success';
+        onSuccess: (pageResp) => {
             isValidating.value = false;
-            emit('validated', found);
+
+            // Periksa jika backend mengembalikan flash error / info
+            if (pageResp.props?.flash?.error) {
+                scanState.value = 'error';
+                errorMessage.value = pageResp.props.flash.error;
+                return;
+            }
+            if (pageResp.props?.flash?.info) {
+                scanState.value = 'error';
+                errorMessage.value = pageResp.props.flash.info;
+                return;
+            }
+
+            const returnedOrders = pageResp.props.allMitraOrders || pageResp.props.orders || allAvailableOrders.value;
+            const updated = returnedOrders.find(o => {
+                const sNum = String(o.order_number || '').toLowerCase();
+                const sId = String(o.id || '').toLowerCase();
+                return sNum === cleanRaw || sNum.replace(/^pf-?/, '') === cleanNumOnly || sId === cleanNumOnly;
+            });
+
+            if (found) found.status = 'selesai';
+            updateOrderStatus(raw, 'selesai');
+
+            // Sinkronkan pesanan lokal
+            const savedOrders = getSavedOrders();
+            if (savedOrders.length > 0) {
+                savedOrders.forEach(s => {
+                    if (s.status === 'menunggu' || s.status === 'siap_ambil') {
+                        s.status = 'selesai';
+                        s.statusLabel = 'Selesai Diambil';
+                    }
+                });
+                saveOrders(savedOrders);
+            }
+
+            validatedOrder.value = updated || found || {
+                id: raw,
+                order_number: raw.toUpperCase().startsWith('PF-') ? raw.toUpperCase() : ('PF-' + (digitsOnly || raw)),
+                customer_name: 'Mahasiswa Kampus',
+                status: 'selesai'
+            };
+            scanState.value = 'success';
+            emit('validated', validatedOrder.value);
         },
         onError: (err) => {
-            console.error('Gagal validasi QR via backend:', err);
-            found.status = 'selesai';
-            validatedOrder.value = found;
-            scanState.value = 'success';
             isValidating.value = false;
-            emit('validated', found);
+
+            // Fallback cek localStorage offline
+            const localResult = updateOrderStatus(raw, 'selesai');
+
+            const savedOrdersFallback = getSavedOrders();
+            if (savedOrdersFallback.length > 0) {
+                savedOrdersFallback.forEach(s => {
+                    if (s.status === 'menunggu' || s.status === 'siap_ambil') {
+                        s.status = 'selesai';
+                        s.statusLabel = 'Selesai Diambil';
+                    }
+                });
+                saveOrders(savedOrdersFallback);
+            }
+
+            if (localResult.success) {
+                validatedOrder.value = localResult.order;
+                scanState.value = 'success';
+                emit('validated', localResult.order);
+            } else if (found) {
+                found.status = 'selesai';
+                validatedOrder.value = found;
+                scanState.value = 'success';
+                emit('validated', found);
+            } else {
+                scanState.value = 'error';
+                errorMessage.value = `Kode "${raw}" tidak sesuai / tidak ditemukan dalam sistem pesanan aktif gerai.`;
+            }
         }
     });
 };
@@ -128,7 +219,7 @@ const simulateSampleScan = () => {
                     </span>
                     <h3 class="text-xl font-black text-[#2D1B1E]">Scan QR Code Mahasiswa</h3>
                     <p class="text-xs text-[#8C7A72]">
-                        Arahkan kamera ke layar HP mahasiswa atau masukkan ID reservasi manual.
+                        Arahkan kamera ke layar HP mahasiswa atau ketik kode tiket reservasi.
                     </p>
                 </div>
 
@@ -151,36 +242,60 @@ const simulateSampleScan = () => {
                         <span class="text-[10px] font-mono text-emerald-400">Mencari QR Code...</span>
                     </div>
 
-                    <!-- Quick Demo Button Overlay -->
+                    <!-- Quick Demo Button Overlay (Menampilkan Kode Pesanan Nyata) -->
                     <button
                         @click="simulateSampleScan"
-                        class="absolute bottom-3 inset-x-4 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md py-1.5 text-[11px] font-bold text-white border border-white/30 transition"
+                        :disabled="isValidating"
+                        class="absolute bottom-3 inset-x-4 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/25 hover:bg-white/35 backdrop-blur-md py-1.5 px-2 text-[11px] font-bold text-white border border-white/30 transition shadow-xs cursor-pointer"
                     >
                         <svg class="h-3.5 w-3.5 text-amber-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        Klik untuk Uji Scan PF-88219
+                        <span class="truncate">Klik Uji Scan: {{ sampleTestCode }}</span>
                     </button>
+                </div>
+
+                <!-- Antrean Menunggu Siap Ambil (Klik Cepat Untuk Validasi) -->
+                <div v-if="pendingOrders.length > 0" class="pt-1 text-left space-y-1.5">
+                    <p class="text-[11px] font-extrabold text-[#2D1B1E] flex items-center justify-between">
+                        <span>Antrean Menunggu Pengambilan ({{ pendingOrders.length }}):</span>
+                        <span class="text-[10px] text-amber-700 font-semibold">Klik tiket untuk validasi</span>
+                    </p>
+                    <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                        <button
+                            v-for="p in pendingOrders.slice(0, 5)"
+                            :key="p.id"
+                            type="button"
+                            @click="validateCode(p.order_number || p.id)"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 text-[11px] font-bold text-amber-900 transition active:scale-95 cursor-pointer"
+                        >
+                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                            <span class="font-extrabold font-mono">{{ p.order_number || p.id }}</span>
+                            <span class="text-stone-500 font-normal truncate max-w-[90px]">({{ p.customerName || p.customer_name || 'Mhs' }})</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Manual Input Option -->
                 <div class="pt-2 border-t border-[#F5EFE6] space-y-2 text-left">
                     <label class="block text-xs font-bold text-[#2D1B1E]">
-                        Atau Ketik Kode Reservasi (6 Karakter):
+                        Atau Ketik Kode Reservasi (Contoh: {{ sampleTestCode }}):
                     </label>
                     <div class="flex gap-2">
                         <input
                             type="text"
                             v-model="manualCode"
-                            placeholder="Contoh: PF-88219"
+                            :placeholder="'Contoh: ' + sampleTestCode"
                             @keyup.enter="validateCode(manualCode)"
                             class="flex-1 rounded-xl border border-[#EAE0D5] bg-[#FAF7F2] px-3.5 py-2.5 text-xs font-bold text-[#2D1B1E] uppercase focus:border-brand-maroon focus:bg-white focus:outline-none"
                         />
                         <button
                             @click="validateCode(manualCode)"
-                            class="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition"
+                            :disabled="isValidating"
+                            class="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover transition disabled:opacity-50 cursor-pointer"
                         >
-                            Validasi
+                            <span v-if="isValidating">Cek...</span>
+                            <span v-else>Validasi</span>
                         </button>
                     </div>
                 </div>

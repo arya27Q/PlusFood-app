@@ -1,89 +1,42 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
-import { ref, onMounted } from 'vue';
+import { useMitraProfil } from '@/Composables/useMitraProfil';
 
-// State Form Data Profil Mitra UMKM
-const isEditing = ref(false);
-const saveToast = ref(false);
-
-const storeForm = ref({
-    storeName: 'Warung Bu Sari',
-    ownerName: 'Ibu Sari Wulandari',
-    phone: '0812-3456-7890',
-    email: 'warungbusari.unesa@gmail.com',
-    nib: 'NIB 9120004510291',
-    campusZone: 'UNESA Ketintang',
-    canteenLocation: 'Kantin Vokasi Lt. 1 Stand 04',
-    defaultSession: 'malam',
-    pickupHours: '19.00 – 20.30 WIB',
-    supportEco: true,
-    bankName: 'Bank Mandiri',
-    bankAccount: '1420-0192-3841',
-    bankHolder: 'Sari Wulandari'
+const props = defineProps({
+    merchant: {
+        type: Object,
+        default: () => null,
+    },
+    user: {
+        type: Object,
+        default: () => null,
+    },
+    stats: {
+        type: Object,
+        default: () => null,
+    },
 });
 
-// Modal Ganti Password
-const showPasswordModal = ref(false);
-const passwordForm = ref({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-});
-const passwordError = ref('');
-const passwordSuccessToast = ref(false);
-const lastPasswordChange = ref('1 bulan lalu');
-
-const openPasswordModal = () => {
-    passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' };
-    passwordError.value = '';
-    showPasswordModal.value = true;
-};
-
-const handlePasswordSubmit = () => {
-    passwordError.value = '';
-    if (!passwordForm.value.oldPassword) {
-        passwordError.value = 'Mohon masukkan password lama akun Anda.';
-        return;
-    }
-    if (passwordForm.value.newPassword.length < 8) {
-        passwordError.value = 'Password baru minimal harus 8 karakter.';
-        return;
-    }
-    if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-        passwordError.value = 'Konfirmasi password baru tidak cocok!';
-        return;
-    }
-
-    lastPasswordChange.value = 'Baru saja diubah';
-    showPasswordModal.value = false;
-    passwordSuccessToast.value = true;
-    setTimeout(() => {
-        passwordSuccessToast.value = false;
-    }, 3500);
-};
-
-const saveProfile = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('plusfood_mitra_profile', JSON.stringify(storeForm.value));
-    }
-    isEditing.value = false;
-    saveToast.value = true;
-    setTimeout(() => {
-        saveToast.value = false;
-    }, 3000);
-};
-
-onMounted(() => {
-    if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('plusfood_mitra_profile');
-        if (saved) {
-            try {
-                storeForm.value = { ...storeForm.value, ...JSON.parse(saved) };
-            } catch (e) {}
-        }
-    }
-});
+const {
+    isEditing,
+    saveToast,
+    localReviewDelta,
+    storeForm,
+    currentReviewsCount,
+    currentRating,
+    performanceStats,
+    formatRupiah,
+    showPasswordModal,
+    passwordForm,
+    passwordError,
+    passwordSuccessToast,
+    lastPasswordChange,
+    openPasswordModal,
+    handlePasswordSubmit,
+    saveProfile,
+    syncReviewDelta,
+} = useMitraProfil(props);
 </script>
 
 <template>
@@ -163,12 +116,16 @@ onMounted(() => {
                         <!-- Avatar Merchant -->
                         <div class="relative -mt-12 flex justify-center">
                             <div class="relative">
-                                <div class="w-24 h-24 rounded-2xl bg-amber-500 text-white text-3xl font-black border-4 border-white shadow-md flex items-center justify-center select-none overflow-hidden">
+                                <div class="w-24 h-24 rounded-2xl bg-[#700926] text-white text-3xl font-black border-4 border-white shadow-md flex items-center justify-center select-none overflow-hidden">
                                     <img
-                                        src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80"
-                                        alt="Warung Bu Sari"
+                                        v-if="props.merchant?.image"
+                                        :src="props.merchant.image"
+                                        :alt="storeForm.storeName"
                                         class="w-full h-full object-cover"
                                     />
+                                    <span v-else class="text-3xl font-black text-amber-100 tracking-wider">
+                                        {{ (storeForm.storeName || 'GM').trim().substring(0, 2).toUpperCase() }}
+                                    </span>
                                 </div>
                                 <div class="absolute -bottom-1 -right-1 h-7 w-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs border-2 border-white" title="Terverifikasi">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -203,25 +160,25 @@ onMounted(() => {
                             <div class="mt-4 flex items-center justify-center gap-2 text-xs font-bold">
                                 <div class="flex items-center text-amber-500">
                                     <span>★</span>
-                                    <span class="text-slate-900 font-black ml-1">4.9</span>
+                                    <span class="text-slate-900 font-black ml-1">{{ currentRating.toFixed(1) }}</span>
                                 </div>
                                 <span class="text-slate-400">·</span>
-                                <span class="text-slate-500 font-medium">142 ulasan mahasiswa</span>
+                                <span class="text-slate-500 font-medium">{{ currentReviewsCount }} ulasan mahasiswa</span>
                             </div>
                         </div>
 
                         <!-- Metrik Performa 3 Kolom -->
                         <div class="grid grid-cols-3 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100 py-4 px-2">
                             <div class="text-center">
-                                <p class="text-lg font-black text-brand-maroon">248</p>
+                                <p class="text-lg font-black text-brand-maroon">{{ performanceStats.portions_rescued }}</p>
                                 <p class="text-[10px] font-semibold text-slate-500">porsi rescued</p>
                             </div>
                             <div class="text-center">
-                                <p class="text-lg font-black text-brand-maroon">Rp3,4Jt</p>
+                                <p class="text-lg font-black text-brand-maroon">{{ formatRupiah(performanceStats.recovered_capital) }}</p>
                                 <p class="text-[10px] font-semibold text-slate-500">modal pulih</p>
                             </div>
                             <div class="text-center">
-                                <p class="text-lg font-black text-emerald-600">104 kg</p>
+                                <p class="text-lg font-black text-emerald-600">{{ performanceStats.co2_prevented }} kg</p>
                                 <p class="text-[10px] font-semibold text-slate-500">CO2e dicegah</p>
                             </div>
                         </div>
@@ -440,8 +397,10 @@ onMounted(() => {
                                 <span>Ganti Password</span>
                             </button>
                             <Link
-                                :href="route('mitra.login')"
-                                class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition"
+                                :href="route('mitra.logout')"
+                                method="post"
+                                as="button"
+                                class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             >
                                 <span>Keluar</span>
                             </Link>

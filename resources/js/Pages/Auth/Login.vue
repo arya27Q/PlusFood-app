@@ -19,9 +19,9 @@ const isVisible = ref(false);
 const showPassword = ref(false);
 
 const form = useForm({
-    email: 'raka@mhs.unesa.ac.id',
-    password: 'password123',
-    remember: true,
+    email: '',
+    password: '',
+    remember: false,
 });
 
 onMounted(() => {

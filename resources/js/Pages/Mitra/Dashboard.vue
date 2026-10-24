@@ -1,12 +1,11 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
 import ScanQrModal from '@/Components/Mitra/ScanQrModal.vue';
 import PayoutModal from '@/Components/Mitra/PayoutModal.vue';
 import IncomingOrderBanner from '@/Components/Mitra/IncomingOrderBanner.vue';
 import SalesAnalyticsChart from '@/Components/Mitra/SalesAnalyticsChart.vue';
-import { getSoundPreference, saveSoundPreference, playOrderChime } from '@/Utils/mockFoods';
-import { ref, onMounted, computed, watch } from 'vue';
+import { useMitraDashboard } from '@/Composables/useMitraDashboard';
 
 const props = defineProps({
     orders: {
@@ -21,276 +20,53 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    chartDaily: {
+        type: Array,
+        default: () => [],
+    },
+    ecoPercent: {
+        type: Number,
+        default: 0,
+    },
 });
 
-const showScanModal = ref(false);
-const showPayoutModal = ref(false);
-const isSoundEnabled = ref(true);
-const incomingOrder = ref(null);
-const knownOrderIds = ref(new Set());
-const totalWithdrawnToday = ref(0);
-let bannerTimeout = null;
-
-const orders = ref([...props.orders]);
-const recentFilter = ref('semua'); // 'semua', 'menunggu', 'selesai'
-
-watch(() => props.orders, (newOrders) => {
-    if (newOrders && newOrders.length > 0) {
-        // Cek pesanan baru yang masuk dengan status 'menunggu' untuk memicu lonceng notifikasi
-        const newPending = newOrders.find(o => o.status === 'menunggu' && !knownOrderIds.value.has(String(o.id)));
-        if (newPending && knownOrderIds.value.size > 0) {
-            triggerIncomingNotification(newPending);
-        }
-        orders.value = [...newOrders];
-        knownOrderIds.value = new Set(newOrders.map(o => String(o.id)));
-    } else if (newOrders) {
-        orders.value = [];
-    }
-}, { deep: true, immediate: true });
-
-const reloadOrders = () => {
-    router.reload({ preserveScroll: true });
-};
-
-const availableBalance = computed(() => {
-    return Math.max(0, todayRevenue.value - totalWithdrawnToday.value);
-});
-
-const toggleSound = () => {
-    isSoundEnabled.value = !isSoundEnabled.value;
-    saveSoundPreference(isSoundEnabled.value);
-    if (isSoundEnabled.value) {
-        playOrderChime();
-    }
-};
-
-const triggerIncomingNotification = (newOrder) => {
-    if (isSoundEnabled.value) {
-        playOrderChime();
-    }
-    incomingOrder.value = {
-        id: newOrder.id,
-        customerName: newOrder.customerName || newOrder.customer_name || 'Mahasiswa UNESA',
-        foodName: newOrder.food?.shortName || newOrder.food?.name || 'Makanan Surplus',
-        total: newOrder.total || newOrder.total_price || 0,
-        ecoPackaging: (newOrder.ecoPackaging || newOrder.eco_packaging) === 'bawa_sendiri',
-        date: 'Baru saja'
-    };
-
-    if (bannerTimeout) clearTimeout(bannerTimeout);
-    bannerTimeout = setTimeout(() => {
-        incomingOrder.value = null;
-    }, 7000);
-};
-
-// Simulasi pesanan baru masuk untuk demo & presentasi
-const simulateIncomingOrder = () => {
-    const simId = 'ORD-' + Math.floor(100 + Math.random() * 900);
-    const mockStudents = ['Dimas Arya (Mhs. FBS)', 'Nabila Putri (Mhs. FEB)', 'Raka Pratama (Mhs. FT)', 'Alifia Zahra (Mhs. FIP)'];
-    const mockFoodTitles = ['Nasi Ayam Bakar Bumbu Rujak Spesial', 'Nasi Campur Bali Ayam Suwir', 'Soto Ayam Lamongan Koya Gurih'];
-    const randomStudent = mockStudents[Math.floor(Math.random() * mockStudents.length)];
-    const randomFood = mockFoodTitles[Math.floor(Math.random() * mockFoodTitles.length)];
-
-    const simOrder = {
-        id: simId,
-        order_number: simId,
-        customerName: randomStudent,
-        customer_name: randomStudent,
-        nim: '230512' + Math.floor(10000 + Math.random() * 90000),
-        whatsapp: '0812' + Math.floor(10000000 + Math.random() * 90000000),
-        food: {
-            name: randomFood,
-            shortName: randomFood.split(' ')[0] + ' ' + randomFood.split(' ')[1],
-            priceDiscount: 12000,
-            priceOriginal: 25000,
-            merchant: props.merchant?.name || 'Warung Bu Sari'
-        },
-        quantity: 1,
-        ecoPackaging: 'bawa_sendiri',
-        ecoPackagingLabel: 'Bawa Wadah Sendiri (Rp0)',
-        total: 12000,
-        total_price: 12000,
-        pickupTime: '19.30 – 20.30 WIB',
-        pickupDeadline: 'Hari ini tutup 21.00 WIB',
-        date: 'Hari ini',
-        paymentMethod: 'qris',
-        paymentStatus: 'lunas',
-        status: 'menunggu',
-        statusLabel: 'Menunggu Pickup',
-        qrCode: simId + '-BS',
-        hasReview: false
-    };
-
-    orders.value = [simOrder, ...orders.value];
-    knownOrderIds.value.add(String(simOrder.id));
-    triggerIncomingNotification(simOrder);
-};
-
-const handleWithdrawn = ({ amount }) => {
-    totalWithdrawnToday.value += amount;
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('plusfood_withdrawn_today', String(totalWithdrawnToday.value));
-    }
-};
-
-onMounted(() => {
-    knownOrderIds.value = new Set(orders.value.map(o => String(o.id)));
-    isSoundEnabled.value = getSoundPreference();
-
-    if (typeof window !== 'undefined') {
-        const savedWithdrawn = localStorage.getItem('plusfood_withdrawn_today');
-        if (savedWithdrawn) {
-            totalWithdrawnToday.value = Number(savedWithdrawn) || 0;
-        }
-    }
-});
-
-// Metrik Finansial Sesuai Spesifikasi PRD & Desain Sistem
-const completedOrders = computed(() => orders.value.filter(o => o.status === 'selesai'));
-const pendingOrders = computed(() => orders.value.filter(o => o.status === 'menunggu' || o.status === 'siap_ambil'));
-
-const todayRevenue = computed(() => {
-    if (props.metrics?.todayRevenue && props.metrics.todayRevenue > 0) {
-        return props.metrics.todayRevenue;
-    }
-    const realSum = completedOrders.value.reduce((acc, curr) => acc + (curr.total || curr.total_price || 0), 0);
-    return realSum > 0 ? realSum : (props.merchant?.balance_rp || 216000);
-});
-
-const rescuedPortions = computed(() => {
-    if (props.metrics?.rescuedPortions && props.metrics.rescuedPortions > 0) {
-        return props.metrics.rescuedPortions;
-    }
-    const realQty = completedOrders.value.reduce((acc, curr) => acc + (curr.quantity || 1), 0);
-    return realQty > 0 ? realQty : 18;
-});
-
-const totalListingPortions = computed(() => {
-    return props.metrics?.totalListingPortions || 24;
-});
-
-const recoveryRate = computed(() => {
-    if (props.metrics?.recoveryRate) return props.metrics.recoveryRate;
-    return Math.round((rescuedPortions.value / totalListingPortions.value) * 100);
-});
-
-const validateOrderManual = (orderId) => {
-    router.patch(route('mitra.pesanan.status', orderId), {
-        status: 'selesai'
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            const found = orders.value.find(o => String(o.id) === String(orderId) || o.order_number === orderId);
-            if (found) found.status = 'selesai';
-        }
-    });
-};
-
-const handleValidated = (order) => {
-    router.reload({ preserveScroll: true });
-};
-
-// State Pencarian & Filter Tabel Interaktif
-const searchQuery = ref('');
-const ecoOnlyFilter = ref(false);
-const copiedOrderId = ref('');
-const sortDueAsc = ref(true);
-const selectedOrderModal = ref(null);
-
-const toggleSortDue = () => {
-    sortDueAsc.value = !sortDueAsc.value;
-};
-
-const cancelOrderManual = (orderId) => {
-    if (confirm(`Batalkan pesanan #${orderId}? Status akan diubah menjadi dibatalkan.`)) {
-        router.patch(route('mitra.pesanan.status', orderId), {
-            status: 'batal'
-        }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                const found = orders.value.find(o => String(o.id) === String(orderId) || o.order_number === orderId);
-                if (found) found.status = 'batal';
-            }
-        });
-    }
-};
-
-const copyOrderId = (id) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        navigator.clipboard.writeText(id);
-    }
-    copiedOrderId.value = id;
-    setTimeout(() => {
-        if (copiedOrderId.value === id) copiedOrderId.value = '';
-    }, 1800);
-};
-
-// Solid full vibrant colors - Distinct per profile, no green/red clash with action buttons
-const getAsignColor = (name, id = '', idx = null) => {
-    const list = [
-        'bg-purple-600 text-white shadow-xs',
-        'bg-blue-600 text-white shadow-xs',
-        'bg-amber-500 text-white shadow-xs',
-        'bg-teal-600 text-white shadow-xs',
-        'bg-indigo-600 text-white shadow-xs',
-        'bg-sky-600 text-white shadow-xs',
-        'bg-orange-500 text-white shadow-xs',
-        'bg-fuchsia-600 text-white shadow-xs',
-        'bg-cyan-600 text-white shadow-xs',
-        'bg-violet-600 text-white shadow-xs',
-    ];
-    if (idx !== undefined && idx !== null && typeof idx === 'number') {
-        return list[Math.abs(idx) % list.length];
-    }
-    const key = (name || '') + '-' + (id || '');
-    let hash = 7;
-    for (let i = 0; i < key.length; i++) {
-        hash = (hash * 31 + key.charCodeAt(i)) | 0;
-    }
-    return list[Math.abs(hash) % list.length];
-};
-
-const getInitials = (name) => {
-    if (!name) return 'M';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return parts[0].slice(0, 2).toUpperCase();
-};
-
-const filteredDashboardOrders = computed(() => {
-    let result = orders.value;
-
-    // Status filter
-    if (recentFilter.value !== 'semua') {
-        result = result.filter(o => o.status === recentFilter.value);
-    }
-
-    // Eco filter
-    if (ecoOnlyFilter.value) {
-        result = result.filter(o => o.ecoPackaging === 'bawa_sendiri');
-    }
-
-    // Search query
-    const q = searchQuery.value.trim().toLowerCase();
-    if (q) {
-        result = result.filter(o => {
-            const idMatch = (o.id || '').toLowerCase().includes(q);
-            const nameMatch = (o.customerName || '').toLowerCase().includes(q);
-            const foodMatch = (o.food?.shortName || o.food?.name || '').toLowerCase().includes(q);
-            const nimMatch = (o.nim || '').toLowerCase().includes(q);
-            return idMatch || nameMatch || foodMatch || nimMatch;
-        });
-    }
-
-    // Sort by Due Date / Pickup Time
-    return [...result].sort((a, b) => {
-        const valA = a.pickupDeadline || a.pickupTime || '';
-        const valB = b.pickupDeadline || b.pickupTime || '';
-        return sortDueAsc.value ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    });
-});
+const {
+    showScanModal,
+    showPayoutModal,
+    isSoundEnabled,
+    incomingOrder,
+    knownOrderIds,
+    totalWithdrawnToday,
+    orders,
+    recentFilter,
+    reloadOrders,
+    availableBalance,
+    toggleSound,
+    triggerIncomingNotification,
+    simulateIncomingOrder,
+    merchantId,
+    withdrawnStorageKey,
+    handleWithdrawn,
+    completedOrders,
+    pendingOrders,
+    todayRevenue,
+    rescuedPortions,
+    totalListingPortions,
+    recoveryRate,
+    validateOrderManual,
+    handleValidated,
+    searchQuery,
+    ecoOnlyFilter,
+    copiedOrderId,
+    sortDueAsc,
+    selectedOrderModal,
+    toggleSortDue,
+    cancelOrderManual,
+    copyOrderId,
+    getAsignColor,
+    getInitials,
+    filteredDashboardOrders,
+} = useMitraDashboard(props);
 </script>
 
 <template>
@@ -456,7 +232,13 @@ const filteredDashboardOrders = computed(() => {
             </div>
 
             <!-- ================= GRAFIK ANALITIK & PEMULIHAN MODAL (FRONTEND INTERAKTIF) ================= -->
-            <SalesAnalyticsChart />
+            <SalesAnalyticsChart
+                :chart-data="props.chartDaily"
+                :orders="orders"
+                :merchant="merchant"
+                :metrics="metrics"
+                :eco-percent="props.ecoPercent"
+            />
 
             <!-- ================= STATUS SESI REAL-TIME BANNER ================= -->
             <div class="rounded-2xl bg-gradient-to-r from-amber-500/12 via-amber-50/40 to-white p-5 border border-amber-300 shadow-[0_4px_24px_-4px_rgba(245,158,11,0.10)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -679,7 +461,7 @@ const filteredDashboardOrders = computed(() => {
                                         class="inline-flex items-center gap-1.5 cursor-pointer font-bold text-slate-700 hover:text-brand-maroon transition text-xs sm:text-sm font-mono group/num"
                                     >
                                         <span class="text-slate-400 font-sans text-xs">#</span>
-                                        <span>{{ (order.id || '').replace(/^PF-/, '') }}</span>
+                                        <span>{{ String(order.order_number || order.id || '').replace(/^PF-/, '') }}</span>
                                         <svg class="h-3.5 w-3.5 text-slate-300 group-hover/num:text-brand-maroon transition shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                         </svg>
@@ -695,7 +477,7 @@ const filteredDashboardOrders = computed(() => {
                                             <span>{{ order.nim || '23051204088' }}</span>
                                             <span>·</span>
                                             <a
-                                                :href="'https://wa.me/' + (order.whatsapp || '').replace(/[^0-9]/g, '')"
+                                                :href="'https://wa.me/' + String(order.whatsapp || '').replace(/[^0-9]/g, '')"
                                                 target="_blank"
                                                 class="inline-flex items-center gap-1 hover:underline text-emerald-600 font-medium transition whitespace-nowrap"
                                                 title="Hubungi via WhatsApp"
@@ -924,7 +706,7 @@ const filteredDashboardOrders = computed(() => {
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-slate-500 font-medium">WhatsApp:</span>
-                            <a :href="'https://wa.me/' + (selectedOrderModal.whatsapp || '').replace(/[^0-9]/g, '')" target="_blank" class="font-bold text-emerald-600 hover:underline">
+                            <a :href="'https://wa.me/' + String(selectedOrderModal.whatsapp || '').replace(/[^0-9]/g, '')" target="_blank" class="font-bold text-emerald-600 hover:underline">
                                 {{ selectedOrderModal.whatsapp || '0812-3456-7890' }}
                             </a>
                         </div>
@@ -992,6 +774,7 @@ const filteredDashboardOrders = computed(() => {
             :show="showPayoutModal"
             :available-balance="availableBalance"
             :today-revenue="todayRevenue"
+            :merchant-id="props.merchant?.id"
             @close="showPayoutModal = false"
             @withdrawn="handleWithdrawn"
         />

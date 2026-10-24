@@ -9,11 +9,15 @@ const props = defineProps({
     },
     availableBalance: {
         type: Number,
-        default: 216000,
+        default: 0,
     },
     todayRevenue: {
         type: Number,
-        default: 216000,
+        default: 0,
+    },
+    merchantId: {
+        type: [String, Number],
+        default: null,
     },
 });
 
@@ -50,7 +54,7 @@ const payoutHistory = ref([]);
 const lastWithdrawnAmount = ref(0);
 
 const reloadHistory = () => {
-    payoutHistory.value = getPayoutHistory();
+    payoutHistory.value = getPayoutHistory(props.merchantId);
 };
 
 watch(() => props.show, (newVal) => {
@@ -116,7 +120,7 @@ const handleConfirmWithdrawal = () => {
             referenceId: 'TRX-MDR-' + Math.floor(10000 + Math.random() * 90000)
         };
 
-        payoutHistory.value = addPayoutRecord(newRecord);
+        payoutHistory.value = addPayoutRecord(newRecord, props.merchantId);
         emit('withdrawn', { amount, record: newRecord });
     }, 1000);
 };

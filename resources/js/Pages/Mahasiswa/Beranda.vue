@@ -2,240 +2,44 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import FoodCard from '@/Components/Mahasiswa/FoodCard.vue';
-import PickupTicketDetail from '@/Components/Mahasiswa/PickupTicketDetail.vue';
-import { sampleFoods, campusZones, getSavedOrders, mapDbOrder, getCustomFoods } from '@/Utils/mockFoods';
-import { ref, computed, onMounted } from 'vue';
-import { useAuth } from '@/Composables/useAuth';
+import { useBeranda } from '@/Composables/useBeranda';
 
 const props = defineProps({
     foods: {
         type: Array,
         default: () => [],
     },
-    activeOrders: {
-        type: Array,
-        default: () => [],
-    },
 });
 
-const auth = useAuth();
-const searchQuery = ref('');
-const selectedCampus = ref('unesa-ketintang');
-const selectedRadius = ref('2 km');
-const selectedFastFilter = ref('Semua');
-const showLocationModal = ref(false);
-const isLoading = ref(true);
-const customFoods = ref([]);
-
-const reloadCustomFoods = () => {
-    customFoods.value = getCustomFoods();
-};
-
-// ================= STATE PESANAN AKTIF & DRAFT CHECKOUT =================
-const activeTicketOrder = ref(null);
-const activeOrdersList = ref([]);
-const draftCheckout = ref(null);
-
-const reloadActiveOrders = () => {
-    const local = getSavedOrders();
-    const dbMapped = (props.activeOrders || []).map(mapDbOrder);
-    const combined = [...dbMapped];
-    local.forEach(loc => {
-        if (!combined.some(c => c.id === loc.id)) {
-            combined.push(loc);
-        }
-    });
-    activeOrdersList.value = combined.filter(o => o.status === 'menunggu' || o.status === 'siap_ambil');
-};
-
-const checkDraftCheckout = () => {
-    if (typeof window === 'undefined') return;
-    try {
-        const raw = localStorage.getItem('plusfood_draft_checkout');
-        if (raw) {
-            const data = JSON.parse(raw);
-            if (Date.now() - (data.timestamp || 0) < 2 * 60 * 60 * 1000) {
-                draftCheckout.value = data;
-            } else {
-                localStorage.removeItem('plusfood_draft_checkout');
-                draftCheckout.value = null;
-            }
-        } else {
-            draftCheckout.value = null;
-        }
-    } catch (e) {
-        draftCheckout.value = null;
-    }
-};
-
-const discardDraft = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('plusfood_draft_checkout');
-    }
-    draftCheckout.value = null;
-};
-
-const getMerchantName = (food) => {
-    if (!food) return 'Mitra Kampus';
-    if (typeof food.merchant === 'string') return food.merchant;
-    if (typeof food.merchant === 'object' && food.merchant?.name) return food.merchant.name;
-    if (food.merchantName && typeof food.merchantName === 'string') return food.merchantName;
-    return 'Mitra Kampus';
-};
-
-const openTicketModal = (order) => {
-    activeTicketOrder.value = order;
-    if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-};
-
-const closeTicketModal = () => {
-    activeTicketOrder.value = null;
-};
-
-const radiuses = ['500 m', '1 km', '2 km', '3 km', '5 km'];
-const availableCampuses = computed(() => campusZones.filter(c => !c.isComingSoon));
-
-const currentCampusLabel = computed(() => {
-    const found = campusZones.find(c => c.id === selectedCampus.value);
-    return found ? found.name : 'UNESA Ketintang';
-});
-
-const fastFilters = [
-    'Semua',
-    'Nasi',
-    'Roti',
-    'Soto',
-    'Halal Only',
-    'Bebas Kacang',
-    '< Rp15.000'
-];
-
-onMounted(() => {
-    reloadActiveOrders();
-    checkDraftCheckout();
-    reloadCustomFoods();
-    isLoading.value = false;
-
-    if (typeof window !== 'undefined') {
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'plusfood_orders') {
-                reloadActiveOrders();
-            }
-            if (e.key === 'plusfood_custom_foods') {
-                reloadCustomFoods();
-            }
-            if (e.key === 'plusfood_draft_checkout') {
-                checkDraftCheckout();
-            }
-        });
-        window.addEventListener('plusfood_custom_foods_updated', reloadCustomFoods);
-    }
-});
-
-const foodsList = computed(() => {
-    const base = (props.foods && props.foods.length > 0) ? props.foods : sampleFoods;
-    const custom = customFoods.value;
-    const customSlugs = new Set(custom.map(c => c.slug));
-    const filteredBase = base.filter(b => !customSlugs.has(b.slug) && !custom.some(c => String(c.id) === String(b.id)));
-    return [...custom, ...filteredBase];
-});
-
-const filteredFoods = computed(() => {
-    return foodsList.value.filter(item => {
-        // Search query filter
-        if (searchQuery.value) {
-            const q = searchQuery.value.toLowerCase();
-            const name = (item.name || '').toLowerCase();
-            const shortName = (item.shortName || '').toLowerCase();
-            const merchantStr = typeof item.merchant === 'string' ? item.merchant : (item.merchant?.name || item.merchantName || '');
-            const matchMerchant = merchantStr.toLowerCase().includes(q);
-            const category = (item.category || '').toLowerCase();
-            if (!name.includes(q) && !shortName.includes(q) && !matchMerchant && !category.includes(q)) return false;
-        }
-
-        // Campus zone filter if not all
-        const itemZone = item.campusZone ?? item.campus_zone ?? item.merchant?.campus_zone;
-        if (selectedCampus.value !== 'all' && itemZone !== selectedCampus.value) {
-            const distKm = typeof item.distanceKm === 'number' ? item.distanceKm :
-                           parseFloat(String(item.distance || '1.2').replace(',', '.')) || 1.2;
-            const maxRadius = selectedRadius.value === '500 m' ? 0.5 :
-                              selectedRadius.value === '1 km' ? 1.0 :
-                              selectedRadius.value === '2 km' ? 2.0 :
-                              selectedRadius.value === '3 km' ? 3.0 : 5.0;
-            if (distKm > maxRadius) {
-                return false;
-            }
-        }
-
-        // Fast filter bar
-        if (selectedFastFilter.value === 'Nasi' && item.category !== 'Nasi') return false;
-        if (selectedFastFilter.value === 'Roti' && item.category !== 'Roti') return false;
-        if (selectedFastFilter.value === 'Soto' && item.category !== 'Soto') return false;
-        const price = Number(item.priceDiscount ?? item.price_discount ?? 0);
-        if (selectedFastFilter.value === '< Rp15.000' && price >= 15000) return false;
-
-        const rawDietTags = item.dietaryTags ?? item.dietary_tags ?? [];
-        const rawTags = item.tags ?? [];
-        const allTags = [...rawDietTags, ...rawTags].map(t => String(t).toLowerCase());
-
-        if (selectedFastFilter.value === 'Halal Only') {
-            const isHalal = allTags.some(t => t.includes('halal'));
-            if (!isHalal) return false;
-        }
-        if (selectedFastFilter.value === 'Bebas Kacang') {
-            const isNutFree = allTags.some(t => t.includes('bebas kacang')) || (!item.name.toLowerCase().includes('kacang') && !(item.description || '').toLowerCase().includes('kacang'));
-            if (!isNutFree) return false;
-        }
-
-        return true;
-    });
-});
-
-onMounted(() => {
-    isLoading.value = true;
-    setTimeout(() => {
-        isLoading.value = false;
-    }, 300);
-
-    if (typeof window !== 'undefined') {
-        const savedPref = localStorage.getItem('plusfood_preferences');
-        if (savedPref) {
-            try {
-                const p = JSON.parse(savedPref);
-                if (p.campus) selectedCampus.value = p.campus;
-                if (p.radius) selectedRadius.value = p.radius;
-            } catch (e) {}
-        }
-    }
-
-    reloadActiveOrders();
-    checkDraftCheckout();
-
-    if (typeof window !== 'undefined') {
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'plusfood_orders') reloadActiveOrders();
-            if (e.key === 'plusfood_draft_checkout') checkDraftCheckout();
-        });
-    }
-});
+const {
+    auth,
+    searchQuery,
+    selectedCampus,
+    selectedRadius,
+    selectedFastFilter,
+    showLocationModal,
+    isLoading,
+    customFoods,
+    allOrders,
+    activePendingOrders,
+    draftCheckout,
+    discardDraft,
+    getMerchantName,
+    radiuses,
+    availableCampuses,
+    currentCampusLabel,
+    fastFilters,
+    foodsList,
+    filteredFoods,
+} = useBeranda(props);
 </script>
 
 <template>
     <MahasiswaLayout>
-        <Head :title="activeTicketOrder ? 'E-Tiket Pengambilan - PlusFood' : 'Beranda Mahasiswa - PlusFood'" />
-
-        <!-- ===== VIEW DETAIL TIKET PICKUP DIGITAL (Jika Dibuka dari Beranda) ===== -->
-        <PickupTicketDetail
-            v-if="activeTicketOrder"
-            :order="activeTicketOrder"
-            @back="closeTicketModal"
-            @cancel="closeTicketModal"
-        />
+        <Head title="Beranda Mahasiswa - PlusFood" />
 
         <!-- ===== VIEW KONTEN BERANDA MAHASISWA ===== -->
-        <div v-else class="space-y-7">
+        <div class="space-y-7">
             
             <!-- ================= 1. HEADER SAMBUTAN & METRIK GAMIFIKASI ================= -->
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -261,7 +65,7 @@ onMounted(() => {
                     </div>
 
                     <h1 class="mt-1.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2D1B1E] flex items-center gap-2">
-                        Selamat Datang, {{ auth.user.value ? auth.user.value.name.split(' ')[0] : 'Raka' }}! 
+                        Selamat Datang{{ auth.isLoggedIn.value && auth.user.value ? ', ' + auth.user.value.name.split(' ')[0] : ' di PlusFood' }}! 
                         <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-amber-100 text-amber-600 hover:rotate-12 transition-transform cursor-default">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
@@ -280,114 +84,45 @@ onMounted(() => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
                         </svg>
                     </div>
-                    <div>
+                    <div v-if="auth.isLoggedIn.value && auth.user.value">
                         <div class="flex items-center gap-2">
                             <span class="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-300/80">
-                                Level 3: Green Rescuer
+                                Level {{ auth.user.value.rescuer_level || 1 }}: Green Rescuer
                             </span>
                             <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
                                 <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
                                 </svg>
-                                2.4 kg CO2e dicegah
+                                {{ ((auth.user.value.co2_saved_grams || 0) / 1000).toFixed(1) }} kg CO2e dicegah
                             </span>
                         </div>
                         <p class="text-xs sm:text-sm font-black text-[#2D1B1E] mt-1">
-                            14 porsi diselamatkan · <span class="text-brand-maroon">hemat Rp168.000</span>
+                            {{ auth.user.value.portions_rescued || 0 }} porsi diselamatkan · <span class="text-brand-maroon">hemat Rp{{ Number(auth.user.value.money_saved_rp || 0).toLocaleString('id-ID') }}</span>
+                        </p>
+                    </div>
+                    <div v-else>
+                        <div class="flex items-center gap-2">
+                            <span class="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-300/80">
+                                Gerakan Food Rescue
+                            </span>
+                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                                <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4C6.2 17 8 13.5 12 11c4-2.5 7.5-2 9.5-.5C21.8 8.5 17.5 2 12 2z" />
+                                </svg>
+                                Kampus Bersih
+                            </span>
+                        </div>
+                        <p class="text-xs sm:text-sm font-black text-[#2D1B1E] mt-1">
+                            Selamatkan Makanan · <span class="text-brand-maroon">Diskon s.d 60%</span>
                         </p>
                     </div>
                 </div>
             </div>
 
-            <!-- ================= PESANAN AKTIF BERLANGSUNG (MENCEGAH HILANG SAAT NAVIGASI) ================= -->
-            <div v-if="activeOrdersList.length > 0" class="space-y-3">
-                <div
-                    v-for="order in activeOrdersList"
-                    :key="order.id"
-                    class="relative overflow-hidden rounded-[26px] bg-gradient-to-r from-amber-500 via-rose-600 to-brand-maroon p-[2px] shadow-lg shadow-rose-900/10 transition hover:shadow-xl"
-                >
-                    <div class="rounded-[24px] bg-white p-5 sm:p-6">
-                        <!-- Baris Atas: Status Tag & Batas Pengambilan -->
-                        <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-[#F5EFE6]">
-                            <div class="flex items-center gap-2">
-                                <span class="relative flex h-3 w-3">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                                </span>
-                                <span class="text-xs font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
-                                    {{ order.statusLabel || 'Menunggu Pickup' }}
-                                </span>
-                                <span class="text-xs font-bold text-[#8C7A72]">
-                                    · ID: {{ order.id }}
-                                </span>
-                            </div>
 
-                            <div class="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl">
-                                <svg class="w-3.5 h-3.5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <circle cx="12" cy="12" r="10" stroke-width="2" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
-                                </svg>
-                                <span>Jadwal Ambil: {{ order.pickupTime || '19.30 – 20.30 WIB' }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Baris Tengah: Info Makanan, Mitra, Harga -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4">
-                            <div class="flex items-center gap-3.5 min-w-0">
-                                <img
-                                    :src="order.food?.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'"
-                                    :alt="order.food?.name"
-                                    class="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover bg-stone-100 border border-[#EAE0D5] shrink-0"
-                                />
-                                <div class="min-w-0">
-                                    <h3 class="text-base sm:text-lg font-black text-[#2D1B1E] truncate">
-                                        {{ order.food?.name }}
-                                    </h3>
-                                    <p class="text-xs font-bold text-stone-600 flex items-center gap-1.5 mt-0.5">
-                                        <svg class="w-3.5 h-3.5 text-stone-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
-                                        <span class="truncate">{{ getMerchantName(order.food) }}</span>
-                                    </p>
-                                    <p class="text-xs text-stone-500 mt-1">
-                                        {{ order.quantity }} porsi · <span class="font-extrabold text-brand-maroon">Rp{{ Number(order.total || 0).toLocaleString('id-ID') }}</span>
-                                        <span class="text-stone-400"> ({{ order.paymentMethod === 'kasir' ? 'Bayar di Kasir' : 'Lunas Sandbox' }})</span>
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Tombol Aksi -->
-                            <div class="flex items-center gap-2.5 sm:self-center shrink-0">
-                                <a
-                                    :href="order.mapsUrl || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((order.food?.merchantName || 'Warung') + ' ' + (order.food?.address || 'Surabaya')))"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1.5 rounded-xl border border-[#D5C7BD] bg-white px-3.5 py-2.5 text-xs font-bold text-[#6E5A54] hover:bg-[#FAF7F2] hover:text-[#2D1B1E] transition active:scale-95 shadow-2xs"
-                                >
-                                    <svg class="w-3.5 h-3.5 text-stone-500 -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                    </svg>
-                                    <span>Rute Maps</span>
-                                </a>
-
-                                <button
-                                    type="button"
-                                    @click="openTicketModal(order)"
-                                    class="inline-flex items-center gap-2 rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-extrabold text-white shadow-md shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition cursor-pointer"
-                                >
-                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                                    </svg>
-                                    <span>Tunjukkan E-Tiket QR</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- ================= BANNER DRAFT CHECKOUT TERTUNDA ================= -->
-            <div v-if="draftCheckout && activeOrdersList.length === 0" class="rounded-[24px] bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-4 sm:p-5 shadow-sm animate-fade-in">
+            <div v-if="draftCheckout" class="rounded-[24px] bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-4 sm:p-5 shadow-sm animate-fade-in">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-center gap-3.5 min-w-0">
                         <img

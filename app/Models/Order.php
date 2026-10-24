@@ -108,6 +108,14 @@ class Order extends Model
     }
 
     /**
+     * Relasi ke ulasan kepuasan mahasiswa (1-to-1).
+     */
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+
+    /**
      * Scope untuk pesanan yang masih menunggu pengambilan.
      */
     public function scopePending(Builder $query): Builder

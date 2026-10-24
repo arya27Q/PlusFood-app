@@ -2,8 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import PickupTicketDetail from '@/Components/Mahasiswa/PickupTicketDetail.vue';
-import { getSavedOrders, addOrderReview, updateOrderStatus, mapDbOrder } from '@/Utils/mockFoods';
-import { ref, onMounted, computed } from 'vue';
+import { useRiwayat } from '@/Composables/useRiwayat';
 
 const props = defineProps({
     initialTicketId: {
@@ -16,204 +15,48 @@ const props = defineProps({
     },
 });
 
-const activeTab = ref('menunggu'); // 'menunggu', 'selesai', 'dibatalkan', 'semua'
-const showQrModal = ref(false);
-const showReviewModal = ref(false);
-const activeTicket = ref(null);
-const activeTicketOrder = ref(null);
-const activeReviewOrder = ref(null);
-const reviewRating = ref(5);
-const selectedReviewTags = ref(['Porsi Pas & Kenyang', 'Masih Hangat']);
-const reviewComment = ref('');
-const reviewRewardToast = ref(false);
-const orders = ref([]);
-
-const quickReviewTags = [
-    'Porsi Pas & Kenyang',
-    'Masih Hangat',
-    'Rasa Mantap',
-    'Kemasan Rapi',
-    'Pelayanan Ramah',
-    'Harga Bersahabat'
-];
-
-const reloadOrders = () => {
-    const local = getSavedOrders();
-    const dbMapped = (props.dbOrders || []).map(mapDbOrder);
-
-    // Gabungkan list pesanan database MySQL dan LocalStorage
-    const combined = [...dbMapped];
-    local.forEach(loc => {
-        if (!combined.some(c => c.id === loc.id)) {
-            combined.push(loc);
-        }
-    });
-
-    orders.value = combined;
-
-    // Auto-buka tiket jika ada parameter URL atau prop initialTicketId
-    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const ticketId = props.initialTicketId || (urlParams ? urlParams.get('tiket') : null);
-    if (ticketId) {
-        const found = orders.value.find(o => o.id === ticketId || o.qrCode === ticketId || o.manualCode === ticketId);
-        if (found) {
-            activeTicketOrder.value = found;
-        } else if (orders.value.length > 0) {
-            activeTicketOrder.value = orders.value[0];
-        }
-    }
-};
-
-const draftCheckout = ref(null);
-const loadDraftCheckout = () => {
-    if (typeof window === 'undefined') return;
-    try {
-        const raw = localStorage.getItem('plusfood_draft_checkout');
-        if (raw) {
-            const data = JSON.parse(raw);
-            if (Date.now() - (data.timestamp || 0) < 2 * 60 * 60 * 1000) {
-                draftCheckout.value = data;
-            } else {
-                draftCheckout.value = null;
-            }
-        } else {
-            draftCheckout.value = null;
-        }
-    } catch (e) {
-        draftCheckout.value = null;
-    }
-};
-
-const discardDraft = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('plusfood_draft_checkout');
-    }
-    draftCheckout.value = null;
-};
-
-const getMerchantName = (food) => {
-    if (!food) return 'Mitra PlusFood';
-    if (typeof food.merchant === 'string') return food.merchant;
-    if (typeof food.merchant === 'object' && food.merchant?.name) return food.merchant.name;
-    if (food.merchantName && typeof food.merchantName === 'string') return food.merchantName;
-    return 'Mitra PlusFood';
-};
-
-const clearAllOrders = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('plusfood_orders');
-        localStorage.removeItem('plusfood_draft_checkout');
-        window.dispatchEvent(new Event('storage'));
-    }
-    orders.value = [];
-    activeTicketOrder.value = null;
-    draftCheckout.value = null;
-};
-
-onMounted(() => {
-    // Otomatis kosongkan riwayat pesanan lama untuk testing bersih sesuai permintaan user
-    if (typeof window !== 'undefined' && !localStorage.getItem('plusfood_reset_testing_orders_v1')) {
-        localStorage.removeItem('plusfood_orders');
-        localStorage.removeItem('plusfood_draft_checkout');
-        localStorage.setItem('plusfood_reset_testing_orders_v1', 'true');
-        window.dispatchEvent(new Event('storage'));
-    }
-    reloadOrders();
-    loadDraftCheckout();
-    // Sinkronisasi Real-Time Dua Arah Bawaan Browser (Tanpa Websocket Vendor)
-    if (typeof window !== 'undefined') {
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'plusfood_orders') {
-                reloadOrders();
-            }
-            if (e.key === 'plusfood_draft_checkout') {
-                loadDraftCheckout();
-            }
-        });
-    }
-});
-
-const openQr = (order) => {
-    activeTicketOrder.value = order;
-    if (typeof window !== 'undefined') {
-        const url = new URL(window.location);
-        url.searchParams.set('tiket', order.id);
-        window.history.pushState({}, '', url);
-    }
-};
-
-const handleBackFromTicket = () => {
-    activeTicketOrder.value = null;
-    if (typeof window !== 'undefined') {
-        const url = new URL(window.location);
-        url.searchParams.delete('tiket');
-        window.history.pushState({}, '', url.pathname);
-    }
-};
-
-const handleCancelOrder = (order) => {
-    updateOrderStatus(order.id, 'dibatalkan');
-    reloadOrders();
-    handleBackFromTicket();
-    activeTab.value = 'dibatalkan';
-};
-
-const openReviewModal = (order) => {
-    activeReviewOrder.value = order;
-    reviewRating.value = 5;
-    selectedReviewTags.value = ['Porsi Pas & Kenyang', 'Masih Hangat'];
-    reviewComment.value = '';
-    showReviewModal.value = true;
-};
-
-const toggleReviewTag = (tag) => {
-    const idx = selectedReviewTags.value.indexOf(tag);
-    if (idx >= 0) {
-        selectedReviewTags.value.splice(idx, 1);
-    } else {
-        selectedReviewTags.value.push(tag);
-    }
-};
-
-const submitReview = () => {
-    if (!activeReviewOrder.value) return;
-    addOrderReview(activeReviewOrder.value.id, {
-        rating: reviewRating.value,
-        tags: selectedReviewTags.value,
-        comment: reviewComment.value
-    });
-    showReviewModal.value = false;
-    reloadOrders();
-    reviewRewardToast.value = true;
-    setTimeout(() => {
-        reviewRewardToast.value = false;
-    }, 4500);
-};
-
-// Kalkulasi ringkasan dampak 1 semester sesuai dokumen desain
-const totalRescuedPortions = computed(() => {
-    return orders.value
-        .filter(o => o.status === 'selesai')
-        .reduce((acc, curr) => acc + (curr.quantity || 1), 14); // default 14 plus completed
-});
-
-const totalMoneySaved = computed(() => {
-    return totalRescuedPortions.value * 12000;
-});
-
-const totalCo2Saved = computed(() => {
-    return (totalRescuedPortions.value * 0.85).toFixed(1);
-});
-
-const totalGreenPoints = computed(() => {
-    const reviewBonus = orders.value.filter(o => o.isReviewed).length * 15;
-    return 140 + reviewBonus;
-});
-
-const filteredOrders = computed(() => {
-    if (activeTab.value === 'semua') return orders.value;
-    return orders.value.filter(o => o.status === activeTab.value);
-});
+const {
+    activeTab,
+    showQrModal,
+    showReviewModal,
+    activeTicket,
+    activeTicketOrder,
+    activeReviewOrder,
+    reviewRating,
+    selectedReviewTags,
+    reviewComment,
+    reviewRewardToast,
+    orders,
+    quickReviewTags,
+    reloadOrders,
+    draftCheckout,
+    loadDraftCheckout,
+    discardDraft,
+    getMerchantName,
+    clearAllOrders,
+    openQr,
+    handleBackFromTicket,
+    cancelModalOrder,
+    showCancelModal,
+    showExpiredNotice,
+    cancelReasons,
+    selectedCancelReason,
+    customCancelReason,
+    isSubmittingCancel,
+    isOrderWithin15Mins,
+    getCancelMinutesRemaining,
+    openCancelFromList,
+    handleConfirmCancelFromList,
+    handleCancelOrder,
+    openReviewModal,
+    toggleReviewTag,
+    submitReview,
+    totalRescuedPortions,
+    totalMoneySaved,
+    totalCo2Saved,
+    totalGreenPoints,
+    filteredOrders,
+} = useRiwayat(props);
 </script>
 
 <template>
@@ -344,7 +187,7 @@ const filteredOrders = computed(() => {
                         </div>
                         <div class="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
                             <span class="text-[10px] text-white/70 block uppercase font-bold">Hemat Uang</span>
-                            <span class="text-base sm:text-lg font-black text-emerald-300">Rp{{ totalMoneySaved.toLocaleString('id-ID') }}</span>
+                            <span class="text-base sm:text-lg font-black text-emerald-300">Rp{{ Number(totalMoneySaved || 0).toLocaleString('id-ID') }}</span>
                         </div>
                         <div class="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
                             <span class="text-[10px] text-white/70 block uppercase font-bold">Emisi Dicegah</span>
@@ -442,20 +285,30 @@ const filteredOrders = computed(() => {
 
                     <div class="flex sm:flex-col items-center sm:items-end justify-between gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-[#F5EFE6]">
                         <p class="text-lg font-black text-brand-maroon">
-                            Rp{{ order.total.toLocaleString('id-ID') }}
+                            Rp{{ Number(order.total ?? order.total_price ?? 0).toLocaleString('id-ID') }}
                         </p>
 
-                        <!-- Button Tampilkan QR jika menunggu pickup -->
-                        <button
-                            v-if="order.status === 'menunggu'"
-                            @click="openQr(order)"
-                            class="inline-flex items-center gap-2 rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-maroon/20 hover:bg-brand-maroon-hover transition"
-                        >
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                            </svg>
-                            <span>Tampilkan QR Tiket</span>
-                        </button>
+                        <!-- Button Tampilkan QR jika menunggu pickup & Batalkan -->
+                        <div v-if="order.status === 'menunggu'" class="flex items-center gap-2">
+                            <button
+                                v-if="isOrderWithin15Mins(order)"
+                                type="button"
+                                @click="openCancelFromList(order)"
+                                class="rounded-xl px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                                title="Batalkan pesanan (tersisa waktu pembatalan)"
+                            >
+                                Batalkan
+                            </button>
+                            <button
+                                @click="openQr(order)"
+                                class="inline-flex items-center gap-2 rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-maroon/20 hover:bg-brand-maroon-hover transition cursor-pointer"
+                            >
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                </svg>
+                                <span>Tampilkan QR Tiket</span>
+                            </button>
+                        </div>
 
                         <!-- Selesai: Bisa beri ulasan berhadiah atau tampilkan badge diulas -->
                         <div v-else-if="order.status === 'selesai'" class="flex flex-col sm:items-end gap-1.5">
@@ -467,7 +320,7 @@ const filteredOrders = computed(() => {
                             </span>
                             
                             <button
-                                v-if="!order.isReviewed"
+                                v-if="!order.isReviewed && !order.hasReview"
                                 @click="openReviewModal(order)"
                                 class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3.5 py-1.5 text-xs font-black text-stone-900 shadow-xs transition"
                             >
@@ -483,7 +336,7 @@ const filteredOrders = computed(() => {
                                 <svg class="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                 </svg>
-                                <span>Diulas ({{ order.review?.rating }}/5) · +15 Poin</span>
+                                <span>Diulas ({{ order.review?.rating || 5 }}/5) · +15 Poin</span>
                             </span>
                         </div>
 
@@ -594,6 +447,136 @@ const filteredOrders = computed(() => {
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Teleport>
+
+            <!-- ================= MODAL PEMBATALAN PESANAN DARI DAFTAR RIWAYAT ================= -->
+            <Teleport to="body">
+                <!-- Modal Pilih Alasan Pembatalan (Toleransi <= 15 Menit) -->
+                <div
+                    v-if="showCancelModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+                    style="top: 0; left: 0; width: 100vw; height: 100vh;"
+                >
+                    <div class="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl border border-[#EAE0D5] space-y-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-700 shrink-0">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-black text-[#2D1B1E]">Batalkan Pesanan Surplus?</h3>
+                                    <p class="text-xs text-stone-500">
+                                        Toleransi pembatalan tersisa <strong>{{ getCancelMinutesRemaining(cancelModalOrder) }} menit</strong>.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                @click="showCancelModal = false"
+                                class="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition"
+                            >
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Pilih Alasan Pembatalan (POV Mahasiswa) -->
+                        <div class="space-y-2 pt-1">
+                            <label class="block text-xs font-bold text-stone-700">
+                                Pilih alasan pembatalan:
+                            </label>
+                            <div class="space-y-1.5">
+                                <label
+                                    v-for="(reason, idx) in cancelReasons"
+                                    :key="idx"
+                                    class="flex items-center gap-3 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition"
+                                    :class="selectedCancelReason === reason ? 'border-brand-maroon bg-brand-maroon/5 text-brand-maroon font-bold' : 'border-stone-200 text-stone-600 hover:bg-stone-50'"
+                                >
+                                    <input
+                                        type="radio"
+                                        name="list_cancel_reason"
+                                        :value="reason"
+                                        v-model="selectedCancelReason"
+                                        class="text-brand-maroon focus:ring-brand-maroon h-4 w-4"
+                                    />
+                                    <span class="flex-1">{{ reason }}</span>
+                                </label>
+                            </div>
+
+                            <!-- Input Alasan Lainnya -->
+                            <div v-if="selectedCancelReason === 'Lainnya'" class="pt-1.5">
+                                <textarea
+                                    v-model="customCancelReason"
+                                    rows="2"
+                                    placeholder="Tuliskan alasan pembatalan Anda..."
+                                    class="w-full rounded-xl border border-stone-200 p-2.5 text-xs text-stone-800 placeholder:text-stone-400 focus:border-brand-maroon focus:ring-brand-maroon"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl bg-amber-50/80 p-3 text-[11px] text-amber-900 border border-amber-200/80 leading-relaxed">
+                            Porsi makanan surplus ini akan langsung otomatis dikembalikan ke etalase katalog agar dapat diselamatkan mahasiswa lain.
+                        </div>
+
+                        <div class="flex items-center gap-2.5 pt-1">
+                            <button
+                                type="button"
+                                @click="showCancelModal = false"
+                                class="flex-1 rounded-xl border border-stone-200 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-50 transition cursor-pointer"
+                            >
+                                Kembali
+                            </button>
+                            <button
+                                type="button"
+                                :disabled="isSubmittingCancel"
+                                @click="handleConfirmCancelFromList"
+                                class="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white hover:bg-rose-700 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                <svg v-if="isSubmittingCancel" class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                </svg>
+                                <span>{{ isSubmittingCancel ? 'Membatalkan...' : 'Ya, Batalkan Pesanan' }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Notice jika waktu pembatalan sudah lewat 15 menit -->
+                <div
+                    v-if="showExpiredNotice"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+                    style="top: 0; left: 0; width: 100vw; height: 100vh;"
+                >
+                    <div class="w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl border border-[#E8DFD8] text-center space-y-4">
+                        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" stroke-width="2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <h3 class="text-base font-black text-[#2D1B1E]">Tidak Dapat Dibatalkan</h3>
+                            <p class="text-xs text-stone-500 mt-1.5 leading-relaxed">
+                                Pesanan ini telah melewati batas toleransi <strong>15 menit</strong> setelah pemesanan. Makanan surplus sedang disiapkan oleh mitra penjual.
+                            </p>
+                        </div>
+
+                        <div class="pt-2">
+                            <button
+                                type="button"
+                                @click="showExpiredNotice = false"
+                                class="w-full rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white hover:bg-brand-maroon-hover transition"
+                            >
+                                Saya Mengerti
                             </button>
                         </div>
                     </div>

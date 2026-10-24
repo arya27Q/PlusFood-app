@@ -35,16 +35,18 @@ class CheckoutController extends Controller
         $qty = max(1, min((int) $request->input('qty', 1), $food ? $food->stock : 1));
         $packaging = $request->input('packaging', 'bawa_sendiri');
 
+        $isMahasiswa = $user && $user->role === 'mahasiswa';
+
         return Inertia::render('Mahasiswa/Checkout', [
             'food' => $food,
             'initialQuantity' => $qty,
             'initialPackaging' => $packaging,
             'customer' => [
-                'name' => $user ? $user->name : 'Raka Pratama',
-                'email' => $user ? $user->email : 'raka.pratama@mhs.unesa.ac.id',
-                'phone' => $user ? ($user->phone ?? '081234567890') : '081234567890',
-                'address' => $user ? ($user->address ?? 'Jl. Ketintang Baru No. 14, Gayungan, Surabaya') : 'Jl. Ketintang Baru No. 14, Gayungan, Surabaya',
-                'nim' => $user ? ($user->nim ?? '23051204088') : '23051204088',
+                'name' => $isMahasiswa ? $user->name : '',
+                'email' => $isMahasiswa ? $user->email : '',
+                'phone' => $isMahasiswa ? ($user->phone ?? '') : '',
+                'address' => $isMahasiswa ? ($user->address ?? '') : '',
+                'nim' => $isMahasiswa ? ($user->nim ?? '') : '',
             ],
         ]);
     }
@@ -67,6 +69,7 @@ class CheckoutController extends Controller
             'payment_method' => 'required|in:kasir,qris,gopay,dana',
             'arrival_estimate' => 'required|in:awal,tengah,akhir',
             'remind_before' => 'nullable|boolean',
+            'order_number' => 'nullable|string|max:50',
         ], [
             'customer_name.required' => 'Nama lengkap pemesan wajib diisi.',
             'customer_phone.required' => 'Nomor WhatsApp wajib diisi.',
@@ -87,6 +90,13 @@ class CheckoutController extends Controller
 
             // Kurangi stok makanan di database
             $food->decrement('stock', $validated['quantity']);
+            $food->refresh();
+            if ($food->stock <= 0) {
+                $food->update([
+                    'stock' => 0,
+                    'status' => 'habis',
+                ]);
+            }
 
             // Hitung finansial dan dampak penyelamatan
             $subtotal = $food->price_discount * $validated['quantity'];
@@ -103,7 +113,7 @@ class CheckoutController extends Controller
             $user = $request->user() ?? User::where('role', 'mahasiswa')->first() ?? User::first();
             $userId = $user ? $user->id : 1;
 
-            $orderNumber = 'PF-' . mt_rand(10000, 99999);
+            $orderNumber = !empty($validated['order_number']) ? strtoupper($validated['order_number']) : ('PF-' . mt_rand(10000, 99999));
             $merchantInitial = $food->merchant ? $food->merchant->initial : 'PF';
             $qrToken = $orderNumber . '-' . $merchantInitial;
 
@@ -172,7 +182,8 @@ class CheckoutController extends Controller
             }
 
             return redirect()->route('tiket', ['id' => $order->order_number])
-                ->with('success', 'Reservasi berhasil dikonfirmasi! E-Tiket siap ditunjukkan saat pengambilan.');
+                ->with('success', 'Reservasi berhasil dikonfirmasi! E-Tiket siap ditunjukkan saat pengambilan.')
+                ->with('order_id', $order->order_number);
         });
     }
 }

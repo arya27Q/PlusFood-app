@@ -31,6 +31,24 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $email = strtolower($request->email);
+
+        if (\App\Models\Merchant::where('email', $email)->exists()) {
+            throw ValidationException::withMessages([
+                'email' => 'Email ini sudah terdaftar sebagai akun Mitra UMKM. Akun Mahasiswa dan Mitra harus menggunakan email berbeda.',
+            ]);
+        }
+
+        $existing = User::where('email', $email)->first();
+        if ($existing) {
+            $msg = $existing->role === 'mitra'
+                ? 'Email ini sudah terdaftar sebagai akun Mitra UMKM. Akun Mahasiswa dan Mitra harus menggunakan email berbeda.'
+                : 'Akun email ini sudah terdaftar sebagai Mahasiswa. Silakan gunakan email lain atau masuk ke akun Anda.';
+            throw ValidationException::withMessages([
+                'email' => $msg,
+            ]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
@@ -74,6 +92,10 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        return redirect()->route('login')->with('status', 'Pendaftaran akun berhasil! Silakan masuk dengan email dan password Anda.');
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('loading');
     }
 }

@@ -1,38 +1,25 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
-// Form State (Diisi default sesuai mockup foto)
-const storeName = ref('Kantin Srikandi');
-const email = ref('kantin.srikandi@gmail.com');
-const password = ref('');
+// Form State riil terhubung ke MySQL
+const form = useForm({
+    storeName: '',
+    email: '',
+    password: '',
+});
+
 const showPassword = ref(false);
-const isLoading = ref(false);
 
 const togglePasswordVisibility = () => {
     showPassword.value = !showPassword.value;
 };
 
-// Navigasi ke Halaman Login Mitra
-const goToLogin = () => {
-    try {
-        if (typeof route === 'function' && route().has('mitra.login')) {
-            router.visit(route('mitra.login'));
-        } else {
-            router.visit('/mitra/login');
-        }
-    } catch (e) {
-        router.visit('/mitra/login');
-    }
-};
-
-// Submit Pendaftaran -> Lanjut ke Halaman Login
+// Submit Pendaftaran riil ke backend database MySQL (tabel merchants)
 const submitRegister = () => {
-    isLoading.value = true;
-    
-    setTimeout(() => {
-        goToLogin();
-    }, 400);
+    form.post(route('mitra.register.store'), {
+        onFinish: () => form.reset('password'),
+    });
 };
 </script>
 
@@ -69,19 +56,10 @@ const submitRegister = () => {
             <div class="md:col-span-6 bg-white p-6 sm:p-12 lg:p-14 flex flex-col justify-between order-2 md:order-1">
                 
                 <div>
-                    <!-- Badge Portal Mitra UMKM & Switcher -->
+                    <!-- Back to Splash Screen -->
                     <div class="flex items-center justify-between">
                         <Link :href="route('mitra.splash')" class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-maroon hover:underline">
                             <span>← Splash Screen</span>
-                        </Link>
-
-                        <Link :href="route('beranda')" class="text-xs font-bold text-[#8C7A72] hover:text-brand-maroon transition flex items-center gap-1.5">
-                            <svg class="h-3.5 w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                            </svg>
-                            <span>Mode Mahasiswa</span>
-                            <span aria-hidden="true">&rarr;</span>
                         </Link>
                     </div>
 
@@ -108,12 +86,15 @@ const submitRegister = () => {
                                     <circle cx="12" cy="7" r="4" />
                                 </svg>
                                 <input
-                                    v-model="storeName"
+                                    v-model="form.storeName"
                                     type="text"
                                     required
                                     placeholder="Nama Usaha / Warung Anda"
                                     class="w-full bg-transparent border-0 p-0 text-xs sm:text-sm font-medium text-[#2D1B1E] placeholder-[#A89F9A] focus:ring-0 outline-none"
                                 />
+                            </div>
+                            <div v-if="form.errors.storeName" class="text-xs text-red-600 mt-1 font-semibold">
+                                {{ form.errors.storeName }}
                             </div>
                         </div>
 
@@ -129,12 +110,15 @@ const submitRegister = () => {
                                     <path d="m3 7 9 6 9-6" />
                                 </svg>
                                 <input
-                                    v-model="email"
+                                    v-model="form.email"
                                     type="email"
                                     required
                                     placeholder="nama@toko.com"
                                     class="w-full bg-transparent border-0 p-0 text-xs sm:text-sm font-medium text-[#2D1B1E] placeholder-[#A89F9A] focus:ring-0 outline-none"
                                 />
+                            </div>
+                            <div v-if="form.errors.email" class="text-xs text-red-600 mt-1 font-semibold">
+                                {{ form.errors.email }}
                             </div>
                         </div>
 
@@ -152,7 +136,7 @@ const submitRegister = () => {
                                 </svg>
                                 
                                 <input
-                                    v-model="password"
+                                    v-model="form.password"
                                     :type="showPassword ? 'text' : 'password'"
                                     required
                                     placeholder="Buat password aman"
@@ -180,18 +164,21 @@ const submitRegister = () => {
                                     </svg>
                                 </button>
                             </div>
+                            <div v-if="form.errors.password" class="text-xs text-red-600 mt-1 font-semibold">
+                                {{ form.errors.password }}
+                            </div>
                         </div>
 
                         <!-- Tombol Submit Daftar -->
                         <div class="pt-2">
                             <button
                                 type="submit"
-                                :disabled="isLoading"
+                                :disabled="form.processing"
                                 class="w-full flex items-center justify-center gap-2 rounded-xl bg-[#700926] py-3.5 px-6 text-sm font-bold text-white shadow-md shadow-[#700926]/20 transition-all duration-200 hover:bg-[#58071E] active:scale-[0.99] disabled:opacity-75"
                             >
-                                <span v-if="!isLoading">Daftar</span>
+                                <span v-if="!form.processing">Daftar</span>
                                 <span v-else>Mendaftarkan...</span>
-                                <svg v-if="!isLoading" class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
+                                <svg v-if="!form.processing" class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
@@ -201,13 +188,12 @@ const submitRegister = () => {
                     <!-- Link Sudah Punya Akun -->
                     <p class="text-center text-xs sm:text-sm text-[#6E5A54] mt-5">
                         Sudah punya akun? 
-                        <a 
-                            href="#" 
-                            class="font-bold text-[#700926] hover:underline" 
-                            @click.prevent="goToLogin"
+                        <Link 
+                            :href="route('mitra.login')" 
+                            class="font-bold text-[#700926] hover:underline"
                         >
                             Masuk di sini
-                        </a>
+                        </Link>
                     </p>
                 </div>
 
@@ -260,13 +246,12 @@ const submitRegister = () => {
                     </p>
 
                     <!-- Tombol Masuk Sekarang (Outline Putih Transparan) -->
-                    <button
-                        type="button"
-                        @click="goToLogin"
+                    <Link
+                        :href="route('mitra.login')"
                         class="mt-8 inline-flex items-center justify-center rounded-xl border border-white/40 bg-white/5 px-7 py-2.5 text-xs sm:text-sm font-bold text-white transition-all duration-200 hover:bg-white hover:text-[#700926] hover:border-white active:scale-95 shadow-sm"
                     >
                         Masuk Sekarang
-                    </button>
+                    </Link>
                 </div>
             </div>
 

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Order;
+use App\Models\Review;
 use App\Models\UserPreference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,9 +36,37 @@ class ProfileController extends Controller
             ]
         );
 
+        // Ambil pesanan selesai untuk mengkalkulasi warung favorit dan metrik penyelamatan
+        $completedOrders = Order::with(['merchant', 'items.food'])
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('customer_email', $user->email);
+            })
+            ->where('status', 'selesai')
+            ->latest()
+            ->get();
+
+        $merchantOrderCounts = $completedOrders->groupBy('merchant_id')->map(function ($orders) {
+            $merchant = $orders->first()?->merchant;
+            $firstFood = $orders->first()?->items->first()?->food;
+            $rescuedQty = $orders->sum(fn($o) => $o->items->sum('quantity') ?: 1);
+
+            return [
+                'name' => $merchant?->name ?? 'Warung Mitra',
+                'rescuedCount' => $rescuedQty . 'x diselamatkan',
+                'count' => $rescuedQty,
+                'image' => $merchant?->image ?? $firstFood?->image ?? 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=200&q=80',
+            ];
+        })->values()->all();
+
+        // Hanya tampilkan warung yang benar-benar pernah diselamatkan oleh akun mahasiswa ini
+        $favoriteStores = $merchantOrderCounts;
+
         return Inertia::render('Mahasiswa/Profil', [
             'user' => $user,
             'preference' => $preference,
+            'favoriteStores' => $favoriteStores,
+            'completedOrdersCount' => $completedOrders->count(),
         ]);
     }
 

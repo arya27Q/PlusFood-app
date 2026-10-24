@@ -33,16 +33,11 @@ class MitraFullStackDatabaseTest extends TestCase
             'address' => 'Jl. Ketintang Madya No. 5',
         ]);
 
-        $mitraUser = User::factory()->create([
-            'name' => 'Ibu Sari',
-            'email' => 'warung.busari@gmail.com',
-            'role' => 'mitra',
-        ]);
-
         $this->merchant = Merchant::create([
-            'user_id' => $mitraUser->id,
             'name' => 'Warung Bu Sari',
             'owner_name' => 'Ibu Sari',
+            'email' => 'warung.busari@gmail.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password123'),
             'slug' => 'warung-bu-sari',
             'campus_zone' => 'unesa-ketintang',
             'campus_name' => 'UNESA Ketintang',
@@ -81,7 +76,7 @@ class MitraFullStackDatabaseTest extends TestCase
         ];
 
         // Mitra menambah menu via POST /mitra/kelola-menu
-        $response = $this->post(route('mitra.kelola-menu.store'), $payload);
+        $response = $this->actingAs($this->merchant, 'mitra')->post(route('mitra.kelola-menu.store'), $payload);
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
@@ -142,7 +137,7 @@ class MitraFullStackDatabaseTest extends TestCase
         ]);
 
         // 1. Update stok menjadi 0 -> status otomatis 'habis'
-        $updateStockResponse = $this->patch(route('mitra.kelola-menu.stock', $food->id), [
+        $updateStockResponse = $this->actingAs($this->merchant, 'mitra')->patch(route('mitra.kelola-menu.stock', $food->id), [
             'stock' => 0,
         ]);
         $updateStockResponse->assertRedirect();
@@ -154,7 +149,7 @@ class MitraFullStackDatabaseTest extends TestCase
         ]);
 
         // 2. Toggle status kembali ke 'aktif'
-        $toggleResponse = $this->patch(route('mitra.kelola-menu.toggle', $food->id));
+        $toggleResponse = $this->actingAs($this->merchant, 'mitra')->patch(route('mitra.kelola-menu.toggle', $food->id));
         $toggleResponse->assertRedirect();
 
         $this->assertDatabaseHas('foods', [
@@ -214,7 +209,7 @@ class MitraFullStackDatabaseTest extends TestCase
         $this->assertNotNull($order);
 
         // Uji Dashboard Mitra: pesanan mahasiswa otomatis tampil dari database MySQL
-        $dashboardResponse = $this->get(route('mitra.dashboard'));
+        $dashboardResponse = $this->actingAs($this->merchant, 'mitra')->get(route('mitra.dashboard'));
         $dashboardResponse->assertOk();
         $dashboardResponse->assertInertia(fn (Assert $page) => $page
             ->component('Mitra/Dashboard')
@@ -224,7 +219,7 @@ class MitraFullStackDatabaseTest extends TestCase
         );
 
         // Uji Halaman Pesanan Mitra: pesanan mahasiswa otomatis tampil di antrean kasir
-        $pesananResponse = $this->get(route('mitra.pesanan'));
+        $pesananResponse = $this->actingAs($this->merchant, 'mitra')->get(route('mitra.pesanan'));
         $pesananResponse->assertOk();
         $pesananResponse->assertInertia(fn (Assert $page) => $page
             ->component('Mitra/Pesanan')
@@ -269,7 +264,7 @@ class MitraFullStackDatabaseTest extends TestCase
         ]);
 
         // Mitra memvalidasi pesanan / scan QR menjadi 'selesai'
-        $validateResponse = $this->patch(route('mitra.pesanan.status', $order->id), [
+        $validateResponse = $this->actingAs($this->merchant, 'mitra')->patch(route('mitra.pesanan.status', $order->id), [
             'status' => 'selesai',
         ]);
 
@@ -290,5 +285,18 @@ class MitraFullStackDatabaseTest extends TestCase
             'order_id' => $order->id,
             'status' => 'lunas',
         ]);
+    }
+
+    /**
+     * 4. Guest atau pengguna yang belum login / akunnya sudah dihapus
+     * tidak dapat mengakses halaman Mitra dan langsung dialihkan ke /mitra/login.
+     */
+    public function test_guest_cannot_access_mitra_pages_and_is_redirected_to_mitra_login(): void
+    {
+        $response = $this->get(route('mitra.dashboard'));
+        $response->assertRedirect(route('mitra.login'));
+
+        $profilResponse = $this->get(route('mitra.profil'));
+        $profilResponse->assertRedirect(route('mitra.login'));
     }
 }

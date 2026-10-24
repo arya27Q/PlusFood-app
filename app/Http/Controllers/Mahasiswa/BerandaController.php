@@ -22,19 +22,18 @@ class BerandaController extends Controller
             ->get();
 
         $user = $request->user();
-        $activeOrdersQuery = Order::with(['merchant', 'items.food', 'payment'])
-            ->whereIn('status', ['menunggu', 'siap_ambil'])
-            ->latest();
-
-        if ($user) {
-            $activeOrdersQuery->where('user_id', $user->id);
+        $dbOrders = [];
+        if ($user && $user->role === 'mahasiswa') {
+            $dbOrders = Order::with(['merchant', 'items.food', 'payment'])
+                ->where('user_id', $user->id)
+                ->latest()
+                ->take(30)
+                ->get();
         }
-
-        $activeOrders = $activeOrdersQuery->get();
 
         return Inertia::render('Mahasiswa/Beranda', [
             'foods' => $foods,
-            'activeOrders' => $activeOrders,
+            'dbOrders' => $dbOrders,
         ]);
     }
 }
