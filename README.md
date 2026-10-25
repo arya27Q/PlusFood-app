@@ -201,5 +201,436 @@ Dokumen spesifikasi resmi dapat dibaca pada folder `docs/`:
 
 ---
 
+## 🚀 Panduan Deployment Laravel + Vue/Inertia ke Hostinger
+
+Dokumen ini menjelaskan proses deploy project PlusFood (Laravel 11 + Vue.js/Inertia) ke Hostinger Web Hosting, termasuk konfigurasi database, Composer, Vite, `.htaccess`, SSH, debugging error 500/404, dan solusi masalah yang muncul saat deployment.
+
+---
+
+### 1. Struktur Project
+
+Project yang digunakan:
+- **Backend**: Laravel 11.x
+- **Frontend**: Vue.js 3.x
+- **Adapter Frontend**: Inertia.js
+- **Build Tool**: Vite
+- **Hosting**: Hostinger Web Hosting
+- **Server**: PHP 8.3
+- **Database**: MySQL
+
+Berbeda dengan PHP native, Laravel membutuhkan beberapa komponen tambahan:
+
+```text
+Laravel
+├── Composer
+├── vendor/
+├── .env
+├── php artisan
+├── routing
+├── cache
+└── Vite build
+```
+
+Vue juga tidak langsung dibaca oleh server production. File Vue harus diubah menjadi file JavaScript production menggunakan:
+
+```bash
+npm run build
+```
+
+---
+
+### 2. Persiapan Project di Komputer Lokal
+
+Masuk ke folder utama project (`PlusFood-app`), yaitu folder yang berisi:
+
+```text
+artisan
+composer.json
+package.json
+resources/
+routes/
+```
+
+Jalankan di terminal lokal:
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm install
+npm run build
+```
+
+Setelah selesai, pastikan file berikut tersedia:
+
+```text
+vendor/autoload.php
+public/build/manifest.json
+public/build/assets/
+```
+
+> [!WARNING]
+> **Jangan upload folder `node_modules/`!**  
+> Folder `node_modules` hanya diperlukan di komputer lokal untuk proses build Vue. Server hanya memerlukan hasil build di `public/build/`.
+
+---
+
+### 3. File yang Perlu Disiapkan
+
+File yang diperlukan untuk deployment:
+
+```text
+app/
+bootstrap/
+config/
+database/
+resources/
+routes/
+storage/
+vendor/
+.env
+artisan
+composer.json
+composer.lock
+public/
+```
+
+File frontend hasil build:
+
+```text
+public/build/
+├── manifest.json
+└── assets/
+```
+
+File yang **TIDAK** perlu di-upload:
+```text
+node_modules/
+.git/
+```
+
+*Catatan: `.gitignore` boleh ikut ter-upload, tetapi tidak diperlukan oleh Laravel saat aplikasi berjalan.*
+
+---
+
+### 4. Membuat Database di Hostinger
+
+Di hPanel Hostinger:
+```text
+Websites → Dashboard → Databases → Management
+```
+
+1. Buat database MySQL baru.
+2. Catat data kredensial:
+   - Database name
+   - Database username
+   - Database password
+   - Database host (`localhost` atau `127.0.0.1`)
+   - Database port (`3306`)
+
+> [!NOTE]
+> Biasanya nama database dan username memiliki awalan akun Hostinger, contoh:
+> ```env
+> DB_DATABASE=u356717581_namadb
+> DB_USERNAME=u356717581_user
+> DB_PASSWORD=password_database_baru
+> ```
+> Jangan hanya memakai nama pendek jika Hostinger menampilkan nama lengkap.
+
+---
+
+### 5. Import File SQL
+
+File `.sql` tidak ditaruh permanen di `public_html`.
+
+**Cara import via phpMyAdmin:**
+```text
+hPanel → Websites → Dashboard → Databases → Management → phpMyAdmin → Pilih Database → Import
+```
+1. Pilih file SQL hasil export dari database lokal, lalu klik **Go / Import**.
+2. Setelah import berhasil, hapus file `.sql` jika sebelumnya sempat ter-upload ke File Manager.
+
+> [!CAUTION]
+> Jangan menjalankan `php artisan migrate:fresh` di server production karena dapat menghapus seluruh tabel dan data.
+
+---
+
+### 6. Membuat File `.env` Production
+
+File `.env` berada di root project Laravel (misal: `public_html/.env`).
+
+Contoh konfigurasi production:
+
+```env
+APP_NAME=PlusFood
+APP_ENV=production
+APP_KEY=base64:APP_KEY_DARI_PROJECT_LOKAL
+APP_DEBUG=false
+APP_URL=https://gold-curlew-865919.hostingersite.com
+
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_LEVEL=error
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=u356717581_namadb
+DB_USERNAME=u356717581_user
+DB_PASSWORD=password_database_baru
+
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null
+
+BROADCAST_CONNECTION=log
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+
+MAIL_MAILER=log
+```
+
+> [!IMPORTANT]
+> Pastikan di production:
+> ```env
+> APP_ENV=production
+> APP_DEBUG=false
+> ```
+> Jangan gunakan `APP_ENV=local` atau `APP_URL=http://localhost:8000`. Password database, password SSH, `APP_KEY`, dan cookie jangan dibagikan ke repository publik.
+
+---
+
+### 7. Struktur Deployment yang Digunakan
+
+Struktur yang digunakan di Hostinger:
+
+```text
+public_html/
+├── index.php
+├── .htaccess
+├── .env
+├── artisan
+├── app/
+├── bootstrap/
+├── config/
+├── database/
+├── resources/
+├── routes/
+├── storage/
+├── vendor/
+├── public/
+│   ├── build/
+│   │   ├── manifest.json
+│   │   └── assets/
+│   ├── .htaccess
+│   ├── index.php
+│   └── favicon.ico
+└── build/
+```
+
+> [!TIP]
+> Pada project ini Laravel membaca asset Vite dari `public/build/` dan/atau `build/`. Pastikan folder `public/build/manifest.json` dan `build/manifest.json` tersedia.
+
+---
+
+### 8. Konfigurasi File `index.php`
+
+Karena file source Laravel berada langsung di `public_html`, file `public_html/index.php` utama menggunakan path tanpa `../`:
+
+```php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
+
+define('LARAVEL_START', microtime(true));
+
+if (file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+
+require __DIR__.'/vendor/autoload.php';
+
+/** @var Application $app */
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+$app->handleRequest(Request::capture());
+```
+
+Pastikan file berikut ada dan dapat diakses:
+- `public_html/vendor/autoload.php`
+- `public_html/bootstrap/app.php`
+- `public_html/.env`
+
+---
+
+### 9. Konfigurasi File `.htaccess`
+
+Agar URL Laravel seperti `/login`, `/register`, `/mitra`, dan `/dashboard` diteruskan ke Laravel, buat file `public_html/.htaccess`:
+
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+```
+
+Tanpa rewrite ini, server akan mencari folder fisik bernama `login` atau `register` dan mengembalikan error **404 Not Found**.
+
+---
+
+### 10. Build Vue dan Vite
+
+Setiap kali mengubah file Vue (misal di `resources/js/Pages/`):
+1. Jalankan di komputer lokal:
+   ```powershell
+   npm run build
+   ```
+2. Upload folder `public/build/` ke server menjadi:
+   - `public_html/public/build/manifest.json`
+   - `public_html/build/manifest.json`
+3. Setelah upload hasil build:
+   ```bash
+   php artisan optimize:clear
+   rm -f public/hot
+   ```
+   *(File `public/hot` menandakan Vite dalam mode dev server lokal dan tidak boleh ada di production).*
+
+---
+
+### 11. Menggunakan SSH di Windows
+
+SSH adalah terminal untuk menjalankan perintah langsung di server Hostinger.
+
+#### Instalasi OpenSSH di Windows (PowerShell Administrator):
+```powershell
+Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+C:\Windows\System32\OpenSSH\ssh.exe -V
+```
+
+#### Login ke Server Hostinger:
+```powershell
+C:\Windows\System32\OpenSSH\ssh.exe u356717581@IP_SERVER -p 65002
+```
+*(Port dan IP server dilihat dari menu SSH Access di hPanel)*.
+
+Setelah login berhasil:
+```bash
+cd ~/domains/gold-curlew-865919.hostingersite.com/public_html
+```
+
+---
+
+### 12. Perintah Laravel yang Sering Digunakan di SSH
+
+```bash
+# 1. Masuk ke folder root project
+cd ~/domains/gold-curlew-865919.hostingersite.com/public_html
+
+# 2. Membersihkan cache
+php artisan optimize:clear
+php artisan route:clear
+
+# 3. Melihat daftar route
+php artisan route:list
+php artisan route:list --path=mitra
+php artisan route:list --path=dashboard
+php artisan route:list --path=login
+
+# 4. Package discovery
+php artisan package:discover --ansi
+
+# 5. Permission folder storage & cache
+chmod -R 775 storage bootstrap/cache
+
+# 6. Dump autoload tanpa proc_open
+composer dump-autoload --optimize --no-scripts
+```
+
+> [!NOTE]
+> Pada shared hosting, fungsi PHP `proc_open` dinonaktifkan sehingga `composer dump-autoload` perlu ditambahkan opsi `--no-scripts`.
+
+---
+
+### 13. Diagnosa Masalah & Solusi (Troubleshooting Guide)
+
+#### A. Masalah `vendor/autoload.php not found`
+- **Penyebab**: Path `index.php` salah atau folder `vendor/` belum lengkap ter-upload.
+- **Solusi**: Di lokal jalankan `composer install --no-dev --optimize-autoloader`, kompres menjadi `vendor.zip`, upload ke `public_html/` lalu extract.
+
+#### B. Masalah `Target class [view] does not exist`
+- **Penyebab**: File `bootstrap/app.php` atau `config/app.php` diedit manual tidak sesuai format asli Laravel 11 (misal penambahan `withProviders()`), atau cache konfigurasi lama masih tersimpan.
+- **Solusi**:
+  1. Pulihkan file asli dari lokal untuk `bootstrap/app.php`, `config/app.php`, dan `bootstrap/providers.php`.
+  2. Hapus file `config.php` di dalam `bootstrap/cache/`.
+  3. Jalankan di SSH:
+     ```bash
+     php artisan optimize:clear
+     composer dump-autoload --optimize --no-scripts
+     php artisan package:discover --ansi
+     ```
+
+#### C. Masalah Layar Putih (Blank Screen)
+- **Penyebab**: File build Vite (`manifest.json` & `assets/`) belum ter-upload, atau file `public/hot` masih ada.
+- **Solusi**:
+  1. Jalankan `npm run build` di lokal.
+  2. Upload folder `public/build` ke `public_html/build` dan `public_html/public/build`.
+  3. Hapus file `public/hot` jika ada:
+     ```bash
+     rm -f public/hot
+     ```
+  4. Lakukan hard refresh browser (`Ctrl + F5`) atau Incognito.
+
+#### D. Masalah 404 pada `/login`, `/register`, atau `/mitra`
+- **Penyebab**: File `.htaccess` di `public_html/` belum ada atau rewrite engine mati.
+- **Solusi**: Buat file `public_html/.htaccess` dengan aturan rewrite menuju `index.php`.
+
+#### E. Masalah Alur Registrasi Mahasiswa
+- **Alur Standar**: `Register → Login → Loading → Beranda`
+- Untuk mencegah registrasi langsung login otomatis tanpa verifikasi, pastikan di controller registrasi tidak memanggil `Auth::guard('web')->login($user)`.
+
+---
+
+### 14. Ringkasan Solusi Cepat Deployment
+
+| Gejala Error | Penyebab Utama | Solusi Pasti |
+|---|---|---|
+| `vendor/autoload.php not found` | Path salah / vendor tidak lengkap | Sesuaikan path di `index.php`, upload ulang `vendor.zip` |
+| `Target class [view] does not exist` | Modifikasi config/cache yang salah | Kembalikan `bootstrap/app.php` asli, `optimize:clear` |
+| Halaman Putih (Blank Screen) | Build Vite belum ter-upload / file `hot` ada | `npm run build`, upload `public/build`, hapus `public/hot` |
+| Route `/login` atau `/mitra` 404 | `.htaccess` belum rewrite | Buat `.htaccess` dengan aturan rewrite ke `index.php` |
+| Composer error `proc_open is not available` | Fungsi hosting dinonaktifkan | Gunakan `composer dump-autoload --optimize --no-scripts` |
+| Log error berisi path `D:\laragon` | Log lokal ikut ter-upload | Hapus `storage/logs/laravel.log` lama agar terbaca log hosting |
+
+---
+
+### 15. Checklist Urutan Deploy Selanjutnya
+
+```text
+1. Pastikan project berjalan normal di lokal
+2. composer install --no-dev --optimize-autoloader
+3. npm install && npm run build
+4. Buat database MySQL & user di hPanel Hostinger
+5. Import file .sql via phpMyAdmin Hostinger
+6. Siapkan .env production di public_html/.env
+7. Upload source code, vendor, dan folder build
+8. Pastikan index.php dan .htaccess di public_html sudah benar
+9. Buka SSH Hostinger:
+   cd ~/domains/gold-curlew-865919.hostingersite.com/public_html
+   php artisan optimize:clear
+   php artisan package:discover --ansi
+   php artisan route:list
+10. Buka domain di browser dan uji seluruh alur aplikasi
+```
+
+---
+
 ## 📄 Lisensi & Hak Cipta
 Dikembangkan dengan ❤️ oleh **Kelompok PlusFood** © 2026. Lisensi di bawah [MIT License](LICENSE).

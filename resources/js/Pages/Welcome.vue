@@ -53,19 +53,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Tombol Masuk Mitra UMKM (Pintu Masuk POV 2) -->
-            <div class="flex items-center gap-2.5">
-                <Link
-                    :href="route('mitra.splash')"
-                    class="inline-flex items-center gap-2 rounded-xl border-2 border-[#EAE0D5] bg-white px-4 py-2 text-xs font-bold text-brand-maroon shadow-xs hover:bg-[#F5EFE6] hover:border-brand-maroon/40 transition"
-                >
-                    <svg class="h-4 w-4 text-brand-maroon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 9l1-5h16l1 5" />
-                        <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
-                        <path d="M4 14v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6" />
-                    </svg>
-                    <span>Portal Mitra UMKM</span>
-                </Link>
-            </div>
+            
         </header>
 
         <!-- Main Hero Section (2 Kolom: Kiri Copywriting, Kanan Orbit Piring Makanan) -->
@@ -146,14 +134,33 @@ onUnmounted(() => {
                     </p>
                 </div>
 
-                <!-- Mitra Prompt -->
-                <div class="pt-1 text-xs text-[#8A7570]" style="animation: st-up .6s .9s ease-out both">
-                    <span>Pemilik warung atau kantin kampus? </span>
-                    <Link :href="route('mitra.splash')" class="font-extrabold text-brand-maroon underline hover:text-brand-maroon-hover">
-                        Daftar sebagai Mitra UMKM &rarr;
-                    </Link>
-                </div>
+                <!-- Auth Prompt (Register & Login Horizontal) -->
+                <div
+                    class="flex flex-wrap items-center gap-4 sm:gap-6 pt-1 text-xs text-[#8A7570]"
+                    style="animation: st-up .6s .9s ease-out both"
+                >
+                    <div class="flex items-center gap-1">
+                        <span>Belum punya akun?</span>
+                        <Link
+                            :href="route('register')"
+                            class="font-extrabold text-brand-maroon underline hover:text-brand-maroon-hover transition-colors"
+                        >
+                            Daftar akun &rarr;
+                        </Link>
+                    </div>
 
+                    <span class="hidden sm:inline text-[#D9CEBF]">•</span>
+
+                    <div class="flex items-center gap-1">
+                        <span>Sudah punya?</span>
+                        <Link
+                            :href="route('login')"
+                            class="font-extrabold text-brand-maroon underline hover:text-brand-maroon-hover transition-colors"
+                        >
+                            Masuk &rarr;
+                        </Link>
+                    </div>
+                </div>
             </div>
 
             <!-- KOLOM KANAN: Kanvas Terpadu 100% Persis Gambar Mockup Kedua -->
