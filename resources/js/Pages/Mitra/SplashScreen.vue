@@ -24,7 +24,7 @@ onUnmounted(() => {
     <Head title="Mitra UMKM - PlusFood" />
 
     <!-- Outer Fullscreen Container with Dark Maroon Gradient -->
-    <div class="relative min-h-screen w-full overflow-hidden bg-[#5A071E] text-white selection:bg-amber-400 selection:text-stone-900 flex flex-col justify-between p-6 sm:p-10 lg:p-14">
+    <div class="relative min-h-screen w-full overflow-hidden bg-[#5A071E] text-white selection:bg-amber-400 selection:text-stone-900 flex flex-col justify-between p-4 sm:p-8 lg:p-14">
         
         <!-- ================= BACKGROUND FOTO KASIR DENGAN VIGNETTE MAROON ELEGAN ================= -->
         <div class="absolute inset-0 pointer-events-none z-0">
@@ -50,10 +50,10 @@ onUnmounted(() => {
         <!-- ================= TOP HEADER (BRAND LOGO) ================= -->
         <header class="relative z-10 flex items-center justify-between">
             <!-- Logo PlusFood Rounded Square Badge -->
-            <div class="flex items-center gap-3.5">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8A1435] to-[#4D061A] border border-white/20 shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8A1435] to-[#4D061A] border border-white/20 shadow-md">
                     <!-- Icon Bowl PlusFood dengan Senyuman -->
-                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="h-5 w-5 sm:h-6 sm:w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 3v3" />
                         <path d="M8 4v2" />
                         <path d="M16 4v2" />
@@ -70,11 +70,11 @@ onUnmounted(() => {
         </header>
 
         <!-- ================= MAIN CONTENT (HEADLINE & METRICS) ================= -->
-        <main class="relative z-10 my-auto py-10 max-w-2xl space-y-7">
+        <main class="relative z-10 my-auto py-6 sm:py-10 max-w-2xl space-y-5 sm:space-y-7">
             
             <!-- Status Sesi Malam Badge dengan Glowing Red Dot -->
             <div>
-                <div class="inline-flex items-center gap-2.5 rounded-full bg-white/[0.08] border border-white/15 px-3.5 py-1.5 text-xs font-medium text-white/90 backdrop-blur-md shadow-xs">
+                <div class="inline-flex items-center gap-2 rounded-full bg-white/[0.08] border border-white/15 px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-medium text-white/90 backdrop-blur-md shadow-xs">
                     <span class="relative flex h-2 w-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
@@ -84,78 +84,78 @@ onUnmounted(() => {
             </div>
 
             <!-- Headline Utama Sesuai Mockup -->
-            <div class="space-y-3">
-                <h2 class="text-4xl sm:text-5xl lg:text-[56px] font-black tracking-tight text-white leading-[1.12]">
+            <div class="space-y-2.5 sm:space-y-3">
+                <h2 class="text-3xl sm:text-5xl lg:text-[56px] font-black tracking-tight text-white leading-[1.15]">
                     Sisa dapur hari ini,<br />
                     rezeki malam ini.
                 </h2>
-                <p class="text-sm sm:text-base text-white/80 max-w-lg leading-relaxed font-normal">
+                <p class="text-xs sm:text-base text-white/80 max-w-lg leading-relaxed font-normal">
                     Jual makanan surplus ke mahasiswa Unesa, kurangi limbah, dan tutup modal sebelum gerai tutup.
                 </p>
             </div>
 
             <!-- 3 Glassmorphism Metric Cards Sesuai Gambar -->
-            <div class="grid grid-cols-3 gap-3 sm:gap-4 max-w-lg pt-1">
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 max-w-lg pt-1">
                 
                 <!-- Card 1: 86 UMKM mitra -->
-                <div class="rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-3.5 sm:p-4 text-white shadow-lg space-y-2">
+                <div class="rounded-xl sm:rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-2.5 sm:p-4 text-white shadow-lg space-y-1 sm:space-y-2">
                     <div class="flex items-center text-white/80">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                     </div>
                     <div>
-                        <p class="text-2xl sm:text-3xl font-black tracking-tight text-white">86</p>
-                        <p class="text-[11px] sm:text-xs text-white/75 font-medium leading-tight mt-0.5">UMKM mitra</p>
+                        <p class="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white">86</p>
+                        <p class="text-[10px] sm:text-xs text-white/75 font-medium leading-tight mt-0.5">UMKM mitra</p>
                     </div>
                 </div>
 
                 <!-- Card 2: 3,2 ton makanan diselamatkan -->
-                <div class="rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-3.5 sm:p-4 text-white shadow-lg space-y-2">
+                <div class="rounded-xl sm:rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-2.5 sm:p-4 text-white shadow-lg space-y-1 sm:space-y-2">
                     <div class="flex items-center text-white/80">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
                     <div>
-                        <p class="text-2xl sm:text-3xl font-black tracking-tight text-white">3,2 ton</p>
-                        <p class="text-[11px] sm:text-xs text-white/75 font-medium leading-tight mt-0.5">makanan diselamatkan</p>
+                        <p class="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white">3,2 ton</p>
+                        <p class="text-[10px] sm:text-xs text-white/75 font-medium leading-tight mt-0.5">makanan terselamat</p>
                     </div>
                 </div>
 
                 <!-- Card 3: 4.100+ mahasiswa aktif -->
-                <div class="rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-3.5 sm:p-4 text-white shadow-lg space-y-2">
+                <div class="rounded-xl sm:rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-2.5 sm:p-4 text-white shadow-lg space-y-1 sm:space-y-2">
                     <div class="flex items-center text-white/80">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                     </div>
                     <div>
-                        <p class="text-2xl sm:text-3xl font-black tracking-tight text-white">4.100+</p>
-                        <p class="text-[11px] sm:text-xs text-white/75 font-medium leading-tight mt-0.5">mahasiswa aktif</p>
+                        <p class="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white">4.100+</p>
+                        <p class="text-[10px] sm:text-xs text-white/75 font-medium leading-tight mt-0.5">mahasiswa aktif</p>
                     </div>
                 </div>
 
             </div>
 
             <!-- ================= ACTION CTA (BUTTON MASUK & SHORTCUT ENTER) ================= -->
-            <div class="pt-4 space-y-3">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="pt-3 sm:pt-4 space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                     <!-- Primary Button Putih Masuk ke Dashboard Sesuai Gambar -->
                     <Link
                         :href="($page.props.auth?.mitra || $page.props.auth?.isMitra) ? route('mitra.dashboard') : route('mitra.login')"
-                        class="inline-flex items-center justify-between gap-4 rounded-2xl bg-white px-6 py-3.5 text-sm sm:text-base font-extrabold text-[#5A071E] shadow-2xl hover:bg-stone-50 hover:scale-[1.02] active:scale-[0.98] transition group"
+                        class="w-full sm:w-auto inline-flex items-center justify-between gap-4 rounded-2xl bg-white px-5 sm:px-6 py-3 sm:py-3.5 text-sm sm:text-base font-extrabold text-[#5A071E] shadow-2xl hover:bg-stone-50 hover:scale-[1.02] active:scale-[0.98] transition group"
                     >
                         <span>Masuk ke Dashboard</span>
-                        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-[#5A071E] text-white group-hover:translate-x-0.5 transition">
+                        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-[#5A071E] text-white group-hover:translate-x-0.5 transition shrink-0">
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
                         </div>
                     </Link>
 
-                    <!-- Hint Tekan Enter -->
-                    <div class="flex items-center gap-1.5 text-xs text-white/75 font-medium">
+                    <!-- Hint Tekan Enter (Hanya Tampil di Desktop/Tablet) -->
+                    <div class="hidden sm:flex items-center gap-1.5 text-xs text-white/75 font-medium">
                         <span>atau tekan</span>
                         <kbd class="rounded-md bg-white/15 px-2 py-0.5 font-mono text-[10px] text-white border border-white/20 shadow-xs">
                             Enter
@@ -165,7 +165,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Navigasi Alternatif Login / Register Akun Baru -->
-                <div class="flex items-center gap-3 text-xs text-white/70 font-medium pt-1">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-white/70 font-medium pt-1">
                     <span>Sudah terdaftar?</span>
                     <Link :href="route('mitra.login')" class="text-white font-bold underline hover:text-amber-300 transition">
                         Masuk Kasir
@@ -180,11 +180,11 @@ onUnmounted(() => {
         </main>
 
         <!-- ================= FOOTER / COPYRIGHT ================= -->
-        <footer class="relative z-10 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-white/50 border-t border-white/[0.08] gap-2">
+        <footer class="relative z-10 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between text-[11px] sm:text-xs text-white/50 border-t border-white/[0.08] gap-2 text-center sm:text-left">
             <div>
                 &copy; {{ new Date().getFullYear() }} PlusFood Indonesia · Platform Penyelamatan Makanan Kampus
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center justify-center sm:justify-end gap-3 sm:gap-4">
                 <span>Surabaya, Jawa Timur</span>
                 <span>•</span>
                 <span>Inisiatif Nol Limbah UNESA</span>

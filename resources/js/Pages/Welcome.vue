@@ -44,7 +44,7 @@ onUnmounted(() => {
     </component>
 
     <!-- Main Outer Container: 100% Fullscreen, Seamless Warm Cream Background -->
-    <div class="relative min-h-screen w-full overflow-hidden bg-[#FAF7F2] text-[#2D1B1E] selection:bg-brand-maroon selection:text-white flex flex-col justify-between p-8 sm:p-12 lg:px-20 lg:py-10">
+    <div class="relative min-h-screen w-full overflow-hidden bg-[#FAF7F2] text-[#2D1B1E] selection:bg-brand-maroon selection:text-white flex flex-col justify-between p-4 sm:p-8 lg:px-16 lg:py-10">
         
         <!-- Header (Logo + Pintu Masuk Mitra UMKM) -->
         <header class="relative z-30 flex items-center justify-between" style="animation: st-up .6s ease-out both">
@@ -57,25 +57,25 @@ onUnmounted(() => {
         </header>
 
         <!-- Main Hero Section (2 Kolom: Kiri Copywriting, Kanan Orbit Piring Makanan) -->
-        <main class="relative z-10 my-auto grid grid-cols-1 lg:grid-cols-12 items-center gap-12 py-4">
+        <main class="relative z-10 my-auto grid grid-cols-1 lg:grid-cols-12 items-center gap-8 lg:gap-12 py-4">
             
             <!-- KOLOM KIRI: Copywriting, Highlights & Tombol Lanjutkan -->
-            <div class="flex flex-col justify-center gap-7 lg:col-span-5 max-w-[560px] z-20">
+            <div class="flex flex-col justify-center gap-5 sm:gap-7 lg:col-span-5 max-w-[560px] z-20">
                 
                 <!-- Badge Kampus -->
                 <span
-                    class="w-fit inline-flex items-center gap-2 h-8 px-4 rounded-lg bg-white border border-[#EAE0D5] text-xs font-bold text-brand-maroon shadow-sm"
+                    class="w-fit inline-flex items-center gap-2 py-1.5 px-3 sm:px-4 rounded-lg bg-white border border-[#EAE0D5] text-[11px] sm:text-xs font-bold text-brand-maroon shadow-sm leading-snug"
                     style="animation: st-up .6s .15s ease-out both"
                 >
-                    <svg class="h-3.5 w-3.5 fill-current text-brand-maroon" viewBox="0 0 24 24">
+                    <svg class="h-3.5 w-3.5 fill-current text-brand-maroon shrink-0" viewBox="0 0 24 24">
                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
                     </svg>
-                    Jaringan Kampus Surabaya (UNESA, ITS, UNAIR, UPN & Lainnya)
+                    <span>Jaringan Kampus Surabaya (UNESA, ITS, UNAIR, UPN & Lainnya)</span>
                 </span>
 
                 <!-- Headline Utama -->
                 <h1
-                    class="text-4xl sm:text-5xl lg:text-[58px] xl:text-[64px] font-extrabold leading-[1.05] tracking-tight text-[#2D1B1E]"
+                    class="text-3xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-extrabold leading-[1.1] sm:leading-[1.05] tracking-tight text-[#2D1B1E]"
                     style="animation: st-up .6s .3s ease-out both"
                 >
                     Makan enak,<br />
@@ -85,7 +85,7 @@ onUnmounted(() => {
 
                 <!-- Subtitle Deskripsi -->
                 <p
-                    class="text-base sm:text-lg text-[#6E5A54] max-w-[480px] leading-relaxed"
+                    class="text-sm sm:text-base lg:text-lg text-[#6E5A54] max-w-[480px] leading-relaxed"
                     style="animation: st-up .6s .45s ease-out both"
                 >
                     Selamatkan makanan surplus dari warung sekitar kampus dengan harga mahasiswa.
@@ -93,17 +93,17 @@ onUnmounted(() => {
 
                 <!-- Value Highlights (Diskon & Jam Ambil) -->
                 <div
-                    class="flex flex-wrap gap-6 text-sm font-semibold text-[#6E5A54]"
+                    class="flex flex-wrap gap-4 sm:gap-6 text-xs sm:text-sm font-semibold text-[#6E5A54]"
                     style="animation: st-up .6s .6s ease-out both"
                 >
                     <span class="flex items-center gap-2">
-                        <svg class="h-4 w-4 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="h-4 w-4 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                         </svg>
                         Diskon hingga 60%
                     </span>
                     <span class="flex items-center gap-2">
-                        <svg class="h-4 w-4 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="h-4 w-4 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <circle cx="12" cy="12" r="10" stroke-width="2" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
                         </svg>
@@ -112,20 +112,20 @@ onUnmounted(() => {
                 </div>
 
                 <!-- CTA Action Button & Enter Hint -->
-                <div class="flex flex-wrap items-center gap-6 pt-2" style="animation: st-up .6s .75s ease-out both">
+                <div class="flex flex-wrap items-center gap-4 sm:gap-6 pt-2" style="animation: st-up .6s .75s ease-out both">
                     <Link
                         :href="route('login')"
-                        class="group h-14 pl-8 pr-2 rounded-xl bg-brand-maroon text-white font-bold inline-flex items-center gap-6 shadow-xl shadow-brand-maroon/20 hover:bg-brand-maroon-hover transition-colors active:scale-95"
+                        class="group h-12 sm:h-14 pl-6 sm:pl-8 pr-2 rounded-xl bg-brand-maroon text-white font-bold inline-flex items-center justify-between sm:justify-start gap-4 sm:gap-6 shadow-xl shadow-brand-maroon/20 hover:bg-brand-maroon-hover transition-colors active:scale-95 w-full sm:w-auto"
                     >
                         <span>Lanjutkan</span>
-                        <span class="h-10 w-10 rounded-lg bg-white/15 grid place-items-center transition-transform group-hover:translate-x-1">
+                        <span class="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-white/15 grid place-items-center transition-transform group-hover:translate-x-1">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
                         </span>
                     </Link>
 
-                    <p class="text-xs font-semibold text-[#8A7570]">
+                    <p class="hidden sm:inline-block text-xs font-semibold text-[#8A7570]">
                         atau tekan
                         <kbd class="mx-1 px-2 py-0.5 rounded-md bg-white border border-[#EAE0D5] text-[#6E5A54] shadow-sm">
                             Enter
@@ -163,11 +163,11 @@ onUnmounted(() => {
                 </div>
             </div>
 
-            <!-- KOLOM KANAN: Kanvas Terpadu 100% Persis Gambar Mockup Kedua -->
-            <div class="relative lg:col-span-7 flex items-center justify-center min-h-[640px]">
+            <!-- KOLOM KANAN: Kanvas Terpadu 100% Persis Gambar Mockup Kedua (Responsive Scaled) -->
+            <div class="relative lg:col-span-7 flex items-center justify-center min-h-[360px] xs:min-h-[420px] sm:min-h-[520px] lg:min-h-[640px] w-full overflow-hidden mt-4 lg:mt-0">
                 
                 <!-- Container Koordinat Bersama (Lingkaran + Garis Putus-Putus + Piringan Menyatu Bebas Geser) -->
-                <div class="relative w-[740px] h-[700px] shrink-0">
+                <div class="relative w-[740px] h-[700px] shrink-0 scale-[0.44] xs:scale-[0.52] sm:scale-[0.7] md:scale-[0.85] lg:scale-95 xl:scale-100 origin-center transition-transform duration-300">
                     
                     <!-- 1. Lingkaran Solid Muted Besar di Sisi Kanan -->
                     <div class="pointer-events-none absolute -right-[140px] -top-[90px] w-[880px] h-[880px] rounded-full bg-[#EFE7DC]/70 z-0" />
