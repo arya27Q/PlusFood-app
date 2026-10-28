@@ -185,46 +185,97 @@ const {
                         </span>
                     </div>
 
-                    <!-- Price Card & Sisa Stok Alert Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Price Card & Sisa Stok Alert Grid (Mobile: 2 Kolom Ramping | Desktop: 2 Kolom Standar) -->
+                    <div class="grid grid-cols-2 gap-2.5 sm:gap-4">
                         
                         <!-- Box Harga Diskon -->
-                        <div class="rounded-2xl bg-rose-50/60 p-4 border-2 border-rose-300 flex items-center justify-between shadow-xs">
+                        <div class="rounded-xl sm:rounded-2xl bg-rose-50/60 p-2.5 sm:p-4 border border-rose-300 sm:border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 shadow-xs">
                             <div>
-                                <span class="text-xs text-[#9E8B83] line-through font-medium">
+                                <span class="text-[10px] sm:text-xs text-[#9E8B83] line-through font-medium">
                                     Rp{{ food.priceOriginal.toLocaleString('id-ID') }}
                                 </span>
-                                <p class="text-2xl font-black text-brand-maroon">
+                                <p class="text-lg sm:text-2xl font-black text-brand-maroon leading-tight">
                                     Rp{{ food.priceDiscount.toLocaleString('id-ID') }}
                                 </p>
                             </div>
-                            <span class="rounded-xl bg-brand-maroon px-3 py-1.5 text-xs font-black text-white shadow-sm">
+                            <span class="w-fit rounded-lg sm:rounded-xl bg-brand-maroon px-2 py-0.5 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-black text-white shadow-sm">
                                 Hemat {{ food.discountPercent }}%
                             </span>
                         </div>
 
                         <!-- Box Sisa Porsi Urgensi -->
-                        <div class="rounded-2xl bg-rose-50/70 p-4 border-2 border-rose-300 flex items-center justify-between shadow-xs">
-                            <div class="flex items-center gap-3">
-                                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100/90 text-rose-700 border border-rose-300/80">
-                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <div class="rounded-xl sm:rounded-2xl bg-rose-50/70 p-2.5 sm:p-4 border border-rose-300 sm:border-2 flex items-center justify-between shadow-xs">
+                            <div class="flex items-center gap-2 sm:gap-3">
+                                <div class="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-rose-100/90 text-rose-700 border border-rose-300/80">
+                                    <svg class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                 </div>
-                                <div>
-                                    <h4 class="text-xs font-extrabold text-rose-900">Sisa {{ food.stock }} porsi</h4>
-                                    <p class="text-[11px] text-rose-700 font-medium">Segera reservasi sebelum habis</p>
+                                <div class="min-w-0">
+                                    <h4 class="text-[11px] sm:text-xs font-extrabold text-rose-900 truncate">Sisa {{ food.stock }} porsi</h4>
+                                    <p class="text-[9px] sm:text-[11px] text-rose-700 font-medium truncate">Segera reservasi</p>
                                 </div>
                             </div>
-                            <span class="rounded-lg bg-white px-2.5 py-1 text-[10px] font-bold text-rose-700 shadow-sm border border-rose-300">
+                            <span class="hidden sm:inline-block rounded-lg bg-white px-2.5 py-1 text-[10px] font-bold text-rose-700 shadow-sm border border-rose-300 shrink-0">
                                 Cepat Habis
                             </span>
                         </div>
 
                     </div>
 
-                    <!-- 3 Info Boxes: Jadwal, Alamat, Wadah -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Info Pengambilan, Alamat & Wadah (Mobile: 1 Card Rapi Bersih | Desktop: 3 Kolom) -->
+                    <!-- TAMPILAN MOBILE: 1 Card Elegan & Ramping -->
+                    <div class="md:hidden rounded-2xl bg-white border border-[#EAE0D5] p-3 shadow-xs space-y-2.5">
+                        <!-- Baris 1: Jadwal Ambil -->
+                        <div class="flex items-center gap-2.5">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="10" stroke-width="2" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-[10px] font-bold text-[#8C7A72]">Jadwal Pengambilan</span>
+                                    <span class="text-[9px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">{{ food.pickupDeadlineInfo }}</span>
+                                </div>
+                                <p class="text-xs font-black text-[#2D1B1E] truncate">{{ food.pickupTime }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Baris 2: Alamat Gerai -->
+                        <div class="flex items-center gap-2.5 pt-2 border-t border-[#F5EFE6]">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700 border border-sky-200">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-[10px] font-bold text-[#8C7A72]">Alamat Gerai</span>
+                                    <span class="text-[9px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 shrink-0">{{ food.distanceMins }}</span>
+                                </div>
+                                <p class="text-xs font-bold text-[#2D1B1E] truncate">{{ food.address }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Baris 3: Wadah Ramah Lingkungan -->
+                        <div class="flex items-center gap-2.5 pt-2 border-t border-[#F5EFE6]">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <span class="text-[10px] font-bold text-emerald-800">Wadah Ramah Lingkungan</span>
+                                <p class="text-[10px] text-[#6E5A54] leading-snug">Bawa wadah sendiri dapat poin, atau pakai kotak warung gratis.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAMPILAN DESKTOP: 3 Kolom Kartu Warna Asli -->
+                    <div class="hidden md:grid md:grid-cols-3 gap-4">
                         
                         <!-- Jadwal Pengambilan -->
                         <div class="rounded-2xl bg-amber-50/70 p-4 border-2 border-amber-300 shadow-xs">
@@ -269,37 +320,37 @@ const {
 
                     <!-- Deskripsi Makanan -->
                     <div class="pt-2">
-                        <h3 class="text-sm font-bold text-[#2D1B1E]">Deskripsi Makanan</h3>
-                        <p class="mt-2 text-xs sm:text-sm font-medium text-[#6E5A54] leading-relaxed">
+                        <h3 class="text-xs sm:text-sm font-bold text-[#2D1B1E]">Deskripsi Makanan</h3>
+                        <p class="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-[#6E5A54] leading-relaxed">
                             {{ food.description }}
                         </p>
                     </div>
 
-                    <!-- Komposisi Paket Menu Grid -->
+                    <!-- Komposisi Paket Menu Grid (Mobile: 2 Kolom Compact Chip | Desktop: 5 Kolom Card) -->
                     <div class="pt-2">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-sm font-bold text-[#2D1B1E]">Komposisi Paket Menu</h3>
-                            <span class="text-[11px] font-semibold text-[#8C7A72]">
+                        <div class="flex items-center justify-between mb-2 sm:mb-3">
+                            <h3 class="text-xs sm:text-sm font-bold text-[#2D1B1E]">Komposisi Paket Menu</h3>
+                            <span class="text-[10px] sm:text-[11px] font-semibold text-[#8C7A72]">
                                 {{ food.packages?.length || 0 }} Komponen Lengkap
                             </span>
                         </div>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                             <div
                                 v-for="(pkg, idx) in food.packages"
                                 :key="idx"
-                                class="group relative rounded-2xl px-2.5 py-3.5 text-center flex flex-col items-center justify-between gap-2 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 min-h-[142px]"
+                                class="group relative rounded-xl sm:rounded-2xl p-2 sm:px-2.5 sm:py-3.5 flex sm:flex-col items-center gap-2 sm:justify-between text-left sm:text-center shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 min-h-0 sm:min-h-[142px]"
                                 :class="getCardTheme(pkg).card"
                             >
                                 <!-- Icon Badge -->
                                 <div
-                                    class="flex h-12 w-12 items-center justify-center rounded-2xl border shadow-xs transition-transform duration-300 group-hover:scale-110 shrink-0"
+                                    class="flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-2xl border shadow-xs transition-transform duration-300 group-hover:scale-110 shrink-0"
                                     :class="getCardTheme(pkg).badge"
                                 >
                                     <FoodPackageIcon :icon="pkg.icon" :title="pkg.title" />
                                 </div>
 
                                 <!-- Title -->
-                                <span class="text-[11px] font-extrabold text-[#2D1B1E] leading-snug line-clamp-3">
+                                <span class="text-[10px] sm:text-[11px] font-extrabold text-[#2D1B1E] leading-tight sm:leading-snug line-clamp-2 sm:line-clamp-3">
                                     {{ pkg.title }}
                                 </span>
                             </div>
@@ -307,61 +358,61 @@ const {
                     </div>
 
                     <!-- Edukasi & Peringatan Alergen Resmi (Sesuai Kesepakatan UX) -->
-                    <div class="rounded-2xl bg-amber-50/70 p-4 border-2 border-amber-200/90 text-amber-950 space-y-2">
+                    <div class="rounded-xl sm:rounded-2xl bg-amber-50/70 p-2.5 sm:p-4 border border-amber-200/90 sm:border-2 text-amber-950 space-y-1 sm:space-y-2">
                         <div class="flex items-center gap-2">
-                            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-200/70 text-amber-800 shrink-0">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <div class="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-amber-200/70 text-amber-800 shrink-0">
+                                <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-xs font-black text-amber-950">Edukasi & Catatan Alergen Makanan Surplus</h4>
-                                <p class="text-[10px] text-amber-800 font-semibold">Harap diperhatikan bagi rekan mahasiswa dengan riwayat alergi tertentu</p>
+                                <h4 class="text-[11px] sm:text-xs font-black text-amber-950">Edukasi & Catatan Alergen Makanan Surplus</h4>
+                                <p class="text-[9px] sm:text-[10px] text-amber-800 font-semibold">Harap diperhatikan bagi rekan mahasiswa dengan riwayat alergi tertentu</p>
                             </div>
                         </div>
-                        <p class="text-xs text-amber-900 leading-relaxed font-medium">
+                        <p class="text-[10px] sm:text-xs text-amber-900 leading-relaxed font-medium">
                             Menu ini disiapkan segar oleh gerai <strong>{{ food.merchantName || food.merchant?.name || food.merchant }}</strong> menggunakan dapur operasional bersama. Walaupun standar higienitas dipatuhi, kemungkinan kontak silang (*cross-contact*) dengan alergen seperti <strong>{{ food.allergens?.join(', ') || 'kacang, telur, kedelai, atau gluten' }}</strong> tetap ada. Jika memiliki alergi berat, cantumkan instruksi di catatan checkout atau hubungi penjual saat tiba di lokasi.
                         </p>
                     </div>
 
                     <!-- Profil Singkat Mitra Kantin -->
-                    <div class="pt-4 border-t border-[#F5EFE6] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div class="flex items-center gap-3.5">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-maroon text-white font-black text-sm">
+                    <div class="pt-3 sm:pt-4 border-t border-[#F5EFE6] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4">
+                        <div class="flex items-center gap-2.5 sm:gap-3.5">
+                            <div class="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-brand-maroon text-white font-black text-xs sm:text-sm shrink-0">
                                 {{ food.merchant?.initial || food.merchantInitial || 'PF' }}
                             </div>
                             <div>
-                                <h4 class="text-sm font-black text-[#2D1B1E] flex items-center gap-2">
+                                <h4 class="text-xs sm:text-sm font-black text-[#2D1B1E] flex items-center gap-1.5 sm:gap-2">
                                     {{ food.merchant?.name || food.merchantName || food.merchant }}
-                                    <span class="rounded-md bg-[#F5EFE6] px-2 py-0.5 text-[10px] font-bold text-brand-maroon">
+                                    <span class="rounded-md bg-[#F5EFE6] px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-brand-maroon">
                                         {{ food.merchant?.campus_name || food.merchantZoneLabel || 'Mitra Kampus Surabaya' }}
                                     </span>
                                 </h4>
-                                <p class="text-xs text-[#8C7A72]">
+                                <p class="text-[10px] sm:text-xs text-[#8C7A72]">
                                     Bergabung sejak {{ food.merchantActiveSince || '2023' }} · {{ food.merchantRescuedCount || '1.000+' }} porsi diselamatkan
                                 </p>
                             </div>
                         </div>
 
-                        <button class="rounded-xl border border-brand-maroon px-5 py-2.5 text-xs font-bold text-brand-maroon hover:bg-brand-maroon hover:text-white transition">
+                        <button class="w-full sm:w-auto rounded-lg sm:rounded-xl border border-brand-maroon px-3.5 py-1.5 sm:px-5 sm:py-2.5 text-[11px] sm:text-xs font-bold text-brand-maroon hover:bg-brand-maroon hover:text-white transition">
                             Kunjungi Profil Warung
                         </button>
                     </div>
 
                 </div>
 
-                <!-- SISI KANAN: FORM RINGKASAN RESERVASI PERSIS GAMBAR 3 (Span 4) -->
-                <div class="lg:col-span-4 space-y-3 sm:space-y-4">
+                <!-- SISI KANAN: FORM RINGKASAN RESERVASI (Span 4) -->
+                <div class="lg:col-span-4 space-y-2.5 sm:space-y-4">
                     
                     <!-- Kartu Reservasi Utama -->
-                    <div class="rounded-2xl sm:rounded-[28px] bg-white p-4 sm:p-7 border border-[#EAE0D5] shadow-md sm:shadow-lg space-y-3.5 sm:space-y-6">
+                    <div class="rounded-xl sm:rounded-[28px] bg-white p-3 sm:p-7 border border-[#EAE0D5] shadow-xs sm:shadow-lg space-y-2.5 sm:space-y-6">
                         
                         <div class="flex items-center justify-between pb-2 sm:pb-3 border-b border-[#F5EFE6]">
                             <div>
-                                <h2 class="text-sm sm:text-base font-extrabold text-[#2D1B1E]">Ringkasan Reservasi</h2>
-                                <p class="text-[11px] text-[#8C7A72] mt-0.5">1 tiket untuk 1 menu (bisa pilih banyak porsi)</p>
+                                <h2 class="text-xs sm:text-base font-extrabold text-[#2D1B1E]">Ringkasan Reservasi</h2>
+                                <p class="text-[10px] sm:text-[11px] text-[#8C7A72]">1 tiket untuk 1 menu (bisa pilih banyak porsi)</p>
                             </div>
-                            <span class="rounded-md sm:rounded-lg bg-rose-600 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-white shrink-0">
+                            <span class="rounded-md sm:rounded-lg bg-rose-600 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[11px] font-bold text-white shrink-0">
                                 1 Tiket / Pesanan
                             </span>
                         </div>
@@ -369,23 +420,23 @@ const {
                         <!-- Stepper Pemilih Jumlah Porsi Single-Item -->
                         <div>
                             <div class="flex items-center justify-between mb-1 sm:mb-2">
-                                <label class="text-xs font-bold text-[#2D1B1E]">Jumlah Porsi</label>
+                                <label class="text-[11px] sm:text-xs font-bold text-[#2D1B1E]">Jumlah Porsi</label>
                                 <span class="text-[10px] sm:text-[11px] text-[#8C7A72]">Maks. {{ food.stock }} porsi</span>
                             </div>
                             
-                            <div class="flex items-center justify-between rounded-xl sm:rounded-2xl bg-[#FAF7F2] p-1.5 sm:p-2.5 border border-[#D5C7BD] shadow-xs">
+                            <div class="flex items-center justify-between rounded-lg sm:rounded-2xl bg-[#FAF7F2] p-1 sm:p-2.5 border border-[#D5C7BD] shadow-xs">
                                 <button
                                     @click="decrement"
                                     :disabled="quantity <= 1"
-                                    class="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
+                                    class="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
                                 >
                                     -
                                 </button>
-                                <span class="text-sm sm:text-lg font-black text-[#2D1B1E]">{{ quantity }}</span>
+                                <span class="text-xs sm:text-lg font-black text-[#2D1B1E]">{{ quantity }}</span>
                                 <button
                                     @click="increment"
                                     :disabled="quantity >= food.stock"
-                                    class="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
+                                    class="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
                                 >
                                     +
                                 </button>
@@ -393,9 +444,9 @@ const {
                         </div>
 
                         <!-- Green Emission Impact Badge -->
-                        <div class="rounded-xl sm:rounded-2xl bg-emerald-50/80 p-2 sm:p-3 text-center border border-emerald-300 shadow-xs">
-                            <p class="text-[11px] sm:text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
-                                <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <div class="rounded-lg sm:rounded-2xl bg-emerald-50/80 p-1.5 sm:p-3 text-center border border-emerald-300 shadow-xs">
+                            <p class="text-[10px] sm:text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+                                <svg class="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                 </svg>
                                 <span>Hemat emisi karbon ~{{ (0.85 * quantity).toFixed(1) }} kg CO2e</span>
@@ -403,7 +454,7 @@ const {
                         </div>
 
                         <!-- Kalkulasi Rincian Pembayaran -->
-                        <div class="space-y-1.5 sm:space-y-2.5 text-[11px] sm:text-xs text-[#6E5A54] border-t border-[#F5EFE6] pt-2.5 sm:pt-4">
+                        <div class="space-y-1 sm:space-y-2.5 text-[10px] sm:text-xs text-[#6E5A54] border-t border-[#F5EFE6] pt-2 sm:pt-4">
                             <div class="flex justify-between">
                                 <span>Harga Normal Porsi (x{{ quantity }})</span>
                                 <span class="font-bold text-[#2D1B1E]">Rp{{ originalTotal.toLocaleString('id-ID') }}</span>
@@ -419,15 +470,15 @@ const {
                         </div>
 
                         <!-- Subtotal Pembayaran -->
-                        <div class="border-t border-[#F5EFE6] pt-2.5 sm:pt-4">
+                        <div class="border-t border-[#F5EFE6] pt-2 sm:pt-4">
                             <div class="flex items-baseline justify-between mb-2 sm:mb-3">
                                 <div>
-                                    <span class="text-[10px] sm:text-[11px] font-bold text-[#8C7A72] block">TOTAL PEMBAYARAN</span>
-                                    <p class="text-xl sm:text-2xl font-black text-brand-maroon">
+                                    <span class="text-[9px] sm:text-[11px] font-bold text-[#8C7A72] block">TOTAL PEMBAYARAN</span>
+                                    <p class="text-lg sm:text-2xl font-black text-brand-maroon leading-tight">
                                         Rp{{ subtotal.toLocaleString('id-ID') }}
                                     </p>
                                 </div>
-                                <span class="rounded-md sm:rounded-lg bg-[#FAF7F2] border border-[#EAE0D5] px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-[#6E5A54]">
+                                <span class="rounded-md sm:rounded-lg bg-[#FAF7F2] border border-[#EAE0D5] px-2 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[11px] font-bold text-[#6E5A54]">
                                     QRIS / Tunai
                                 </span>
                             </div>
@@ -437,24 +488,24 @@ const {
                                 <button
                                     type="button"
                                     disabled
-                                    class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-200 py-2.5 sm:py-3.5 text-xs sm:text-sm font-bold text-slate-500 cursor-not-allowed border border-slate-300 shadow-none"
+                                    class="inline-flex w-full items-center justify-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl bg-slate-200 py-2 sm:py-3.5 text-xs sm:text-sm font-bold text-slate-500 cursor-not-allowed border border-slate-300 shadow-none"
                                 >
-                                    <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9l-6 6M9 9l6 6"/></svg>
+                                    <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9l-6 6M9 9l6 6"/></svg>
                                     <span>Stok Habis Terjual</span>
                                 </button>
                             </div>
                             <Link
                                 v-else
                                 :href="route('checkout', { slug: food.slug, qty: quantity, packaging: ecoContainer })"
-                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-md sm:shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
+                                class="inline-flex w-full items-center justify-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl bg-brand-maroon py-2 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-sm sm:shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
                             >
                                 <span>Reservasi Sekarang</span>
-                                <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg class="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
                             </Link>
 
-                            <p class="mt-2 text-center text-[10px] sm:text-[11px] text-[#8C7A72] flex items-center justify-center gap-1 font-medium">
+                            <p class="mt-1.5 sm:mt-2 text-center text-[9px] sm:text-[11px] text-[#8C7A72] flex items-center justify-center gap-1 font-medium">
                                 <svg class="h-3 w-3 sm:h-3.5 sm:w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
@@ -465,15 +516,15 @@ const {
                     </div>
 
                     <!-- Kartu Info Aturan Food Rescue Unesa -->
-                    <div class="rounded-xl sm:rounded-2xl bg-amber-50/70 p-2.5 sm:p-4 border border-amber-300 text-xs text-amber-900 space-y-0.5 sm:space-y-1 shadow-xs">
-                        <h4 class="font-bold flex items-center gap-1.5 text-xs text-amber-900">
-                            <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <div class="rounded-lg sm:rounded-2xl bg-amber-50/70 p-2 sm:p-4 border border-amber-300 text-amber-900 space-y-0.5 sm:space-y-1 shadow-xs">
+                        <h4 class="font-bold flex items-center gap-1 text-[11px] sm:text-xs text-amber-900">
+                            <svg class="h-3 w-3 sm:h-4 sm:w-4 text-amber-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01" />
                             </svg>
                             <span>Aturan Food Rescue Kampus Surabaya</span>
                         </h4>
-                        <p class="text-[10px] sm:text-[11px] text-amber-800 leading-relaxed">
+                        <p class="text-[9px] sm:text-[11px] text-amber-800 leading-relaxed">
                             Tunjukkan kode pemesanan kepada staf {{ food.merchant?.name || food.merchantName || food.merchant }} saat mengambil makanan pukul {{ food.pickupTime }}.
                         </p>
                     </div>
