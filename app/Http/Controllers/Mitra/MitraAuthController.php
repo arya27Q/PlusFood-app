@@ -107,6 +107,66 @@ class MitraAuthController extends Controller
     }
 
     /**
+     * Tampilkan formulir reset kata sandi akun Mitra UMKM.
+     */
+    public function createForgotPassword(): Response|RedirectResponse
+    {
+        if (Auth::guard('mitra')->check()) {
+            return redirect()->route('mitra.dashboard');
+        }
+
+        return Inertia::render('Mitra/ForgotPassword', [
+            'status' => session('status'),
+        ]);
+    }
+
+    /**
+     * Proses verifikasi dan pembaruan kata sandi Mitra UMKM (Tanpa SMTP).
+     */
+    public function storeForgotPassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'storeName' => 'required|string',
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ], [
+            'email.required' => 'Email bisnis / toko wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'storeName.required' => 'Nama toko terdaftar wajib diisi.',
+            'password.required' => 'Kata sandi baru wajib diisi.',
+            'password.min' => 'Kata sandi baru minimal 6 karakter.',
+            'password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
+        ]);
+
+        $email = strtolower($validated['email']);
+        $merchant = Merchant::where('email', $email)->first();
+
+        if (! $merchant) {
+            throw ValidationException::withMessages([
+                'email' => 'Email toko belum terdaftar sebagai Mitra UMKM.',
+            ]);
+        }
+
+        $inputStore = trim(strtolower($validated['storeName']));
+        $name = trim(strtolower($merchant->name));
+        $owner = $merchant->owner_name ? trim(strtolower($merchant->owner_name)) : null;
+        $phone = $merchant->phone ? trim(strtolower($merchant->phone)) : null;
+
+        $matched = ($name === $inputStore) || ($owner && $owner === $inputStore) || ($phone && $phone === $inputStore);
+
+        if (! $matched) {
+            throw ValidationException::withMessages([
+                'storeName' => 'Data verifikasi nama toko atau nomor HP tidak cocok dengan data terdaftar.',
+            ]);
+        }
+
+        $merchant->password = Hash::make($validated['password']);
+        $merchant->save();
+
+        return redirect()->route('mitra.login')->with('status', 'Kata sandi toko berhasil diperbarui! Silakan masuk dengan kata sandi baru Anda.');
+    }
+
+    /**
      * Proses autentikasi masuk akun Mitra UMKM menggunakan guard mitra (tabel merchants).
      */
     public function storeLogin(Request $request): RedirectResponse

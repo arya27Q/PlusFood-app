@@ -168,13 +168,12 @@ const submitLogin = () => {
                                 <label class="text-xs sm:text-sm font-bold text-[#2D1B1E]">
                                     Password
                                 </label>
-                                <a 
-                                    href="#" 
+                                <Link 
+                                    :href="route('mitra.forgot-password')" 
                                     class="text-xs font-semibold text-[#B91C1C] hover:underline"
-                                    @click.prevent
                                 >
                                     Lupa password?
-                                </a>
+                                </Link>
                             </div>
 
                             <div 

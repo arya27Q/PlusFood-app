@@ -76,10 +76,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="fixed inset-0 z-[9999] flex flex-col items-center justify-between bg-[#FAF7F2] p-4 sm:p-8 text-center select-none animate-fade-in overflow-hidden">
+    <div class="fixed inset-0 z-[9999] flex flex-col items-center justify-between bg-[#FAF7F2] p-8 text-center select-none animate-fade-in overflow-hidden">
         
         <!-- Top Spacer -->
-        <div class="h-4 sm:h-6"></div>
+        <div class="h-6"></div>
 
         <!-- Center Content: Orbit, Logo Card, Text, Progress -->
         <div class="flex flex-col items-center justify-center max-w-md w-full">

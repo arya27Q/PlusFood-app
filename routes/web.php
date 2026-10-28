@@ -60,6 +60,8 @@ Route::prefix('mitra')->name('mitra.')->group(function () {
     Route::post('/register', [MitraAuthController::class, 'storeRegister'])->name('register.store');
     Route::get('/login', [MitraAuthController::class, 'createLogin'])->name('login');
     Route::post('/login', [MitraAuthController::class, 'storeLogin'])->name('login.store');
+    Route::get('/forgot-password', [MitraAuthController::class, 'createForgotPassword'])->name('forgot-password');
+    Route::post('/forgot-password', [MitraAuthController::class, 'storeForgotPassword'])->name('forgot-password.store');
     Route::post('/logout', [MitraAuthController::class, 'destroy'])->name('logout');
     Route::middleware(['auth:mitra'])->group(function () {
         Route::get('/dashboard', [MitraDashboardController::class, 'index'])->name('dashboard');

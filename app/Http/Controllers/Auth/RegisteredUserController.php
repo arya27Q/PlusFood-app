@@ -92,10 +92,8 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::guard('web')->login($user);
-        $request->session()->regenerate();
-        $request->session()->forget('url.intended');
-
-        return redirect()->route('loading');
+        return redirect()
+    ->route('login')
+    ->with('status', 'Pendaftaran berhasil. Silakan masuk dengan akun baru Anda.');
     }
 }
