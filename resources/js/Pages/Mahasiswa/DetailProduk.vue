@@ -1,5 +1,6 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import MahasiswaLayout from '@/Layouts/MahasiswaLayout.vue';
 import FoodPackageIcon from '@/Components/Mahasiswa/FoodPackageIcon.vue';
 import { useDetailProduk } from '@/Composables/useDetailProduk';
@@ -15,6 +16,9 @@ const props = defineProps({
     },
 });
 
+const page = usePage();
+const showAuthModal = ref(false);
+
 const {
     food,
     quantity,
@@ -28,6 +32,19 @@ const {
     subsidySaved,
     getCardTheme,
 } = useDetailProduk(props);
+
+const handleReservasi = () => {
+    const isLoggedIn = !!page.props.auth?.user;
+    if (!isLoggedIn) {
+        showAuthModal.value = true;
+        return;
+    }
+    router.visit(route('checkout', {
+        slug: food.value.slug,
+        qty: quantity.value,
+        packaging: ecoContainer.value,
+    }));
+};
 </script>
 
 <template>
@@ -523,16 +540,17 @@ const {
                                     <span>Stok Habis Terjual</span>
                                 </button>
                             </div>
-                            <Link
+                            <button
                                 v-else
-                                :href="route('checkout', { slug: food.slug, qty: quantity, packaging: ecoContainer })"
+                                type="button"
+                                @click="handleReservasi"
                                 class="flex w-full max-w-[240px] sm:max-w-none mx-auto items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-brand-maroon py-2 sm:py-3.5 px-4 sm:px-6 text-xs sm:text-sm font-bold text-white shadow-sm sm:shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
                             >
                                 <span>Reservasi Sekarang</span>
                                 <svg class="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
-                            </Link>
+                            </button>
 
                             <p class="mt-1.5 sm:mt-2 text-center text-[9px] sm:text-[11px] text-[#8C7A72] flex items-center justify-center gap-1 font-medium">
                                 <svg class="h-3 w-3 sm:h-3.5 sm:w-3.5 text-brand-maroon shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -563,6 +581,59 @@ const {
             </div>
 
         </div>
+
+        <!-- ================= MODAL NOTIFIKASI WAJIB DAFTAR / MASUK (GUEST MODE) ================= -->
+        <Teleport to="body">
+            <div
+                v-if="showAuthModal"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
+                @click.self="showAuthModal = false"
+            >
+                <div class="w-full max-w-sm rounded-2xl sm:rounded-3xl bg-white p-5 sm:p-6 text-center shadow-2xl border border-[#EAE0D5] space-y-4 animate-scale-up">
+                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200">
+                        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+
+                    <div>
+                        <h3 class="text-base sm:text-lg font-black text-[#2D1B1E]">
+                            Mohon Masuk Akun Dulu
+                        </h3>
+                        <p class="mt-1.5 text-xs text-[#6E5A54] leading-relaxed">
+                            Untuk memesan dan menyelamatkan porsi surplus <strong>{{ food.name }}</strong>, silakan masuk atau daftar akun mahasiswa terlebih dahulu.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <Link
+                            :href="route('login')"
+                            class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-hover active:scale-95 transition"
+                        >
+                            <span>Masuk ke Akun Saya</span>
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </Link>
+                        
+                        <Link
+                            :href="route('register')"
+                            class="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-maroon bg-white py-2.5 text-xs font-bold text-brand-maroon hover:bg-[#FAF7F2] active:scale-95 transition"
+                        >
+                            <span>Daftar Akun Baru</span>
+                        </Link>
+
+                        <button
+                            type="button"
+                            @click="showAuthModal = false"
+                            class="w-full py-1.5 text-[11px] font-semibold text-[#8C7A72] hover:text-[#2D1B1E] transition cursor-pointer"
+                        >
+                            Lanjut Lihat-Lihat Dulu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </MahasiswaLayout>
 </template>
 

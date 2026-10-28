@@ -19,8 +19,13 @@ class CheckoutController extends Controller
     /**
      * Tampilkan halaman formulir checkout reservasi makanan surplus.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        $user = $request->user();
+        if (!$user || $user->role !== 'mahasiswa') {
+            return redirect()->route('login')->with('status', 'Silakan masuk atau daftar akun terlebih dahulu untuk melanjutkan pemesanan.');
+        }
+
         $foodQuery = Food::with('merchant')->active();
 
         if ($request->filled('slug')) {
@@ -56,6 +61,11 @@ class CheckoutController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        if (!$user || $user->role !== 'mahasiswa') {
+            return redirect()->route('login')->with('status', 'Silakan masuk atau daftar akun terlebih dahulu untuk melanjutkan pemesanan.');
+        }
+
         $validated = $request->validate([
             'food_id' => 'required|exists:foods,id',
             'quantity' => 'required|integer|min:1',

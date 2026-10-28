@@ -11,15 +11,17 @@ const getDestination = () => {
 };
 
 onMounted(() => {
-    // Khusus tampilan responsive mobile (< 768px), tidak menampilkan splashscreen:
-    // Langsung arahkan seketika (ke login jika belum login, ke beranda jika sudah login)
+    // Khusus tampilan responsive mobile (< 768px):
+    // Langsung antarkan ke Beranda agar mahasiswa bisa langsung menjelajah katalog makanan
     if (window.innerWidth < 768) {
-        router.visit(getDestination(), { replace: true });
+        router.visit(route('beranda'), { replace: true });
     }
 });
 
 const handleFinished = () => {
-    router.visit(getDestination(), { replace: true });
+    // Di desktop: jika sudah login langsung ke beranda, jika belum ke login
+    const target = page.props.auth?.user ? route('beranda') : route('login');
+    router.visit(target, { replace: true });
 };
 </script>
 

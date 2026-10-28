@@ -11,6 +11,10 @@ const handleKeydown = (e) => {
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown);
+    // Khusus tampilan mobile (< 768px): langsung arahkan ke Beranda untuk mode jelajah katalog (browse-first)
+    if (window.innerWidth < 768) {
+        router.visit(route('beranda'), { replace: true });
+    }
 });
 
 onUnmounted(() => {
