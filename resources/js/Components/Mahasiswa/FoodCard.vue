@@ -17,20 +17,22 @@ const isBookmarked = ref(false);
         
         <!-- Foto Produk & Badges Overlay -->
         <div class="relative aspect-[16/10] w-full overflow-hidden rounded-xl sm:rounded-2xl bg-[#FAF7F2]">
-            <img
-                :src="food.image"
-                :alt="food.name"
-                class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
-            />
+            <Link :href="route('makanan.detail', food.slug)" class="block h-full w-full">
+                <img
+                    :src="food.image"
+                    :alt="food.name"
+                    class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                />
+            </Link>
             
             <!-- Badge Diskon di Pojok Kiri Atas -->
-            <span class="absolute top-1.5 sm:top-2.5 left-1.5 sm:left-2.5 rounded-md sm:rounded-lg bg-rose-600 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[11px] font-extrabold text-white shadow-sm flex items-center gap-1">
+            <span class="absolute top-1.5 sm:top-2.5 left-1.5 sm:left-2.5 rounded-md sm:rounded-lg bg-rose-600 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[11px] font-extrabold text-white shadow-sm flex items-center gap-1 pointer-events-none">
                 <span>Diskon {{ food.discountPercent }}%</span>
             </span>
 
             <!-- Countdown Pill: Hitung Mundur Sisa Waktu -->
-            <span class="absolute bottom-1.5 sm:bottom-2.5 left-1.5 sm:left-2.5 rounded-md sm:rounded-lg bg-black/75 backdrop-blur-xs px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[8px] sm:text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
+            <span class="absolute bottom-1.5 sm:bottom-2.5 left-1.5 sm:left-2.5 rounded-md sm:rounded-lg bg-black/75 backdrop-blur-xs px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[8px] sm:text-[10px] font-bold text-white flex items-center gap-1 shadow-sm pointer-events-none">
                 <svg class="h-2.5 w-2.5 sm:h-3 sm:w-3 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <circle cx="12" cy="12" r="10" stroke-width="2" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
@@ -41,7 +43,7 @@ const isBookmarked = ref(false);
             <!-- Tombol Bookmark / Favorit -->
             <button
                 @click.stop="isBookmarked = !isBookmarked"
-                class="absolute top-1.5 sm:top-2.5 right-1.5 sm:right-2.5 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-white/95 text-gray-400 shadow-sm backdrop-blur-sm transition hover:text-rose-600 hover:scale-110 active:scale-95"
+                class="absolute top-1.5 sm:top-2.5 right-1.5 sm:right-2.5 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-white/95 text-gray-400 shadow-sm backdrop-blur-sm transition hover:text-rose-600 hover:scale-110 active:scale-95 z-10"
                 :class="{ 'text-rose-600': isBookmarked }"
                 title="Simpan ke favorit"
             >
@@ -99,15 +101,42 @@ const isBookmarked = ref(false);
                 </div>
             </div>
 
-            <!-- Harga & Sisa Porsi -->
+            <!-- Harga, Sisa Porsi & Tombol Pesan Khusus (Opsi B) -->
             <div class="mt-2 sm:mt-2.5">
-                <div class="flex items-baseline gap-1.5 sm:gap-2">
-                    <span class="text-sm sm:text-base font-extrabold text-brand-maroon">
-                        Rp{{ food.priceDiscount.toLocaleString('id-ID') }}
-                    </span>
-                    <span class="text-[10px] sm:text-xs text-[#9E8B83] line-through font-medium">
-                        Rp{{ food.priceOriginal.toLocaleString('id-ID') }}
-                    </span>
+                <div class="flex items-center justify-between gap-1">
+                    <div>
+                        <div class="flex items-baseline gap-1.5 sm:gap-2">
+                            <span class="text-sm sm:text-base font-extrabold text-brand-maroon">
+                                Rp{{ food.priceDiscount.toLocaleString('id-ID') }}
+                            </span>
+                            <span class="text-[10px] sm:text-xs text-[#9E8B83] line-through font-medium">
+                                Rp{{ food.priceOriginal.toLocaleString('id-ID') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Icon Khusus Bulat Pesan / Reservasi Makanan (Opsi B) -->
+                    <button
+                        v-if="Number(food.stock || 0) <= 0 || food.status === 'habis'"
+                        type="button"
+                        disabled
+                        class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-slate-100 text-slate-400 cursor-not-allowed shrink-0 border border-slate-200"
+                        title="Stok Habis"
+                    >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <Link
+                        v-else
+                        :href="route('makanan.detail', food.slug)"
+                        class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-brand-maroon text-white shadow-xs hover:bg-brand-maroon-hover hover:scale-110 active:scale-95 transition-all duration-200 shrink-0"
+                        title="Pesan Makanan Ini"
+                    >
+                        <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </Link>
                 </div>
 
                 <div class="mt-1.5 sm:mt-2 flex items-center justify-between border-t border-[#F5EFE6] pt-1.5 sm:pt-2 text-[10px] sm:text-[11px] font-medium text-[#8C7A72]">
