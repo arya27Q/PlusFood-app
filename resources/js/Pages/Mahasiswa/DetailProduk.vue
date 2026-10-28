@@ -419,32 +419,61 @@ const {
 
                         <!-- Stepper Pemilih Jumlah Porsi Single-Item -->
                         <div>
-                            <div class="flex items-center justify-between mb-1 sm:mb-2">
-                                <label class="text-[11px] sm:text-xs font-bold text-[#2D1B1E]">Jumlah Porsi</label>
-                                <span class="text-[10px] sm:text-[11px] text-[#8C7A72]">Maks. {{ food.stock }} porsi</span>
+                            <!-- Mobile: Label di Kiri, Stepper Pendek Ramping di Kanan (Ala GrabFood/GoFood) -->
+                            <div class="flex items-center justify-between sm:hidden">
+                                <div>
+                                    <label class="text-xs font-bold text-[#2D1B1E] block">Jumlah Porsi</label>
+                                    <span class="text-[10px] text-[#8C7A72]">Maks. {{ food.stock }} porsi</span>
+                                </div>
+                                
+                                <div class="flex items-center gap-1.5 rounded-lg bg-[#FAF7F2] p-1 border border-[#D5C7BD] shadow-xs shrink-0">
+                                    <button
+                                        @click="decrement"
+                                        :disabled="quantity <= 1"
+                                        class="flex h-6 w-6 items-center justify-center rounded-md bg-white font-black text-xs text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon active:scale-95"
+                                    >
+                                        -
+                                    </button>
+                                    <span class="w-6 text-center text-xs font-black text-[#2D1B1E]">{{ quantity }}</span>
+                                    <button
+                                        @click="increment"
+                                        :disabled="quantity >= food.stock"
+                                        class="flex h-6 w-6 items-center justify-center rounded-md bg-white font-black text-xs text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon active:scale-95"
+                                    >
+                                        +
+                                    </button>
+                                </div>
                             </div>
-                            
-                            <div class="flex items-center justify-between rounded-lg sm:rounded-2xl bg-[#FAF7F2] p-1 sm:p-2.5 border border-[#D5C7BD] shadow-xs">
-                                <button
-                                    @click="decrement"
-                                    :disabled="quantity <= 1"
-                                    class="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
-                                >
-                                    -
-                                </button>
-                                <span class="text-xs sm:text-lg font-black text-[#2D1B1E]">{{ quantity }}</span>
-                                <button
-                                    @click="increment"
-                                    :disabled="quantity >= food.stock"
-                                    class="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded sm:rounded-xl bg-white font-black text-xs sm:text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
-                                >
-                                    +
-                                </button>
+
+                            <!-- Desktop: Tampilan Asli (Tidak Dirubah) -->
+                            <div class="hidden sm:block">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-bold text-[#2D1B1E]">Jumlah Porsi</label>
+                                    <span class="text-[11px] text-[#8C7A72]">Maks. {{ food.stock }} porsi</span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between rounded-2xl bg-[#FAF7F2] p-2.5 border border-[#D5C7BD] shadow-xs">
+                                    <button
+                                        @click="decrement"
+                                        :disabled="quantity <= 1"
+                                        class="flex h-9 w-9 items-center justify-center rounded-xl bg-white font-black text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
+                                    >
+                                        -
+                                    </button>
+                                    <span class="text-lg font-black text-[#2D1B1E]">{{ quantity }}</span>
+                                    <button
+                                        @click="increment"
+                                        :disabled="quantity >= food.stock"
+                                        class="flex h-9 w-9 items-center justify-center rounded-xl bg-white font-black text-base text-gray-700 shadow-xs border border-[#EAE0D5] transition disabled:opacity-40 hover:bg-[#F5EFE6] hover:text-brand-maroon"
+                                    >
+                                        +
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Green Emission Impact Badge -->
-                        <div class="rounded-lg sm:rounded-2xl bg-emerald-50/80 p-1.5 sm:p-3 text-center border border-emerald-300 shadow-xs">
+                        <!-- Green Emission Impact Badge (Mobile: Pill Ringkas Tengah | Desktop: Card Penuh) -->
+                        <div class="rounded-full sm:rounded-2xl bg-emerald-50/80 px-3 py-1 sm:p-3 text-center border border-emerald-300 shadow-xs w-fit mx-auto sm:w-full">
                             <p class="text-[10px] sm:text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
                                 <svg class="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -484,11 +513,11 @@ const {
                             </div>
 
                             <!-- Tombol CTA Reservasi Sekarang / Habis Terjual -->
-                            <div v-if="Number(food.stock || 0) <= 0 || food.status === 'habis'" class="text-center">
+                            <div v-if="Number(food.stock || 0) <= 0 || food.status === 'habis'" class="flex justify-center">
                                 <button
                                     type="button"
                                     disabled
-                                    class="inline-flex w-full items-center justify-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl bg-slate-200 py-2 sm:py-3.5 text-xs sm:text-sm font-bold text-slate-500 cursor-not-allowed border border-slate-300 shadow-none"
+                                    class="flex w-full max-w-[240px] sm:max-w-none mx-auto items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-slate-200 py-2 sm:py-3.5 px-4 sm:px-6 text-xs sm:text-sm font-bold text-slate-500 cursor-not-allowed border border-slate-300 shadow-none"
                                 >
                                     <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9l-6 6M9 9l6 6"/></svg>
                                     <span>Stok Habis Terjual</span>
@@ -497,7 +526,7 @@ const {
                             <Link
                                 v-else
                                 :href="route('checkout', { slug: food.slug, qty: quantity, packaging: ecoContainer })"
-                                class="inline-flex w-full items-center justify-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl bg-brand-maroon py-2 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-sm sm:shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
+                                class="flex w-full max-w-[240px] sm:max-w-none mx-auto items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-brand-maroon py-2 sm:py-3.5 px-4 sm:px-6 text-xs sm:text-sm font-bold text-white shadow-sm sm:shadow-lg shadow-brand-maroon/20 hover:bg-brand-maroon-hover active:scale-95 transition"
                             >
                                 <span>Reservasi Sekarang</span>
                                 <svg class="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
