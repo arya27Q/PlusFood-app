@@ -29,6 +29,46 @@ export function useKelolaMenu(props) {
         image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80'
     });
 
+    // File Upload Foto Makanan
+    const imageFile = ref(null);
+    const imagePreview = ref(form.value.image);
+    const editImageFile = ref(null);
+    const editImagePreview = ref('');
+
+    const handleImageUpload = (event) => {
+        const file = event.target?.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                validationError.value = 'File yang dipilih harus berupa format gambar!';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                validationError.value = 'Ukuran foto maksimal 5 MB!';
+                return;
+            }
+            validationError.value = '';
+            imageFile.value = file;
+            imagePreview.value = URL.createObjectURL(file);
+        }
+    };
+
+    const removeImage = () => {
+        imageFile.value = null;
+        const fallback = presetMenus[0]?.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80';
+        imagePreview.value = fallback;
+        form.value.image = fallback;
+    };
+
+    const handleEditImageUpload = (event) => {
+        const file = event.target?.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) return;
+            if (file.size > 5 * 1024 * 1024) return;
+            editImageFile.value = file;
+            editImagePreview.value = URL.createObjectURL(file);
+        }
+    };
+
     const selectedCampusZone = computed(() => {
         return availableCampusZones.value.find(z => z.id === form.value.campusZoneId) || availableCampusZones.value[0] || { name: 'Pilih Zona Kampus' };
     });
@@ -236,6 +276,8 @@ export function useKelolaMenu(props) {
         form.value.spiciness = preset.spiciness;
         form.value.canteenLocation = preset.canteen;
         form.value.image = preset.image;
+        imageFile.value = null;
+        imagePreview.value = preset.image;
         setPickupSession(preset.session);
     };
 
@@ -354,16 +396,22 @@ export function useKelolaMenu(props) {
             supportEcoPackaging: Boolean(form.value.supportEcoPackaging),
             description: form.value.kitchenNote,
             kitchenNote: form.value.kitchenNote,
-            image: form.value.image
+            image: imageFile.value ? imageFile.value : form.value.image
         };
 
         router.post(route('mitra.kelola-menu.store'), foodPayload, {
             preserveScroll: true,
-            onSuccess: () => {
+            forceFormData: true,
+            onSuccess: (page) => {
+                const createdFood = page?.props?.foods?.[0];
+                const finalImage = (createdFood && (createdFood.name === foodPayload.name || createdFood.category === foodPayload.category))
+                    ? createdFood.image
+                    : (imageFile.value ? imagePreview.value : (typeof foodPayload.image === 'string' ? foodPayload.image : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80'));
+
                 // Sinkronkan langsung ke LocalStorage Mahasiswa agar seketika muncul di Beranda & Katalog
                 const customItem = {
-                    id: Date.now(),
-                    slug: foodPayload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now(),
+                    id: createdFood?.id || Date.now(),
+                    slug: createdFood?.slug || (foodPayload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now()),
                     name: foodPayload.name,
                     shortName: foodPayload.name,
                     category: foodPayload.category,
@@ -379,7 +427,7 @@ export function useKelolaMenu(props) {
                     merchant: props.merchant?.name || 'Warung Bu Sari',
                     merchantName: props.merchant?.name || 'Warung Bu Sari',
                     address: foodPayload.canteen_location || props.merchant?.address || 'Kantin Vokasi Lt. 1 Stand 04',
-                    image: foodPayload.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80',
+                    image: finalImage,
                     dietaryTags: [...foodPayload.tags],
                     tags: [...foodPayload.tags],
                     isCookedToday: true,
@@ -410,6 +458,8 @@ export function useKelolaMenu(props) {
                 form.value.tags = [...nextPreset.tags];
                 form.value.spiciness = nextPreset.spiciness;
                 form.value.image = nextPreset.image;
+                imageFile.value = null;
+                imagePreview.value = nextPreset.image;
                 isSubmitting.value = false;
             },
             onError: (err) => {
@@ -424,6 +474,8 @@ export function useKelolaMenu(props) {
 
     const openEditModal = (item) => {
         editingItem.value = item;
+        editImageFile.value = null;
+        editImagePreview.value = item.image || '';
         editForm.value = {
             id: item.id,
             name: item.name,
@@ -458,64 +510,87 @@ export function useKelolaMenu(props) {
             kitchenNote: editForm.value.kitchenNote,
         };
 
-        router.put(route('mitra.kelola-menu.update', editForm.value.id), payload, {
-            preserveScroll: true,
-            onSuccess: () => {
-                isUpdating.value = false;
-                showEditModal.value = false;
+        if (editImageFile.value) {
+            payload.image = editImageFile.value;
+            payload._method = 'put';
+        }
 
-                // Perbarui listing lokal
-                const idx = activeListings.value.findIndex(l => l.id === editForm.value.id);
-                if (idx >= 0) {
-                    const target = activeListings.value[idx];
-                    target.name = payload.name;
-                    target.category = payload.category;
-                    target.priceOriginal = payload.price_original;
-                    target.priceDiscount = payload.price_discount;
-                    target.discountPercent = Math.round(((payload.price_original - payload.price_discount) / payload.price_original) * 100);
-                    target.stock = payload.stock;
-                    target.pickupStart = payload.pickup_time_start;
-                    target.pickupEnd = payload.pickup_time_end;
-                    target.tags = payload.tags;
-                    target.status = payload.stock <= 0 ? 'habis' : 'aktif';
-                }
+        const handleSuccess = (page) => {
+            isUpdating.value = false;
+            showEditModal.value = false;
 
-                // Sinkronisasi ke LocalStorage Mahasiswa
-                saveCustomFood({
-                    id: editForm.value.id,
-                    slug: editingItem.value?.slug || (payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + editForm.value.id),
-                    name: payload.name,
-                    shortName: payload.name,
-                    category: payload.category,
-                    priceOriginal: payload.price_original,
-                    priceDiscount: payload.price_discount,
-                    discountPercent: Math.round(((payload.price_original - payload.price_discount) / payload.price_original) * 100),
-                    stock: payload.stock,
-                    portions: payload.stock,
-                    pickupTime: `${payload.pickup_time_start} – ${payload.pickup_time_end} WIB`,
-                    pickupDeadlineInfo: `Hari ini · tutup ${payload.pickup_time_end} WIB`,
-                    campusZone: props.merchant?.campus_zone || 'unesa-ketintang',
-                    merchantZoneLabel: props.merchant?.campus_name || 'UNESA Ketintang',
-                    merchant: props.merchant?.name || 'Warung Bu Sari',
-                    merchantName: props.merchant?.name || 'Warung Bu Sari',
-                    address: editingItem.value?.canteenLocation || props.merchant?.address || 'Kantin Vokasi Stand 04',
-                    image: editingItem.value?.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80',
-                    dietaryTags: [...payload.tags],
-                    tags: [...payload.tags],
-                    isCookedToday: true,
-                    isSealed: true,
-                    rating: editingItem.value?.rating || 4.9,
-                    reviewsCount: editingItem.value?.reviewsCount || 1,
-                    minutesLeft: 45,
-                    distance: '0,4 km',
-                    distanceKm: 0.4,
-                });
-            },
-            onError: (err) => {
-                console.error('Gagal update menu:', err);
-                isUpdating.value = false;
+            const updatedFood = page?.props?.foods?.find(f => f.id === editForm.value.id);
+            const finalImage = updatedFood?.image || (editImageFile.value ? editImagePreview.value : (editingItem.value?.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80'));
+
+            // Perbarui listing lokal
+            const idx = activeListings.value.findIndex(l => l.id === editForm.value.id);
+            if (idx >= 0) {
+                const target = activeListings.value[idx];
+                target.name = payload.name;
+                target.category = payload.category;
+                target.priceOriginal = payload.price_original;
+                target.priceDiscount = payload.price_discount;
+                target.discountPercent = Math.round(((payload.price_original - payload.price_discount) / payload.price_original) * 100);
+                target.stock = payload.stock;
+                target.pickupStart = payload.pickup_time_start;
+                target.pickupEnd = payload.pickup_time_end;
+                target.tags = payload.tags;
+                target.image = finalImage;
+                target.status = payload.stock <= 0 ? 'habis' : 'aktif';
             }
-        });
+
+            // Sinkronisasi ke LocalStorage Mahasiswa
+            saveCustomFood({
+                id: editForm.value.id,
+                slug: editingItem.value?.slug || (payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + editForm.value.id),
+                name: payload.name,
+                shortName: payload.name,
+                category: payload.category,
+                priceOriginal: payload.price_original,
+                priceDiscount: payload.price_discount,
+                discountPercent: Math.round(((payload.price_original - payload.price_discount) / payload.price_original) * 100),
+                stock: payload.stock,
+                portions: payload.stock,
+                pickupTime: `${payload.pickup_time_start} – ${payload.pickup_time_end} WIB`,
+                pickupDeadlineInfo: `Hari ini · tutup ${payload.pickup_time_end} WIB`,
+                campusZone: props.merchant?.campus_zone || 'unesa-ketintang',
+                merchantZoneLabel: props.merchant?.campus_name || 'UNESA Ketintang',
+                merchant: props.merchant?.name || 'Warung Bu Sari',
+                merchantName: props.merchant?.name || 'Warung Bu Sari',
+                address: editingItem.value?.canteenLocation || props.merchant?.address || 'Kantin Vokasi Stand 04',
+                image: finalImage,
+                dietaryTags: [...payload.tags],
+                tags: [...payload.tags],
+                isCookedToday: true,
+                isSealed: true,
+                rating: editingItem.value?.rating || 4.9,
+                reviewsCount: editingItem.value?.reviewsCount || 1,
+                minutesLeft: 45,
+                distance: '0,4 km',
+                distanceKm: 0.4,
+            });
+        };
+
+        if (editImageFile.value) {
+            router.post(route('mitra.kelola-menu.update', editForm.value.id), payload, {
+                preserveScroll: true,
+                forceFormData: true,
+                onSuccess: handleSuccess,
+                onError: (err) => {
+                    console.error('Gagal update menu:', err);
+                    isUpdating.value = false;
+                }
+            });
+        } else {
+            router.put(route('mitra.kelola-menu.update', editForm.value.id), payload, {
+                preserveScroll: true,
+                onSuccess: handleSuccess,
+                onError: (err) => {
+                    console.error('Gagal update menu:', err);
+                    isUpdating.value = false;
+                }
+            });
+        }
     };
 
     const openDeleteModal = (item) => {
@@ -617,6 +692,13 @@ export function useKelolaMenu(props) {
         getTagBadgeClass,
         activeListings,
         form,
+        imageFile,
+        imagePreview,
+        handleImageUpload,
+        removeImage,
+        editImageFile,
+        editImagePreview,
+        handleEditImageUpload,
         isPublished,
         publishedFoodName,
         setPickupSession,

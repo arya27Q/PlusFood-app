@@ -77,14 +77,14 @@ class KelolaMenuController extends Controller
             'pickupEnd' => 'nullable|string|max:50',
             'campus_zone_id' => 'nullable|string|max:100',
             'campusZoneId' => 'nullable|string|max:100',
-            'tags' => 'nullable|array',
+            'tags' => 'nullable',
             'spiciness' => 'nullable|string|max:50',
-            'image' => 'nullable|string',
+            'image' => 'nullable',
             'description' => 'nullable|string',
             'kitchen_note' => 'nullable|string',
             'kitchenNote' => 'nullable|string',
-            'support_eco_packaging' => 'nullable|boolean',
-            'supportEcoPackaging' => 'nullable|boolean',
+            'support_eco_packaging' => 'nullable',
+            'supportEcoPackaging' => 'nullable',
         ]);
 
         $orig = (int) $request->price_original;
@@ -100,7 +100,27 @@ class KelolaMenuController extends Controller
         $pickupDisplay = "{$start} – {$end} WIB";
 
         $tags = $request->tags ?? ['Halal', 'Bebas Kacang'];
+        if (is_string($tags)) {
+            $decoded = json_decode($tags, true);
+            $tags = is_array($decoded) ? $decoded : [$tags];
+        }
         $desc = $request->description ?? $request->kitchenNote ?? $request->kitchen_note ?? 'Menu surplus lezat & higienis kualitas prima, disimpan di food warmer berstandar.';
+
+        // Proses penyimpanan file foto jika mitra mengunggah gambar
+        $imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80';
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            $filename = time() . '_' . Str::random(10) . '.' . $extension;
+            $destinationPath = public_path('uploads/foods');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+            $file->move($destinationPath, $filename);
+            $imageUrl = '/uploads/foods/' . $filename;
+        } elseif ($request->filled('image') && is_string($request->image)) {
+            $imageUrl = $request->image;
+        }
 
         // Buat record makanan baru di tabel foods
         Food::create([
@@ -122,7 +142,7 @@ class KelolaMenuController extends Controller
             'dietary_tags' => $tags,
             'is_sealed' => true,
             'is_cooked_today' => true,
-            'image' => $request->image ?: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80',
+            'image' => $imageUrl,
             'status' => 'aktif',
         ]);
 
@@ -170,7 +190,8 @@ class KelolaMenuController extends Controller
             'pickup_time_end' => 'nullable|string|max:50',
             'pickupStart' => 'nullable|string|max:50',
             'pickupEnd' => 'nullable|string|max:50',
-            'tags' => 'nullable|array',
+            'tags' => 'nullable',
+            'image' => 'nullable',
             'description' => 'nullable|string',
             'kitchenNote' => 'nullable|string',
         ]);
@@ -186,6 +207,27 @@ class KelolaMenuController extends Controller
 
         $stock = (int) $request->stock;
 
+        $tags = $request->tags ?? $food->dietary_tags;
+        if (is_string($tags)) {
+            $decoded = json_decode($tags, true);
+            $tags = is_array($decoded) ? $decoded : [$tags];
+        }
+
+        $imageUrl = $food->image;
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            $filename = time() . '_' . Str::random(10) . '.' . $extension;
+            $destinationPath = public_path('uploads/foods');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+            $file->move($destinationPath, $filename);
+            $imageUrl = '/uploads/foods/' . $filename;
+        } elseif ($request->filled('image') && is_string($request->image)) {
+            $imageUrl = $request->image;
+        }
+
         $food->update([
             'name' => trim($request->name),
             'category' => $request->category ?? $food->category,
@@ -198,7 +240,8 @@ class KelolaMenuController extends Controller
             'pickup_time_end' => $end,
             'pickup_time_display' => "{$start} – {$end} WIB",
             'pickup_deadline_info' => "Hari ini · tutup {$end} WIB",
-            'dietary_tags' => $request->tags ?? $food->dietary_tags,
+            'dietary_tags' => $tags,
+            'image' => $imageUrl,
             'status' => $stock <= 0 ? 'habis' : 'aktif',
         ]);
 

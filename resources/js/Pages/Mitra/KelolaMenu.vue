@@ -1,7 +1,11 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import MitraLayout from '@/Layouts/MitraLayout.vue';
 import { useKelolaMenu } from '@/Composables/useKelolaMenu';
+
+const fileInputRef = ref(null);
+const editFileInputRef = ref(null);
 
 const props = defineProps({
     foods: {
@@ -22,6 +26,13 @@ const {
     getTagBadgeClass,
     activeListings,
     form,
+    imageFile,
+    imagePreview,
+    handleImageUpload,
+    removeImage,
+    editImageFile,
+    editImagePreview,
+    handleEditImageUpload,
     isPublished,
     publishedFoodName,
     setPickupSession,
@@ -176,6 +187,85 @@ const {
                                     <option value="Camilan">Camilan</option>
                                     <option value="Minuman">Minuman</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <!-- 1.5. Upload Foto Makanan Surplus -->
+                        <div class="space-y-2.5 p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                    <div class="flex h-5 w-5 items-center justify-center rounded-md bg-rose-100 text-brand-maroon">
+                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </div>
+                                    <span>Foto Makanan Surplus</span>
+                                </label>
+                                <span class="text-[10px] text-slate-500 font-semibold">JPG, PNG, WEBP (Maks 5MB)</span>
+                            </div>
+
+                            <!-- Hidden file input -->
+                            <input
+                                ref="fileInputRef"
+                                type="file"
+                                accept="image/jpeg,image/png,image/jpg,image/webp"
+                                class="hidden"
+                                @change="handleImageUpload"
+                            />
+
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                                <!-- Preview Gambar -->
+                                <div class="relative shrink-0">
+                                    <img
+                                        :src="imagePreview"
+                                        alt="Preview Makanan"
+                                        class="h-20 w-24 sm:h-22 sm:w-28 rounded-xl object-cover border border-slate-200 bg-slate-100 shadow-2xs"
+                                    />
+                                    <span
+                                        v-if="imageFile"
+                                        class="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white shadow"
+                                        title="Foto kustom siap diupload"
+                                    >
+                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                </div>
+
+                                <!-- Aksi Upload & Keterangan -->
+                                <div class="flex-1 min-w-0 space-y-1.5">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            @click="fileInputRef?.click()"
+                                            class="inline-flex items-center gap-1.5 rounded-xl bg-brand-maroon hover:bg-brand-maroon-hover text-white px-3.5 py-2 text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer"
+                                        >
+                                            <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span>{{ imageFile ? 'Ganti Foto' : 'Upload Foto Makanan' }}</span>
+                                        </button>
+
+                                        <button
+                                            v-if="imageFile"
+                                            type="button"
+                                            @click="removeImage"
+                                            class="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 text-xs font-semibold transition active:scale-95 cursor-pointer"
+                                        >
+                                            <span>Reset ke Preset</span>
+                                        </button>
+                                    </div>
+
+                                    <p class="text-[11px] text-slate-500">
+                                        <span v-if="imageFile" class="text-emerald-700 font-bold flex items-center gap-1">
+                                            <span>✓ Foto terpilih: {{ imageFile.name }} ({{ (imageFile.size / 1024).toFixed(0) }} KB)</span>
+                                        </span>
+                                        <span v-else>
+                                            Foto ini akan langsung tampil di Beranda, Katalog, dan Detail Menu Mahasiswa saat dipublikasikan.
+                                        </span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -855,6 +945,43 @@ const {
                     </div>
 
                     <form @submit.prevent="saveEdit" class="space-y-4 text-left">
+                        <!-- Upload / Ganti Foto di Edit Modal -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-900 mb-1">Foto Menu Makanan</label>
+                            <input
+                                ref="editFileInputRef"
+                                type="file"
+                                accept="image/jpeg,image/png,image/jpg,image/webp"
+                                class="hidden"
+                                @change="handleEditImageUpload"
+                            />
+                            <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                <img
+                                    :src="editImagePreview"
+                                    alt="Foto Menu"
+                                    class="h-16 w-20 rounded-lg object-cover border border-slate-200 bg-slate-100 shrink-0"
+                                />
+                                <div class="space-y-1">
+                                    <button
+                                        type="button"
+                                        @click="editFileInputRef?.click()"
+                                        class="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 hover:border-brand-maroon px-3 py-1.5 text-xs font-bold text-slate-800 hover:text-brand-maroon transition cursor-pointer shadow-2xs"
+                                    >
+                                        <svg class="h-3.5 w-3.5 text-brand-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span>Ganti Foto</span>
+                                    </button>
+                                    <p v-if="editImageFile" class="text-[10px] text-emerald-700 font-bold">
+                                        ✓ Foto baru: {{ editImageFile.name }}
+                                    </p>
+                                    <p v-else class="text-[10px] text-slate-500">
+                                        Pilih file gambar jika ingin memperbarui foto makanan.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block text-xs font-bold text-slate-900 mb-1">Nama Menu *</label>
                             <input
