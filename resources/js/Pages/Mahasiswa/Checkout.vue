@@ -29,6 +29,7 @@ const {
     orderState,
     generatedOrderId,
     loadingProgress,
+    loadingStatusText,
     isSubmitting,
     userName,
     userAddress,
@@ -145,8 +146,8 @@ const {
                     </div>
 
                     <div>
-                        <p class="text-base font-extrabold text-brand-maroon">Menuju Pembayaran...</p>
-                        <p class="text-xs text-[#8C7A72] mt-1">Mohon tunggu, jangan tutup halaman ini.</p>
+                        <p class="text-base font-extrabold text-brand-maroon">Memproses Pembayaran...</p>
+                        <p class="text-xs text-[#8C7A72] mt-1 min-h-[18px] transition-all duration-300">{{ loadingStatusText }}</p>
                     </div>
 
                     <!-- Total row -->

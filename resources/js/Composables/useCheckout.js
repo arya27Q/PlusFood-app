@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { sampleFoods, addOrder, getCustomFoods, decrementCustomFoodStock } from '@/Utils/mockFoods';
 import { useAuth } from '@/Composables/useAuth';
@@ -13,7 +13,15 @@ export function useCheckout(props) {
     const orderState = ref('idle');
     const generatedOrderId = ref('');
     const loadingProgress = ref(0);
+    const loadingStatusText = ref('Menghubungkan ke sistem pembayaran...');
     const isSubmitting = ref(false);
+
+    const checkoutStatusSteps = [
+        { at: 0, text: 'Menghubungkan ke sistem pembayaran...' },
+        { at: 35, text: 'Memverifikasi transaksi & reservasi...' },
+        { at: 70, text: 'Menyiapkan barcode & konfirmasi mitra...' },
+        { at: 96, text: 'Pembayaran berhasil diverifikasi!' },
+    ];
 
     // Form
     const userName = ref(props.customer?.name || auth.user.value?.name || '');
@@ -190,14 +198,44 @@ export function useCheckout(props) {
 
         isSubmitting.value = true;
         orderState.value = 'loading';
-        loadingProgress.value = 10;
+        loadingProgress.value = 5;
+        loadingStatusText.value = 'Menghubungkan ke sistem pembayaran...';
 
-        let elapsed = 0;
-        const duration = 1800;
-        const tick = 40;
+        const MIN_DURATION = 2200; // 2.2 detik (identik dengan durasi LoadingScreen di SplashScreen)
+        const startTime = Date.now();
+        let isBackendDone = false;
+        let pendingFinish = null;
+
+        const checkAndFinish = () => {
+            if (!isBackendDone || !pendingFinish) return;
+            const elapsed = Date.now() - startTime;
+            if (elapsed >= MIN_DURATION) {
+                if (progressTimer) clearInterval(progressTimer);
+                loadingProgress.value = 100;
+                loadingStatusText.value = 'Pembayaran berhasil diverifikasi!';
+                setTimeout(() => {
+                    pendingFinish();
+                }, 300);
+            }
+        };
+
+        const tick = 35;
         progressTimer = setInterval(() => {
-            elapsed += tick;
-            loadingProgress.value = Math.min(94, Math.round(100 * (1 - Math.pow(1 - elapsed / duration, 2))));
+            const elapsed = Date.now() - startTime;
+            const rawPct = Math.min(100, Math.round((elapsed / MIN_DURATION) * 100));
+            const currentPct = isBackendDone ? rawPct : Math.min(92, rawPct);
+            loadingProgress.value = currentPct;
+
+            for (let i = checkoutStatusSteps.length - 1; i >= 0; i--) {
+                if (currentPct >= checkoutStatusSteps[i].at) {
+                    loadingStatusText.value = checkoutStatusSteps[i].text;
+                    break;
+                }
+            }
+
+            if (elapsed >= MIN_DURATION) {
+                checkAndFinish();
+            }
         }, tick);
 
         // Kirim request ke backend Laravel Database
@@ -220,10 +258,6 @@ export function useCheckout(props) {
             order_number: preGeneratedId,
         }, {
             onSuccess: (pageResp) => {
-                clearInterval(progressTimer);
-                loadingProgress.value = 100;
-                isSubmitting.value = false;
-
                 const newId = pageResp?.props?.flash?.order_id || preGeneratedId;
                 generatedOrderId.value = newId;
 
@@ -281,16 +315,16 @@ export function useCheckout(props) {
                 // Hapus draft checkout karena pesanan sudah resmi masuk
                 clearCheckoutDraft();
 
-                showSuccessToast.value = true;
-                setTimeout(() => { orderState.value = 'success'; }, 300);
-                setTimeout(() => { showSuccessToast.value = false; }, 4000);
+                isBackendDone = true;
+                pendingFinish = () => {
+                    isSubmitting.value = false;
+                    showSuccessToast.value = true;
+                    orderState.value = 'success';
+                    setTimeout(() => { showSuccessToast.value = false; }, 4000);
+                };
+                checkAndFinish();
             },
             onError: (errors) => {
-                // Fallback graceful untuk demo offline / custom foods
-                clearInterval(progressTimer);
-                loadingProgress.value = 100;
-                isSubmitting.value = false;
-
                 const newId = 'PF-' + Math.floor(10000 + Math.random() * 90000);
                 generatedOrderId.value = newId;
 
@@ -345,12 +379,22 @@ export function useCheckout(props) {
                 }
 
                 clearCheckoutDraft();
-                showSuccessToast.value = true;
-                setTimeout(() => { orderState.value = 'success'; }, 300);
-                setTimeout(() => { showSuccessToast.value = false; }, 4000);
+
+                isBackendDone = true;
+                pendingFinish = () => {
+                    isSubmitting.value = false;
+                    showSuccessToast.value = true;
+                    orderState.value = 'success';
+                    setTimeout(() => { showSuccessToast.value = false; }, 4000);
+                };
+                checkAndFinish();
             }
         });
     };
+
+    onUnmounted(() => {
+        if (progressTimer) clearInterval(progressTimer);
+    });
 
     return {
         auth,
@@ -359,6 +403,7 @@ export function useCheckout(props) {
         orderState,
         generatedOrderId,
         loadingProgress,
+        loadingStatusText,
         isSubmitting,
         userName,
         userAddress,

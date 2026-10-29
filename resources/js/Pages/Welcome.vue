@@ -168,16 +168,19 @@ onUnmounted(() => {
             </div>
 
             <!-- KOLOM KANAN: Kanvas Terpadu 100% Persis Gambar Mockup Kedua (Responsive Scaled) -->
-            <div class="relative lg:col-span-7 flex items-center justify-center min-h-[360px] xs:min-h-[420px] sm:min-h-[520px] lg:min-h-[640px] w-full overflow-hidden mt-4 lg:mt-0">
+            <div class="relative lg:col-span-7 flex items-center justify-center min-h-[360px] xs:min-h-[420px] sm:min-h-[520px] lg:min-h-[640px] xl:min-h-[700px] w-full overflow-hidden lg:overflow-visible mt-4 lg:mt-0">
                 
                 <!-- Container Koordinat Bersama (Lingkaran + Garis Putus-Putus + Piringan Menyatu Bebas Geser) -->
                 <div class="relative w-[740px] h-[700px] shrink-0 scale-[0.44] xs:scale-[0.52] sm:scale-[0.7] md:scale-[0.85] lg:scale-95 xl:scale-100 origin-center transition-transform duration-300">
                     
-                    <!-- 1. Lingkaran Solid Muted Besar di Sisi Kanan -->
-                    <div class="pointer-events-none absolute -right-[140px] -top-[90px] w-[880px] h-[880px] rounded-full bg-[#EFE7DC]/70 z-0" />
-                    
-                    <!-- 2. Garis Tipis Putus-Putus (Dashed Orbit) 620px -->
-                    <div class="pointer-events-none absolute right-[20px] top-[40px] w-[620px] h-[620px] rounded-full border-2 border-dashed border-[#D9CEBF] z-0" />
+                    <!-- Container Orbit & Piringan Muted Konsentris (Bulat Merata 100%, Saling Terpusat Sempurna) -->
+                    <div class="pointer-events-none absolute right-[20px] top-[40px] w-[620px] h-[620px] z-0">
+                        <!-- 1. Wadah Lingkaran Solid Muted (Halo Konsentris Sempurna, Lapang & Bulat Merata) -->
+                        <div class="absolute -inset-[85px] rounded-full bg-[#EFE7DC]/75" />
+                        
+                        <!-- 2. Garis Tipis Putus-Putus (Dashed Orbit) 620px -->
+                        <div class="absolute inset-0 rounded-full border-2 border-dashed border-[#D9CEBF]" />
+                    </div>
 
                     <!-- 3. KARTU 1: Nasi Ayam Bakar (Kiri Atas, Menempel Tepat di Busur Kiri Garis Dashed) -->
                     <div
