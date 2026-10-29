@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\Order;
 use App\Models\Review;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -67,14 +68,23 @@ class RiwayatController extends Controller
             'comment' => 'nullable|string|max:500',
         ]);
 
-        $cleanId = preg_replace('/[^0-9]/', '', $id);
-        $order = Order::with(['merchant', 'items.food'])
-            ->where('id', $id)
-            ->orWhere('order_number', $id)
-            ->when($cleanId, function ($query, $clean) {
-                $query->orWhere('order_number', 'LIKE', "%{$clean}%");
-            })
-            ->first();
+        $cleanDigits = preg_replace('/[^0-9]/', '', (string) $id);
+        $reviewOrderQuery = Order::with(['merchant', 'items.food']);
+
+        if (ctype_digit((string) $id)) {
+            $reviewOrderQuery->where(function ($q) use ($id) {
+                $q->where('id', (int) $id)
+                  ->orWhere('order_number', (string) $id);
+            });
+        } else {
+            $reviewOrderQuery->where('order_number', (string) $id);
+        }
+
+        if ($cleanDigits) {
+            $reviewOrderQuery->orWhere('order_number', 'LIKE', "%{$cleanDigits}%");
+        }
+
+        $order = $reviewOrderQuery->first();
 
         if ($order) {
             $order->has_review = true;
@@ -124,8 +134,9 @@ class RiwayatController extends Controller
         }
 
         // Tambah poin gamifikasi untuk pengguna
+        /** @var User|null $user */
         $user = Auth::user();
-        if ($user) {
+        if ($user instanceof User) {
             $user->increment('portions_rescued', 1);
         }
 
@@ -166,10 +177,18 @@ class RiwayatController extends Controller
         ]);
 
         $cleanId = trim((string) $id);
-        $order = Order::with(['items.food', 'merchant'])
-            ->where('id', $cleanId)
-            ->orWhere('order_number', $cleanId)
-            ->first();
+        $orderQuery = Order::with(['items.food', 'merchant']);
+
+        if (ctype_digit($cleanId)) {
+            $orderQuery->where(function ($q) use ($cleanId) {
+                $q->where('id', (int) $cleanId)
+                  ->orWhere('order_number', $cleanId);
+            });
+        } else {
+            $orderQuery->where('order_number', $cleanId);
+        }
+
+        $order = $orderQuery->first();
 
         if (!$order) {
             $digits = preg_replace('/[^0-9]/', '', $cleanId);
@@ -204,11 +223,13 @@ class RiwayatController extends Controller
 
         // Kembalikan stok makanan ke listing surplus agar dapat diselamatkan orang lain
         foreach ($order->items as $item) {
-            if ($item->food) {
-                $item->food->increment('stock', (int) $item->quantity);
-                if ($item->food->status === 'habis' && $item->food->stock > 0) {
-                    $item->food->status = 'aktif';
-                    $item->food->save();
+            /** @var \App\Models\Food|null $food */
+            $food = $item->food;
+            if ($food) {
+                $food->increment('stock', (int) $item->quantity);
+                if ($food->status === 'habis' && $food->stock > 0) {
+                    $food->status = 'aktif';
+                    $food->save();
                 }
             }
         }

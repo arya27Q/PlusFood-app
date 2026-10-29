@@ -28,9 +28,9 @@ const pendingCount = computed(() => {
 
 // Data Toko Mitra Dinamis Terhubung ke MySQL & Auth Session
 const currentUser = computed(() => page.props.auth?.user);
-const currentMerchant = computed(() => currentUser.value?.merchant);
-const currentStoreName = computed(() => currentMerchant.value?.name || currentUser.value?.name || 'Gerai Mitra');
-const currentStoreLocation = computed(() => currentMerchant.value?.canteen_location || currentMerchant.value?.campus_name || 'Kantin UNESA');
+const currentMerchant = computed(() => page.props.auth?.mitra || page.props.merchant || currentUser.value?.merchant);
+const currentStoreName = computed(() => currentMerchant.value?.name || currentMerchant.value?.owner_name || currentUser.value?.name || 'Gerai Mitra');
+const currentStoreLocation = computed(() => currentMerchant.value?.canteen_location || currentMerchant.value?.campus_name || currentMerchant.value?.address || 'Kantin UNESA');
 const currentInitials = computed(() => {
     const name = currentStoreName.value;
     if (!name) return 'GM';

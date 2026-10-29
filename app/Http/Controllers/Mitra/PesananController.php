@@ -88,19 +88,23 @@ class PesananController extends Controller
         $withPf = 'PF-' . ($digits ?: $cleanWithoutPf);
 
         $order = Order::with(['payment', 'merchant', 'items'])
-            ->where('id', $cleanId)
-            ->orWhere('order_number', $cleanId)
-            ->orWhere('order_number', $withPf)
-            ->orWhere('order_number', 'LIKE', "%{$cleanWithoutPf}%")
-            ->orWhere('qr_token', $cleanId)
-            ->orWhere('qr_token', 'LIKE', "%{$cleanWithoutPf}%");
+            ->where(function ($query) use ($cleanId, $cleanWithoutPf, $withPf, $digits) {
+                if (ctype_digit($cleanId)) {
+                    $query->where('id', (int) $cleanId);
+                }
 
-        if ($digits) {
-            $order = $order->orWhere('order_number', 'LIKE', "%{$digits}%")
-                           ->orWhere('qr_token', 'LIKE', "%{$digits}%");
-        }
+                $query->orWhere('order_number', $cleanId)
+                    ->orWhere('order_number', $withPf)
+                    ->orWhere('order_number', 'LIKE', "%{$cleanWithoutPf}%")
+                    ->orWhere('qr_token', $cleanId)
+                    ->orWhere('qr_token', 'LIKE', "%{$cleanWithoutPf}%");
 
-        $order = $order->first();
+                if ($digits) {
+                    $query->orWhere('order_number', 'LIKE', "%{$digits}%")
+                        ->orWhere('qr_token', 'LIKE', "%{$digits}%");
+                }
+            })
+            ->first();
 
         if (!$order) {
             $order = Order::with(['payment', 'merchant', 'items'])
